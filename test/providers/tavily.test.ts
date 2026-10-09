@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHttpClient } from "../../http/index.ts";
 import { createTavilyProvider } from "../../providers/tavily.ts";
-import { startTrackedStubServer } from "./stub.ts";
+import { startTrackedStubServer } from "../stub.ts";
 
 function makeProvider(baseUrl: string) {
 	const http = createHttpClient({ proxy: undefined, timeoutMs: 5_000, userAgent: "pi-web-search-lite/test" });
