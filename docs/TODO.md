@@ -40,23 +40,26 @@
 
 ## T4 GitHub handler
 
-- 状态：未开始 ｜ 前置：T2（`handlers.github.*` 配置已可用）
+- 状态：完成 ｜ 前置：T2（`handlers.github.*` 配置已可用）
 - 交付物：`handlers/{types,index}.ts`、`handlers/github/{index,gh,render}.ts`、`handlers/README.md`、`test/handlers/*.test.ts`
-- 验收：
-  - [ ] URL 解析覆盖 6 类页面（仓库首页 / blob / tree / issue / pull / release）与不命中形态（gist、wiki、actions、discussions、非 github 域、带 query 与锚点）
-  - [ ] `gh` 不在 PATH、或 `gh auth status` 失败时 handler 返回未处理并给出原因文本；断言此时**没有发起任何 HTTP 请求**
-  - [ ] `render.ts` 对固定 JSON fixture 输出 markdown（含标题、状态、作者、正文、评论），超 `maxChars` 时截断
-  - [ ] 用例执行后临时目录无新增文件（不 clone、不落盘）
+- 验收（TDD：先红后绿）：
+  - [x] 流程：先写 `test/handlers/*.test.ts`（含 fixtures）并实测失败（模块不存在），再实现至全绿
+  - [x] URL 解析覆盖 6 类页面（仓库首页 / blob / tree / issue / pull / release）与不命中形态（gist、wiki、actions、discussions、非 github 域、带 query 与锚点；后两者忽略后仍命中）
+  - [x] `gh` 不在 PATH、或 `gh auth status` 失败时 handler 返回未处理并给出原因文本；断言此时**没有发起任何 HTTP 请求**（另测真实 execFile 的 ENOENT 归一化）
+  - [x] `render.ts` 对固定 JSON fixture 输出 markdown（含标题、状态、作者、正文、评论），超 `maxChars` 时截断
+  - [x] 用例执行后临时目录无新增文件（不 clone、不落盘）
 
 ## T5 提取器层
 
-- 状态：未开始 ｜ 前置：T2、T3（复用 provider 的 key 解析与端点常量）
+- 状态：完成 ｜ 前置：T2、T3
 - 交付物：`extractors/{types,index,tavily,exa,html}.ts`、`extractors/README.md`、`test/extractors/*.test.ts`
-- 验收：
-  - [ ] 三条 fallback 语义各有用例：未配 key 跳过且不发请求、抛错顺延、结果长度 < `fetch.minChars` 顺延
-  - [ ] 全部失败时错误文本列出链中每个提取器的名字与失败原因
-  - [ ] `html.ts` 对固定 HTML fixture：剥离 script/style/noscript、块级标签转换行、实体解码、连续空白压缩、`<title>` 抽取
-  - [ ] 链中某提取器成功时，后续提取器不再被调用（桩计数为 0）
+- 验收（TDD：先红后绿）：
+  - [x] 流程：先写 `test/extractors/*.test.ts` 并实测失败（模块不存在），再实现至全绿
+  - [x] 三条 fallback 语义各有用例：未配 key 跳过且不发请求、抛错顺延、结果长度 < `fetch.minChars` 顺延
+  - [x] 全部失败时错误文本列出链中每个提取器的名字与失败原因
+  - [x] `html.ts` 对固定 HTML fixture：剥离 script/style/noscript、块级标签转换行、实体解码、连续空白压缩、`<title>` 抽取
+  - [x] 链中某提取器成功时，后续提取器不再被调用（桩计数为 0）
+- 偏离：前置写「复用 provider 的 key 解析与端点常量」，但 ARCHITECTURE 规定 providers/ 与 extractors/ 互不依赖，且缺 key 在链里是跳过而非报错；本层自持端点常量，key 只读 `config.apiKeys`（README 已记录）
 
 ## T6 工具层与结果信封
 
