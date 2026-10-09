@@ -47,22 +47,28 @@ jobs:
       - if: ${{ steps.check.outputs.publish == 'true' }}
         run: pnpm test
       - if: ${{ steps.check.outputs.publish == 'true' }}
-        name: 升级 npm 并自检（可信发布要求 npm >= 11.5.1）
+        name: 备好支持可信发布的 npm（要求 >= 11.5.1）
         run: |
-          npm install -g npm@latest
-          echo "node $(node --version) / npm $(npm --version)"
-          which -a npm
-          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
-            echo "OIDC 环境可用"
-          else
+          # runner 自带的 npm 是 10.x（pnpm/setup 的 runtime 自带），且 `-g` 安装改不动 PATH 上的它，
+          # 所以装到独立前缀，发布时直接调那个二进制。
+          npm install -g npm@latest --prefix "$RUNNER_TEMP/npm-cli" >/dev/null
+          npmbin="$RUNNER_TEMP/npm-cli/bin/npm"
+          echo "发布用 npm $("$npmbin" --version)，runner 自带 $(npm --version)"
+          if [ -z "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
             echo "缺 OIDC 环境变量，检查 workflow 的 id-token: write"
             exit 1
           fi
-          node -e 'const v = require("node:child_process").execSync("npm --version").toString().trim().split(".").map(Number);
-            if (v[0] < 11 || (v[0] === 11 && (v[1] < 5 || (v[1] === 5 && v[2] < 1)))) {
-              console.error("npm 太旧，不支持可信发布"); process.exit(1);
+          node -e '
+            const { execSync } = require("node:child_process");
+            const v = execSync(`"${process.argv[1]}" --version`).toString().trim();
+            const [a, b, c] = v.split(".").map(Number);
+            if (a < 11 || (a === 11 && (b < 5 || (b === 5 && c < 1)))) {
+              console.error(`npm ${v} 太旧，可信发布要求 >= 11.5.1`);
+              process.exit(1);
             }
-            console.log("npm 版本满足可信发布要求");'
+            console.log(`npm ${v} 满足可信发布要求`);
+          ' "$npmbin"
       - if: ${{ steps.check.outputs.publish == 'true' }}
         name: 发布到 npm
-        run: npm publish --access public
+        run: |
+          "$RUNNER_TEMP/npm-cli/bin/npm" publish --access public
