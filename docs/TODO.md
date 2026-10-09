@@ -29,13 +29,14 @@
 
 ## T3 provider 层（Tavily / Brave / Exa）
 
-- 状态：未开始 ｜ 前置：T2
+- 状态：完成 ｜ 前置：T2
 - 交付物：`providers/{types,index,tavily,brave,exa}.ts`、`providers/README.md`、`test/providers/*.test.ts`
-- 验收：
-  - [ ] 每个 provider 用桩 server 断言请求形状（endpoint、方法、认证头 / body 字段）与响应 → 统一结果形状的映射
-  - [ ] 缺 key 时报错文本同时含环境变量名与 `config.apiKeys.<name>` 键名
-  - [ ] provider 解析优先级四层各一条：`provider` 参数 > `WEB_SEARCH_PROVIDER` > `config.provider` > `"tavily"`
-  - [ ] 未知 provider 名抛错并列出三个合法值
+- 验收（TDD：先红后绿）：
+  - [x] 流程：先写 `test/providers/*.test.ts` 并实测失败（模块不存在），再实现至全绿
+  - [x] 每个 provider 用桩 server 断言请求形状（endpoint、方法、认证头 / body 字段）与响应 → 统一结果形状的映射
+  - [x] 缺 key 时报错文本同时含环境变量名与 `config.apiKeys.<name>` 键名
+  - [x] provider 解析优先级四层各一条：`provider` 参数 > `WEB_SEARCH_PROVIDER` > `config.provider` > `"tavily"`
+  - [x] 未知 provider 名抛错并列出三个合法值
 
 ## T4 GitHub handler
 
