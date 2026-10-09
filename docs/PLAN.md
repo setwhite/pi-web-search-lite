@@ -76,7 +76,7 @@ URL 形态 → 命令（实现时以本机 gh 版本支持的字段为准）：
   "apiKeys": { "tavily": "...", "brave": "...", "exa": "..." },
   "proxy": "http://127.0.0.1:7890",
   "timeoutMs": 30000,                             // * 单次 HTTP 超时，clamp 1_000–120_000
-  "userAgent": "pi-web-search-lite/1.0",           // * 抓取 UA；默认值包含包版本
+  "userAgent": "pi-web-search-lite/<package version>",  // * 抓取 UA；默认读 package.json 的 version
   "tools": {                                      // * 工具注册与命名
     "web_search": { "enabled": true, "name": "web_search" },
     "web_fetch":  { "enabled": true, "name": "web_fetch" }
@@ -117,14 +117,14 @@ URL 形态 → 命令（实现时以本机 gh 版本支持的字段为准）：
 | `tools.*.enabled: false` | 根本不注册该工具，上下文里没有任何痕迹 |
 | `tools.*.name` | 工具名（同时决定系统提示与错误文案里引用的名字） |
 | `activation: "eager"` | 注册为 `exposure: "direct"`，工具声明与参数 schema 常驻上下文 |
-| `activation: "deferred"` | 注册为 `exposure: "deferred"` + `defaultActive: false`，不占常驻上下文；启动时把内置 `tool_search` 加入激活集（`pi.setActiveTools`），由它按需发现并激活 |
+| `activation: "deferred"` | 注册为 `exposure: "deferred"` + `defaultActive: false`，不占常驻上下文；会话开始时（`session_start`）把内置 `tool_search` 加入激活集（`pi.setActiveTools`），由它按需发现并激活 |
 | `guidance.*.promptSnippet` | 工具列表里的一行短语 |
 | `guidance.*.promptGuidelines` | 系统提示 rules 里的条目（数组，逐条替换） |
 | `guidance.*.description` | 工具描述的整段覆盖 |
 | `context.maxInlineChars` / `maxInlineLines` | 单次工具结果进入模型的上限，超出走 `spillToFile`；`maxInlineChars` 由宿主 `truncateHead` **按字节**执行（CJK 约 3 字节/字，`null` 即宿主 `DEFAULT_MAX_BYTES`） |
 | `search.defaultMaxResults` | 模型不传 `max_results` 时的默认条数 |
 
-理由：`promptSnippet` / `promptGuidelines` 是 Pi 工具定义的真实字段（`examples/extensions/tic-tac-toe.ts:864`），rpiv 已把两者做成配置（`GuidanceFields`）。deferred 只调一次 `pi.setActiveTools` 激活内置 `tool_search`（不存在则退回 eager + 一行警告），不自建 loader、不处理 checkpoint —— transcript 重发是宿主职责。
+理由：`promptSnippet` / `promptGuidelines` 是 Pi 工具定义的真实字段（`examples/extensions/tic-tac-toe.ts:864`），rpiv 已把两者做成配置（`GuidanceFields`）。deferred 在会话开始时只调一次 `pi.setActiveTools` 激活内置 `tool_search`（宿主不提供则直接激活本扩展工具 + 一行警告；加载期不调用动作方法），不自建 loader、不处理 checkpoint —— transcript 重发是宿主职责。
 
 ### 2.7 内容超限与安全边界
 
@@ -158,6 +158,6 @@ URL 形态 → 命令（实现时以本机 gh 版本支持的字段为准）：
 - **Phase 2 — 常用扩展**：`recency` / 域名过滤参数、`/web-search --show` 配置展示、`outputSchema`、Jina Reader 作为第四个提取器、`searchRouting` 式多 provider 并发、GitHub 整仓浏览（clone + 磁盘缓存 + tree 展开）按需求评估。
 - **Phase 3 — 发布**：GitHub 仓库与 CI、npm 发布、pi package manifest 校验、多平台（Windows/macOS/Linux）手动验收清单。
 
-## 5. 待确认
+## 5. 项目坐标（已确认）
 
-包名 `pi-web-search-lite`（npm 未被占用）、项目目录 `C:/Users/Charles Liu/Desktop/test/pi-web-search-lite/`、配置文件 `~/.pi/agent/pi-web-search-lite/config.json`；其余默认值见 §2.5。
+包名 `pi-web-search-lite`（npm 未被占用）、项目目录 `C:/Users/Charles Liu/Desktop/test/pi-web-search-lite/`、配置文件 `~/.pi/agent/pi-web-search-lite/config.json`；各字段默认值与 clamp 区间见 `config/README.md`。

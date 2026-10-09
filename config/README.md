@@ -20,6 +20,35 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 - API key：`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` 优先于文件 `apiKeys.<provider>`；空字符串环境变量视为未设置。
 - 校验还包括：`provider` / `fetch.extractors` 枚举、`tools.*.name` 命名规则与保留名、两工具不能同时 `enabled: false`、`proxy` 仅 http(s)。
 
+## 默认值与 clamp 区间
+
+来源：`schema.ts` 的常量与 `RANGES`（校验逻辑见 `validate.ts`）。
+
+| 字段 | 默认值 | clamp / 枚举 |
+| --- | --- | --- |
+| `provider` | `"tavily"` | `tavily` / `brave` / `exa` |
+| `apiKeys` | `{}` | 环境变量优先 |
+| `proxy` | 无（直连） | 仅 `http(s)://`，空串 = 强制直连 |
+| `timeoutMs` | `30000` | `1000–120000` |
+| `userAgent` | `pi-web-search-lite/<package version>` | 非空 |
+| `tools.<id>.enabled` | `true` | 两个工具不能同时为 `false` |
+| `tools.<id>.name` | `web_search` / `web_fetch` | 字母开头，字母数字下划线连字符；不得重名或占宿主保留名 |
+| `activation` | `"eager"` | `eager` / `deferred` |
+| `guidance.<id>` | `{}` | 字段限 `description` / `promptSnippet` / `promptGuidelines` |
+| `context.maxInlineChars` | `null`（宿主 `DEFAULT_MAX_BYTES`） | 下限 `1000`；上限由 `tools/` 夹到宿主值（按字节截断） |
+| `context.maxInlineLines` | `null`（宿主 `DEFAULT_MAX_LINES`） | 下限 `50`；上限同上 |
+| `context.spillToFile` | `true` | — |
+| `search.defaultMaxResults` | `5` | `1–maxResultsLimit` |
+| `search.maxResultsLimit` | `10` | `1–20` |
+| `fetch.extractors` | `["tavily", "exa", "html"]` | 枚举数组，重复项静默去重 |
+| `fetch.minChars` | `200` | `0–100000` |
+| `fetch.allowRaw` | `true` | — |
+| `fetch.maxCharsPerPage` | `150000` | `1000–1000000` |
+| `handlers.github.enabled` | `true` | — |
+| `handlers.github.command` | `"gh"` | 非空 |
+| `handlers.github.timeoutMs` | `10000` | `1000–120000` |
+| `handlers.github.maxChars` | `150000` | `1000–1000000` |
+
 ## 文件
 
 | 文件 | 内容 |

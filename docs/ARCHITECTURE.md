@@ -6,10 +6,10 @@
 
 | 模块 | 职责 | 契约边界 |
 |---|---|---|
-| `index.ts` | 读配置，按 `tools.*` / `activation` / `guidance.*` 注册两个工具；deferred 时激活内置 `tool_search` | 仅扩展入口：默认导出工厂函数；不导出可复用 API |
+| `index.ts` | 读配置，按 `tools.*` / `activation` / `guidance.*` 注册两个工具；deferred 时在 `session_start` 激活内置 `tool_search` | 仅扩展入口：默认导出工厂函数；不导出可复用 API |
 | `config/` | 加载、校验、clamp 配置文件，解析 provider 与 API key | `ResolvedConfig` 类型 + 解析函数 + 配置路径；不碰网络 |
 | `http/` | 出站 HTTP 唯一出口：代理、超时、UA、`AbortSignal`、错误归一化 | `fetchText` / `fetchJson` 一族；不认 provider 语义 |
-| `ssrf/` | 抓取前的静态 URL 判定（协议、主机名、字面量 IP、端口） | 单一断言函数；不解析 DNS、不发请求 |
+| `ssrf/` | 抓取前的静态 URL 判定（协议、主机名、字面量 IP；不做端口白名单） | 单一断言函数；不解析 DNS、不发请求 |
 | `providers/{types,index,tavily,brave,exa}.ts` | 把一次查询翻译成某搜索 API 的请求与统一结果形状 | `SearchProvider` 接口 + 注册表 + 工厂；不认识提取器与工具层 |
 | `handlers/{types,index}.ts`、`handlers/github/{index,gh,render}.ts` | 识别专用页面 URL 并产出已清洗正文；不命中或失败返回 `null` | `PageHandler` 接口 + 注册表；github 子目录自管 `gh` 子进程 |
 | `extractors/{types,index,tavily,exa,html}.ts` | 按配置顺序尝试多个正文提取器，失败时汇总原因 | `Extractor` 接口 + 链式执行器；不关心 URL 是普通页还是专用页 |

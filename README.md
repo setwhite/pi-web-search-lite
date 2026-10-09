@@ -16,7 +16,7 @@ pi -e /path/to/pi-web-search-lite -p "hi"
 pi install /path/to/pi-web-search-lite
 ```
 
-也可以把 `index.ts` 放进 `~/.pi/agent/extensions/` 由宿主自动加载。依赖只有 Peer 依赖（宿主包 + typebox），安装后无需构建。
+也可以把 `index.ts` 放进 `~/.pi/agent/extensions/` 由宿主自动加载。生产依赖只有 `undici`（HTTP 层），宿主包与 `typebox` 是 peer 依赖，安装后无需构建。
 
 ## 配置
 
@@ -41,11 +41,11 @@ pi install /path/to/pi-web-search-lite
 }
 ```
 
-字段、默认值与 clamp 区间见 `config/README.md`。要点：
+字段、默认值与 clamp 区间见 `config/README.md`（上面为节选）。要点：
 
 - **provider 解析**：`web_search` 的 `provider` 参数 > `WEB_SEARCH_PROVIDER` 环境变量 > `config.provider` > `tavily`；没有自动 fallback 链。
 - **API key**：`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` 优先于 `config.apiKeys.<provider>`；缺失时直接报错并指明该配哪里。
-- **activation**：`eager` 常驻工具声明；`deferred` 注册为 `deferred` + `defaultActive: false` 并把宿主内置 `tool_search` 加入激活集（宿主没有 `tool_search` 时退回 eager 并打印一行警告）。
+- **activation**：`eager` 常驻工具声明；`deferred` 注册为 `deferred` + `defaultActive: false`，会话开始时把宿主内置 `tool_search` 加入激活集（宿主没有 `tool_search` 时直接激活本扩展工具并打印一行警告）。
 - **guidance**：`guidance.web_search` / `guidance.web_fetch` 可覆盖 `description`、`promptSnippet`、`promptGuidelines`（后两者进系统提示）。
 
 ## 代理
@@ -72,7 +72,7 @@ gh --version && gh auth login   # handler 用 `gh repo view` 等只读命令，�
 | 结果被截断 | 超过 `context.maxInlineChars` / `maxInlineLines`（按字节）时截断，`content` 会给出临时文件绝对路径，用 `read` 继续读；不想落盘设 `context.spillToFile: false` |
 | 网络请求超时或连不上 | 检查 `config.proxy`；关掉代理后目标站点不可达时错误会指向该请求 |
 | 启动报 `Tool "web_search" conflicts with ...` | 与本机其它注册同名工具的扩展（如 rpiv-web-tools）重名，pi 会拒绝加载并退出；用 `tools.*.name` 改名或移除其中一个扩展 |
-| `deferred` 模式工具不可见 | 需要宿主提供 `tool_search`；缺失时扩展已退回 eager 并打印警告 |
+| `deferred` 模式工具不可见 | 扩展会在会话开始时把宿主 `tool_search` 加入激活集；宿主不提供时已直接激活本扩展工具并打印警告 |
 
 ## 开发
 
