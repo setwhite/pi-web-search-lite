@@ -130,7 +130,7 @@ export async function executeFetch(
 }
 
 /** 未配置 guidance.promptSnippet 时的默认一行短语（工具列表用）。 */
-const DEFAULT_PROMPT_SNIPPET = "Fetch a web page and extract its text (GitHub pages via gh CLI, otherwise the extractor chain)";
+const DEFAULT_PROMPT_SNIPPET = "Extract URL text";
 
 export function createFetchTool(config: ResolvedConfig, overrides: FetchOverrides = {}): ToolDefinition<TSchema, FetchDetails> {
 	const properties: Record<string, TSchema> = {
@@ -140,22 +140,20 @@ export function createFetchTool(config: ResolvedConfig, overrides: FetchOverride
 		properties.raw = Type.Boolean({ description: "true = return the raw response body, skipping the GitHub handler and the extractor chain" });
 	}
 	const guidance = config.guidance.web_fetch ?? {};
+	// 默认 guidelines 前缀与跨工具引用都取配置的工具名，改名后不失效；description 保持英文
+	const toolName = config.tools.web_fetch.name;
+	const searchToolName = config.tools.web_search.name;
 	const guidanceFields = {
 		promptSnippet: guidance.promptSnippet ?? DEFAULT_PROMPT_SNIPPET,
-		...(guidance.promptGuidelines ? { promptGuidelines: guidance.promptGuidelines } : {}),
+		promptGuidelines: guidance.promptGuidelines ?? [
+			`${toolName}: use to get full text of a URL, e.g. docs or URLs found by ${searchToolName}.`,
+		],
 	};
 
 	return {
-		name: config.tools.web_fetch.name,
+		name: toolName,
 		label: "Web Fetch",
-		description:
-			guidance.description ??
-			[
-				`Fetch a web page and extract its text: the GitHub handler (gh CLI) runs first, then the configured extractors in order: ${config.fetch.extractors.join(" -> ")}.`,
-				...(config.fetch.allowRaw ? ["raw: true returns the raw response body, skipping the handler and the extractor chain."] : []),
-				"Fails when the content is shorter than fetch.minChars or when every extractor fails; skipped handlers are reported with a reason in the result.",
-				"Truncated at the context limit; when truncated, the full content is written to a temp file whose absolute path is included, readable with the read tool.",
-			].join("\n"),
+		description: guidance.description ?? "Extract content of URL.",
 		parameters: Type.Object(properties),
 		...guidanceFields,
 		renderCall: renderFetchCall,

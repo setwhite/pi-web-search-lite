@@ -171,8 +171,27 @@ describe("index：guidance 覆盖", () => {
 		expect(search?.description).toBe("自定义搜索描述");
 		expect(search?.promptSnippet).toBe("自定义一行");
 		expect(search?.promptGuidelines).toEqual(["优先用 web_search"]);
-		expect(fetch?.description).not.toBe("自定义搜索描述");
-		expect(fetch?.promptSnippet).toBeTruthy();
-		expect(fetch?.promptGuidelines).toBeUndefined();
+		expect(fetch?.description).toBe("Extract content of URL.");
+		expect(fetch?.promptSnippet).toBe("Extract URL text");
+		expect(fetch?.promptGuidelines).toEqual([
+			'web_fetch: use to get full text of a URL, e.g. docs or URLs found by web_search.',
+		]);
+	});
+
+	it("默认 guidelines 用配置的工具名组装（含跨工具引用）", () => {
+		useConfig({ tools: { web_search: { name: "ws" }, web_fetch: { name: "wf" } } });
+		const { api, registered } = fakeApi();
+
+		piWebSearchLite(api);
+
+		const search = registered.find((tool) => tool.name === "ws");
+		const fetch = registered.find((tool) => tool.name === "wf");
+		expect(search?.promptGuidelines).toEqual([
+			"ws: use for info beyond training data (recent events, fact-checking, live docs).",
+			'ws: cite sources as "Sources:" with [Title](URL) links.',
+		]);
+		expect(fetch?.promptGuidelines).toEqual([
+			"wf: use to get full text of a URL, e.g. docs or URLs found by ws.",
+		]);
 	});
 });

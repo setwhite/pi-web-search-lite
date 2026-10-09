@@ -75,7 +75,7 @@ const PROVIDER_SCHEMA = Type.Union(
 );
 
 /** 未配置 guidance.promptSnippet 时的默认一行短语（工具列表用）。 */
-const DEFAULT_PROMPT_SNIPPET = "Search the web via Tavily / Brave / Exa (provider is chosen explicitly)";
+const DEFAULT_PROMPT_SNIPPET = "Search the web";
 
 /** schema 独立成函数：返回类型要用 `Static<typeof ...>`，函数签名引用不到函数体内的变量。 */
 function buildParameters(config: ResolvedConfig) {
@@ -98,22 +98,20 @@ export function createSearchTool(
 ): ToolDefinition<SearchParameters, SearchDetails> {
 	const parameters = buildParameters(config);
 	const guidance = config.guidance.web_search ?? {};
+	// 默认 guidelines 前缀取配置的工具名，改名后提示词仍指向真实工具；description 保持英文（tool_search 的 BM25 只索引 a-z0-9）
+	const toolName = config.tools.web_search.name;
 	const guidanceFields = {
 		promptSnippet: guidance.promptSnippet ?? DEFAULT_PROMPT_SNIPPET,
-		...(guidance.promptGuidelines ? { promptGuidelines: guidance.promptGuidelines } : {}),
+		promptGuidelines: guidance.promptGuidelines ?? [
+			`${toolName}: use for info beyond training data (recent events, fact-checking, live docs).`,
+			`${toolName}: cite sources as "Sources:" with [Title](URL) links.`,
+		],
 	};
 
 	return {
-		name: config.tools.web_search.name,
+		name: toolName,
 		label: "Web Search",
-		description:
-			guidance.description ??
-			[
-				"Search the web via one of Tavily / Brave / Exa; returns titles, URLs and snippets.",
-				`Provider resolution order: "provider" argument > WEB_SEARCH_PROVIDER env var > config.provider > tavily; a missing API key is an error and never falls back to another provider.`,
-				`max_results is clamped to 1-${config.search.maxResultsLimit} (default ${config.search.defaultMaxResults}).`,
-				"Results are truncated at the context limit; when truncated, the full content is written to a temp file whose absolute path is included so the read tool can continue.",
-			].join("\n"),
+		description: guidance.description ?? "Search the web; returns titles, URLs and snippets.",
 		parameters,
 		...guidanceFields,
 		renderCall: renderSearchCall,
