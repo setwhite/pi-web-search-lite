@@ -145,14 +145,16 @@
 
 ## T11 CI（GitHub Actions）
 
-- 状态：进行中 ｜ 前置：T9、T10（代码已推送到 `setwhite/pi-web-search-lite`）
+- 状态：待审 ｜ 前置：T9、T10（代码已推送到 `setwhite/pi-web-search-lite`）
 - 交付物：`.github/workflows/ci.yml`；`package.json` 补 `packageManager`（`pnpm@12.3.4`）与 `engines.node >= 22.19.0`；README 开发节说明
 - 验收：
-  - [ ] 矩阵：ubuntu（Node 22 / 24）+ windows（Node 22），每格跑 `pnpm run typecheck` 与 `pnpm test`
-  - [ ] main 推送与 `pull_request` 两个触发都生效
-  - [ ] 首次运行全绿（`gh run list` 证据）
-  - [ ] CI 不依赖任何 secret：测试全程不打真实网络（provider / 提取器用桩 server 与注入的 exec）
+  - [x] 矩阵：ubuntu（Node 22 / 24）+ windows（Node 22），每格跑 `pnpm run typecheck` 与 `pnpm test`
+  - [x] main 推送触发（run `37938649108`，3 个 job 全绿：ubuntu/24 21s、ubuntu/22 22s、windows/22 41s）
+  - [ ] `pull_request` 触发已配置，待首个 PR 验证
+  - [x] 首次运行全绿：三格日志均为 `Test Files 23 passed` + `Tests 225 passed`
+  - [x] CI 不依赖任何 secret：测试全程不打真实网络（provider / 提取器用桩 server 与注入的 exec）
 - 决定：
   - 用 `pnpm/setup@v3`（pnpm 12 属 v11+，官方推荐接替 `pnpm/action-setup`；自带 pnpm + Node 并自动执行 `pnpm install`），不再叠加 `actions/setup-node`。
-  - pnpm 版本以 `package.json` 的 `packageManager` 为 SSOT，CI 不硬编码版本。
+  - pnpm 版本以 `package.json` 的 `packageManager` 为 SSOT，CI 不硬编码版本；pnpm 12 会在 lockfile 里额外记一页 `packageManagerDependencies`（pnpm 自身格式，已实测生成）。
   - 不加 lint / 覆盖率卡口：仓库当前没有 ESLint 配置，也没有覆盖率要求。
+  - 遗留提醒：GitHub 将于 2026-10-19 把 `ubuntu-latest` 迁到 Ubuntu 26（runner 的 notice），届时 CI 无需改动。
