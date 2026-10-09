@@ -9,10 +9,13 @@
 ## 安装
 
 ```bash
+# 从 npm 安装（发布后可用）
+pi install npm:pi-web-search-lite
+
 # 试用一次（不改 settings）
 pi -e /path/to/pi-web-search-lite -p "hi"
 
-# 常驻：把仓库装进 pi 包
+# 常驻：把本地仓库装进 pi 包
 pi install /path/to/pi-web-search-lite
 ```
 

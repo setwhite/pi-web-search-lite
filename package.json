@@ -2,12 +2,31 @@
 	"name": "pi-web-search-lite",
 	"version": "0.1.0",
 	"description": "Pi extension: lightweight web_search + web_fetch with configurable search provider and fetch chain.",
+	"author": "setwhite",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/setwhite/pi-web-search-lite.git"
+	},
+	"homepage": "https://github.com/setwhite/pi-web-search-lite#readme",
+	"bugs": {
+		"url": "https://github.com/setwhite/pi-web-search-lite/issues"
+	},
 	"type": "module",
 	"license": "MIT",
 	"packageManager": "pnpm@12.3.4",
 	"engines": {
 		"node": ">=22.19.0"
 	},
+	"files": [
+		"index.ts",
+		"config",
+		"http",
+		"ssrf",
+		"providers",
+		"handlers",
+		"extractors",
+		"tools"
+	],
 	"keywords": [
 		"pi-package",
 		"pi-extension",

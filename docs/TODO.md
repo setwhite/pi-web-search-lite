@@ -158,3 +158,17 @@
   - pnpm 版本以 `package.json` 的 `packageManager` 为 SSOT，CI 不硬编码版本；pnpm 12 会在 lockfile 里额外记一页 `packageManagerDependencies`（pnpm 自身格式，已实测生成）。
   - 不加 lint / 覆盖率卡口：仓库当前没有 ESLint 配置，也没有覆盖率要求。
   - 遗留提醒：GitHub 将于 2026-10-19 把 `ubuntu-latest` 迁到 Ubuntu 26（runner 的 notice），届时 CI 无需改动。
+
+## T12 npm 发布
+
+- 状态：进行中（发布前置就绪，等 npm 登录）｜前置：T11
+- 交付物：`LICENSE`（MIT，2026 setwhite）；`package.json` 补 `author` / `repository` / `homepage` / `bugs` / `files` 白名单；README 安装节加 `pi install npm:pi-web-search-lite`；npm 上发布 0.1.0
+- 验收：
+  - [x] `npm pack` 产物只含运行时代码：36 文件 / 42.1 kB（`test/`、`docs/`、`tsconfig.json`、`pnpm-lock.yaml`、`.github/` 均不入包）
+  - [x] 解包后直接跑 pi 冒烟通过：`web_fetch https://example.com`（提取器 tavily）+ `web_search "pi coding agent"` 2 条，证明 `files` 白名单无缺漏
+  - [ ] `pnpm publish --access public` 成功（需要用户 npm 登录 / OTP）
+  - [ ] 注册表侧复核 `npm view pi-web-search-lite version dist.tarball dist.integrity`
+  - [ ] `pi install npm:pi-web-search-lite` 在隔离 agent dir 装成并跑通（PLAN §9 的验收路径）
+- 决定：
+  - 直接发 TypeScript 源码（宿主 `pi` 自带 TS 加载），不引入构建步骤；`files` 只列 `index.ts` 与 8 个运行时目录，目录内 README 一并发出（它们是模块契约文档）。
+  - 宿主提供的五个包继续只声明 peerDependencies `*`（docs/packages.md 的要求），`undici` 是唯一 runtime dependency。
