@@ -92,7 +92,7 @@
 
 ## T8 安全与回归测试
 
-- 状态：待审 ｜ 前置：T1–T7 全部 `完成`
+- 状态：完成 ｜ 前置：T1–T7 全部 `完成`
 - 交付物：`test/regression/` 用例、`docs/VERIFICATION.md`（手动验收清单：配置矩阵、代理开关、GitHub handler 开启/关闭、deferred 模式）
 - 验收：
   - [x] `pnpm test` 全绿（22 文件 209 例）+ `pnpm run typecheck` 通过；新增回归：SSRF 黑名单 12 条逐条、错误文案快照（缺 key / 坏配置 / 坏 JSON / gh 未安装 / gh 未登录 / 全部提取器失败）
