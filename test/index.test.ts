@@ -33,22 +33,43 @@ interface FakeApiResult {
 	api: ExtensionAPI;
 	registered: ToolDefinition[];
 	setActiveCalls: string[][];
+	emit: (event: string) => void;
+	allToolsCalls: () => number;
 }
 
 function fakeApi(tools: string[] = [], active: string[] = []): FakeApiResult {
 	const registered: ToolDefinition[] = [];
 	const setActiveCalls: string[][] = [];
+	const handlers = new Map<string, Array<() => void>>();
 	const current = [...active];
+	let probeCount = 0;
 	const api = {
 		registerTool: (tool: ToolDefinition) => void registered.push(tool),
-		getAllTools: () => tools.map((name) => ({ name })),
+		on: (event: string, handler: () => void) => {
+			const list = handlers.get(event) ?? [];
+			list.push(handler);
+			handlers.set(event, list);
+			return () => {};
+		},
+		getAllTools: () => {
+			probeCount += 1;
+			return tools.map((name) => ({ name }));
+		},
 		getActiveTools: () => [...current],
 		setActiveTools: (names: string[]) => {
 			setActiveCalls.push([...names]);
 			current.splice(0, current.length, ...names);
 		},
 	} as unknown as ExtensionAPI;
-	return { api, registered, setActiveCalls };
+	return {
+		api,
+		registered,
+		setActiveCalls,
+		emit: (event: string) => {
+			for (const handler of handlers.get(event) ?? []) handler();
+		},
+		allToolsCalls: () => probeCount,
+	};
 }
 
 describe("index：注册与开关", () => {
@@ -95,36 +116,42 @@ describe("index：注册与开关", () => {
 });
 
 describe("index：deferred 激活", () => {
-	it("deferred 注册为 deferred + defaultActive false，并把 tool_search 合入激活集", () => {
+	it("deferred 注册为 deferred + defaultActive false，加载期不碰动作方法，会话开始后才激活 tool_search", () => {
 		useConfig({ activation: "deferred" });
-		const { api, registered, setActiveCalls } = fakeApi(["tool_search", "read"], ["read"]);
+		const { api, registered, setActiveCalls, emit, allToolsCalls } = fakeApi(["tool_search", "read"], ["read"]);
 
 		piWebSearchLite(api);
 
 		expect(registered.every((tool) => tool.exposure === "deferred" && tool.defaultActive === false)).toBe(true);
+		expect(allToolsCalls()).toBe(0);
+		expect(setActiveCalls).toEqual([]);
+
+		emit("session_start");
 		expect(setActiveCalls).toEqual([["read", "tool_search"]]);
 	});
 
 	it("tool_search 已在激活集时不重复调用 setActiveTools", () => {
 		useConfig({ activation: "deferred" });
-		const { api, setActiveCalls } = fakeApi(["tool_search"], ["tool_search"]);
+		const { api, setActiveCalls, emit } = fakeApi(["tool_search"], ["tool_search"]);
 
 		piWebSearchLite(api);
+		emit("session_start");
 
 		expect(setActiveCalls).toEqual([]);
 	});
 
-	it("宿主不提供 tool_search 时退回 eager 并打印一行警告", () => {
+	it("宿主不提供 tool_search 时打印一行警告并直接激活两个工具", () => {
 		useConfig({ activation: "deferred" });
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-		const { api, registered, setActiveCalls } = fakeApi(["read"], ["read"]);
+		const { api, registered, setActiveCalls, emit } = fakeApi(["read"], ["read"]);
 
 		piWebSearchLite(api);
+		emit("session_start");
 
-		expect(registered.every((tool) => tool.exposure === "direct")).toBe(true);
-		expect(setActiveCalls).toEqual([]);
+		expect(registered.every((tool) => tool.exposure === "deferred")).toBe(true);
 		expect(warn).toHaveBeenCalledTimes(1);
 		expect(warn.mock.calls[0]?.[0]).toContain("tool_search");
+		expect(setActiveCalls).toEqual([["read", "web_search", "web_fetch"]]);
 	});
 });
 
