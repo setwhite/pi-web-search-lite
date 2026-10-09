@@ -161,14 +161,14 @@
 
 ## T12 npm 发布
 
-- 状态：进行中（发布前置就绪，等 npm 登录）｜前置：T11
+- 状态：待审（已发布 0.1.0）｜前置：T11
 - 交付物：`LICENSE`（MIT，2026 setwhite）；`package.json` 补 `author` / `repository` / `homepage` / `bugs` / `files` 白名单；README 安装节加 `pi install npm:pi-web-search-lite`；npm 上发布 0.1.0
 - 验收：
   - [x] `npm pack` 产物只含运行时代码：36 文件 / 42.1 kB（`test/`、`docs/`、`tsconfig.json`、`pnpm-lock.yaml`、`.github/` 均不入包）
   - [x] 解包后直接跑 pi 冒烟通过：`web_fetch https://example.com`（提取器 tavily）+ `web_search "pi coding agent"` 2 条，证明 `files` 白名单无缺漏
-  - [ ] `pnpm publish --access public` 成功（需要用户 npm 登录 / OTP）
-  - [ ] 注册表侧复核 `npm view pi-web-search-lite version dist.tarball dist.integrity`
-  - [ ] `pi install npm:pi-web-search-lite` 在隔离 agent dir 装成并跑通（PLAN §9 的验收路径）
+  - [x] `pnpm publish --access public` 成功（用户执行，2026-10-09T14:56:41Z，maintainer `setwhite`）
+  - [x] 注册表侧复核：`version 0.1.0`、`dist.shasum a1541c7e4418f3be2cb0d1ea75fdb714dcdaee9b`、`dist.integrity sha512-Xm4EoEAcfXNVuxi2LQU7rjTAFXIp6+/GfcqLsfmZTdGyRMOUAJW1cG/UEdociuIfz2/lPBiz8GB+d03xhmOZtA==`，与本地 dry-run 完全一致；拉回 tarball 复核 36 文件、无 `test/`、`docs/`、`tsconfig.json`、lockfile、`.github/`
+  - [x] `pi install npm:pi-web-search-lite` 在隔离 agent dir 装成（`added 2 packages`，settings.json 写入 `packages: ["npm:pi-web-search-lite"]`），只配 `TAVILY_API_KEY` 即跑通：`web_search` 2 条（provider tavily）+ `web_fetch https://example.com`（extractor tavily），即 PLAN §9 的验收路径
 - 决定：
   - 直接发 TypeScript 源码（宿主 `pi` 自带 TS 加载），不引入构建步骤；`files` 只列 `index.ts` 与 8 个运行时目录，目录内 README 一并发出（它们是模块契约文档）。
   - 宿主提供的五个包继续只声明 peerDependencies `*`（docs/packages.md 的要求），`undici` 是唯一 runtime dependency。
