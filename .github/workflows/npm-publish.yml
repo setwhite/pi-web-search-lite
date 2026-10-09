@@ -47,8 +47,22 @@ jobs:
       - if: ${{ steps.check.outputs.publish == 'true' }}
         run: pnpm test
       - if: ${{ steps.check.outputs.publish == 'true' }}
-        name: 升级 npm（可信发布要求 >= 11.5.1）
-        run: npm install -g npm@latest
+        name: 升级 npm 并自检（可信发布要求 npm >= 11.5.1）
+        run: |
+          npm install -g npm@latest
+          echo "node $(node --version) / npm $(npm --version)"
+          which -a npm
+          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
+            echo "OIDC 环境可用"
+          else
+            echo "缺 OIDC 环境变量，检查 workflow 的 id-token: write"
+            exit 1
+          fi
+          node -e 'const v = require("node:child_process").execSync("npm --version").toString().trim().split(".").map(Number);
+            if (v[0] < 11 || (v[0] === 11 && (v[1] < 5 || (v[1] === 5 && v[2] < 1)))) {
+              console.error("npm 太旧，不支持可信发布"); process.exit(1);
+            }
+            console.log("npm 版本满足可信发布要求");'
       - if: ${{ steps.check.outputs.publish == 'true' }}
         name: 发布到 npm
         run: npm publish --access public
