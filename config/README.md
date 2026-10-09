@@ -16,9 +16,9 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 
 - `configPath` 缺省由 `env` 推导；`env` 缺省 `process.env`（测试可注入）。
 - JSON 损坏、顶层非对象、字段非法 → 抛 `Error`，消息含配置文件的绝对路径；字段非法时逐条列出 `<field path>: <reason>`。
-- 数值字段越界不报错，clamp 到 `schema.ts` 的 `RANGES` 区间；`context.maxInlineChars` / `maxInlineLines` 只保证下限，上限（宿主 `DEFAULT_MAX_BYTES` / `DEFAULT_MAX_LINES`）由 `tools/` 截断时对齐（config 不依赖宿主 API）。
+- 数值字段越界不报错，clamp 到 `schema.ts` 的 `RANGES` 区间（区间见下表）。
 - API key：`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY` 优先于文件 `apiKeys.<id>`；空字符串环境变量视为未设置。`jina` 是提取器专用键，**可缺**（官方允许匿名 20 RPM，配了走更高配额）。
-- 校验还包括：`provider` / `fetch.extractors` 枚举、`tools.*.name` 命名规则与保留名、两工具不能同时 `enabled: false`、`proxy` 仅 http(s)。
+- `proxy` 仅接受 `http(s)://`；其余枚举与命名规则见下表。
 
 ## 默认值与 clamp 区间
 

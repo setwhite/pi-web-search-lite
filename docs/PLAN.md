@@ -33,13 +33,13 @@ perplexity 用的是返回原始排名结果的 Search API，不是产出 LLM �
 
 `web_fetch` 的第 0 步：命中且成功 → 跳过整条链；未命中或失败 → 顺延到链并注明 handler 名与顺延原因（透明顺延，不是静默降级）。URL 形态、`gh` 子进程约定与已知局限见 `handlers/README.md`。
 
-理由：单页内容由 `gh` 直接返回清洗文本，省掉 clone 生命周期与磁盘缓存（参考实现为这两项各写了 890 / 1063 行）。
+理由：单页内容由 `gh` 直接返回清洗文本，省掉 clone 生命周期与磁盘缓存。
 
 ### 2.4 代理：配置唯一入口
 
 `config.proxy`（可选）是唯一代理配置点，空串 = 强制直连；**不读** `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`，本机目标永远绕过；只支持 `http:` / `https:` 代理，socks5 在配置校验阶段报错（本期不做 curl 传输，避免外部二进制依赖）。实现见 `http/README.md`。
 
-理由：目标场景的 Clash / V2Ray 都提供 http 代理端口；pi-web-access 为此把全局 `fetch` 替换成 curl 子进程适配层（~200 行），可省。
+理由：目标场景的 Clash / V2Ray 都提供 http 代理端口；pi-web-access 为此把全局 `fetch` 替换成 curl 子进程适配层，可省。
 
 ### 2.5 配置：单 JSON 文件 + 可选环境变量
 
@@ -47,19 +47,9 @@ perplexity 用的是返回原始排名结果的 Search API，不是产出 LLM �
 
 ### 2.6 上下文控制：每个影响上下文的开关都可配
 
-| 配置 | 影响 |
-|---|---|
-| `tools.*.enabled: false` | 根本不注册该工具，上下文里没有任何痕迹 |
-| `tools.*.name` | 工具名（同时决定系统提示与错误文案里引用的名字，默认提示词按它组装） |
-| `activation: "eager"` | 注册为 `exposure: "direct"`，工具声明与参数 schema 常驻上下文 |
-| `activation: "deferred"` | 注册为 `exposure: "deferred"` + `defaultActive: false`，不占常驻上下文；`session_start` 把宿主内置 `tool_search` 加入激活集，由它按需发现并激活 |
-| `guidance.*.promptSnippet` | 工具列表里的一行短语覆盖 |
-| `guidance.*.promptGuidelines` | 系统提示 rules 条目的整组覆盖 |
-| `guidance.*.description` | 工具描述的整段覆盖 |
-| `context.maxInlineChars` / `maxInlineLines` | 单次工具结果进入模型的上限，超出走 `spillToFile`（按字节截断） |
-| `search.defaultMaxResults` | 模型不传 `max_results` 时的默认条数 |
+`tools.*.enabled` / `tools.*.name` / `activation` / `guidance.*` / `context.maxInline*` / `search.defaultMaxResults` 都能改变进入上下文的内容，字段与默认值见 `config/README.md`。
 
-理由：`promptSnippet` / `promptGuidelines` 是 Pi 工具定义的真实字段，rpiv 已把两者做成配置（`GuidanceFields`）。deferred 在会话开始时只调一次 `pi.setActiveTools`（宿主不提供 `tool_search` 则直接激活本扩展工具 + 一行警告；加载期不调用动作方法），不自建 loader、不处理 checkpoint——transcript 重发是宿主职责。
+理由：`promptSnippet` / `promptGuidelines` 是 Pi 工具定义的真实字段，rpiv 已把两者做成配置；deferred 在会话开始时调一次 `pi.setActiveTools`（宿主没有 `tool_search` 就退化为直接激活 + 一行警告；加载期不调用动作方法），不自建 loader、不处理 checkpoint——transcript 重发是宿主职责。
 
 ### 2.7 内容超限与安全边界
 
@@ -86,10 +76,6 @@ perplexity 用的是返回原始排名结果的 Search API，不是产出 LLM �
 
 ## 4. 阶段划分
 
-- **Phase 1 — MVP**：TODO 的 T1–T8。包骨架 → 配置 → HTTP + SSRF → provider → handler → 提取器 → 工具层 → 入口注册与文档 → 安全与回归测试。
-- **Phase 2 — 常用扩展**：`recency` / 域名过滤参数、`/web-search --show` 配置展示、`outputSchema`、`searchRouting` 式多 provider 并发、GitHub 整仓浏览（clone + 磁盘缓存 + tree 展开）按需求评估。
-- **Phase 3 — 发布**：GitHub 仓库与 CI（T11）、npm 发布（T12）、pi package manifest 校验、多平台手动验收清单。
-
-## 5. 项目坐标（已确认）
-
-包名 `pi-web-search-lite`（npm 未被占用）、项目目录 `C:/Users/Charles Liu/Desktop/test/pi-web-search-lite/`、配置文件 `~/.pi/agent/pi-web-search-lite/config.json`；各字段默认值与 clamp 区间见 `config/README.md`。
+- **Phase 1 — MVP**：已交付（任务台账见 `docs/TODO.md`）。
+- **Phase 2 — 常用扩展**：`recency` / 域名过滤参数、`/web-search --show` 配置展示、`outputSchema`、多 provider 并发搜索、GitHub 整仓浏览（clone + 磁盘缓存 + tree 展开），按需求评估。
+- **Phase 3 — 发布**：CI 与 npm 发布已落地（T11 / T12）；多平台手动验收见 `docs/VERIFICATION.md`。

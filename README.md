@@ -2,6 +2,8 @@
 
 # pi-web-search-lite
 
+![pi 会话：web_search 用 exa 搜到 5 条结果，web_fetch 紧接着抓到第一页正文](https://raw.githubusercontent.com/setwhite/pi-web-search-lite/main/assets/cover.png)
+
 给 pi 加两个工具：`web_search` 搜网页、`web_fetch` 抓网页正文；所有出站请求走同一个代理。
 
 ## 安装
@@ -25,7 +27,7 @@ pi install git:github.com/setwhite/pi-web-search-lite    # 从 git 仓库安装
 }
 ```
 
-key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY`，优先于文件）；换默认搜索源改 `provider`。
+key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY`，优先于文件）；换默认搜索源改 `provider`，也能用 `WEB_SEARCH_PROVIDER` 环境变量临时覆盖。
 
 **完整示例**——列全所有配置项，注释说明每个键干什么；除 key、userAgent 和 guidance 是覆盖示例外，其余值就是默认值：
 
@@ -99,7 +101,7 @@ key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 - 抓网页：按你配的顺序挨个试提取器，第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key）；`tavily` / `exa` / `firecrawl` 要自己加进 `fetch.extractors`；GitHub 页面优先用 `gh`；想直接拿原始响应，把 `fetch.allowRaw` 打开后才有 `raw` 参数。
 - 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查；结果太长自动截断，全文落到临时文件。
 - 上下文可控：工具可改名、可关闭、可改成按需发现，减少常驻提示词。
-- 提示词精简：内置提示词都是英文单行；「截断了怎么续读」「key 配哪」「参数范围」这类信息写在报错和结果里，不占提示词；工具改名后，提示词里的名字自动跟着变。
+- 提示词精简：内置提示词是英文单行；续读提示、key 位置、参数范围这些信息由报错与结果承载，不占提示词；工具改名后提示词自动跟着变。
 
 ## Requirements
 
@@ -111,7 +113,7 @@ key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 - [nicobailon/pi-web-access](https://github.com/nicobailon/pi-web-access) —— 提取器链与专用页面 handler 的思路来源。
 - [juicesharp/rpiv-mono · rpiv-web-tools](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-web-tools) —— 薄 provider 层、提示词配置面与 TUI 渲染的参考。
 
-感谢两位作者把方案完整开源，本项目的取舍建立在对它们代码的阅读上。
+两者的方案完整开源，本项目的取舍建立在读它们代码的基础上。
 
 ## 文档索引
 
@@ -129,4 +131,4 @@ pnpm test        # 单元测试，不打真实网络
 pnpm typecheck
 ```
 
-CI 跑同样的两条命令（Linux / Windows、多 Node 版本），pnpm 版本由 `packageManager` 锁定。
+CI 在 Linux 与 Windows 上跑这两条命令；pnpm 版本由 `packageManager` 字段锁定。

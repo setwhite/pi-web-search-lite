@@ -2,6 +2,8 @@
 
 # pi-web-search-lite
 
+![A pi session: web_search returns 5 results via exa, then web_fetch extracts the first page](https://raw.githubusercontent.com/setwhite/pi-web-search-lite/main/assets/cover.png)
+
 Adds two tools to pi: `web_search` for the web, `web_fetch` for page text; every outbound request goes through a single proxy setting.
 
 ## Install
@@ -25,7 +27,7 @@ One JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.j
 }
 ```
 
-Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY`, which win over the file); change `provider` to switch the default backend.
+Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY`, which win over the file); change `provider` to switch the default backend, or override it for one run with the `WEB_SEARCH_PROVIDER` env var.
 
 **Full example** — every option, commented; apart from the key values, userAgent and the guidance overrides, the values shown are the defaults:
 
@@ -99,7 +101,7 @@ Every key is optional. Defaults and ranges: `config/README.md`; to override prom
 - Fetch: extractors are tried in the order you configure until one produces usable content (`html` → `jina` by default, neither needs a key; add `tavily` / `exa` / `firecrawl` to `fetch.extractors` yourself); GitHub pages go through `gh`; turn on `fetch.allowRaw` to get the `raw` argument for raw response bodies.
 - Safe by default: private and loopback addresses are rejected, and every redirect hop is re-checked; oversized results are truncated with the full text spilled to a temp file.
 - Controllable context: tools can be renamed, disabled or switched to on-demand discovery.
-- Lean prompts: built-in prompts are single-line English; details such as "how to continue after truncation", "where to put the key" or "argument ranges" live in errors and results instead of the prompt, and renamed tools are reflected in the prompts automatically.
+- Lean prompts: built-in prompts are single-line English; how to continue after truncation, where to put the key or what the argument ranges are live in errors and results instead of the prompt, and renamed tools are reflected in the prompts automatically.
 
 ## Requirements
 
@@ -111,7 +113,7 @@ Every key is optional. Defaults and ranges: `config/README.md`; to override prom
 - [nicobailon/pi-web-access](https://github.com/nicobailon/pi-web-access) — where the extractor chain and dedicated page handlers came from.
 - [juicesharp/rpiv-mono · rpiv-web-tools](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-web-tools) — reference for the thin provider layer, the prompt config surface and TUI rendering.
 
-Thanks to both authors for open-sourcing their work; this project's trade-offs come from reading their code.
+Both are fully open-sourced; this project's trade-offs come from reading their code.
 
 ## Documentation
 
@@ -131,4 +133,4 @@ pnpm test        # unit tests, no real network
 pnpm typecheck
 ```
 
-CI runs the same two commands (Linux / Windows, several Node versions); the pnpm version is pinned via `packageManager`.
+CI runs the same two commands on Linux and Windows; the pnpm version is pinned via `packageManager`.

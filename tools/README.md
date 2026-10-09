@@ -35,7 +35,7 @@ renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   //
 | | `web_search` | `web_fetch` |
 |---|---|---|
 | 参数 | `query` 必填；`max_results`（clamp 1–`search.maxResultsLimit`，缺省 `search.defaultMaxResults`）；`provider` 覆盖 | `url` 必填；`raw` **仅当 `fetch.allowRaw` 为真才进 schema** |
-| 顺序 | `resolveProviderId`（参数 > env > config > tavily）→ `resolveApiKey` → provider | `assertPublicUrl` → handler → 提取器链；`raw: true` 跳过 handler 与链 |
+| 顺序 | `resolveProviderId`（序号见 `providers/README.md`）→ `resolveApiKey` → provider | `assertPublicUrl` → handler → 提取器链；`raw: true` 跳过 handler 与链 |
 | details | `{ provider, query, count, results, truncated, fullOutputPath? }` | `{ url, title, source, mode, chars, visibleChars, truncated, fullOutputPath?, handlerSkips }` |
 
 - `source` 取 `"github"` / `ExtractorId` / `"raw"`；handler 命中但跳过时 `handlerSkips` 记录原因，`content` 用引用行注明「未接管」，再顺延到链（透明顺延）。
@@ -45,9 +45,9 @@ renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   //
 
 ## 渲染（`render.ts`）
 
-数据源只有 `args` 与 `details`：不读网络、不改 details、不进模型上下文；渲染抛错时宿主会回退到默认样式（`tool-execution.js`）。
+数据源只有 `args` 与 `details`：不读网络、不改 details、不进模型上下文；渲染抛错时宿主回退到默认样式。
 
-- 调用行：`Web Search "查询词"[ via provider]`（provider 只在参数显式传入时才有）、`Web Fetch <url>`；流式参数可能不完整，字符字段一律 `typeof === "string"` 后再用。
+- 调用行：`Web Search "查询词"[ via provider]`（provider 只在参数显式传入时才有）、`Web Fetch <url>`。
 - 结果行折叠时只给一行摘要：搜索 `✓ N results (provider)`，fetch `✓ Fetched: 标题`；`truncated` 追加 ` (truncated)`。
 - `expanded` 才展开：搜索列前 5 条标题后给 `… N more`，fetch 列正文前 15 行后给 `… N more lines`（上限参考 rpiv 的 5 / 15）。
 - `isPartial` 显示 `Searching…` / `Fetching…`（本扩展不调 `onUpdate`，只有宿主流式更新才会出现）。
@@ -57,4 +57,4 @@ renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   //
 
 ## 测试
 
-`test/tools/{result,search,fetch,render}.test.ts`（36 例）用 `test/tools/fixtures.ts` 的 `makeConfig` + `fakeHttp` 桩；handler 与提取器用计数 fake 断言「命中时链不被调用」「raw 时两者都不被调用」。渲染用假 `Theme`（记录 `fg` 的 color）断言文案与语义色，`Text.render(80)` 逐行去尾部填充后比较；不打真实网络。
+`test/tools/{result,search,fetch,render}.test.ts` 用 `test/tools/fixtures.ts` 的 `makeConfig` + `fakeHttp` 桩；handler 与提取器用计数 fake 断言「命中时链不被调用」「raw 时两者都不被调用」。渲染用假 `Theme`（记录 `fg` 的 color）断言文案与语义色；不打真实网络。

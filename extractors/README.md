@@ -30,12 +30,12 @@ interface ExtractorContext { http; apiKeys; minChars; maxCharsPerPage; signal? }
 4. 全部失败 → 抛 `ExtractError`，错误文本逐条列出每个提取器名字 + 原因（跳过与失败都列出）。
 5. 成功 → 内容超 `fetch.maxCharsPerPage` 截断并标记 `truncated`；`title` 缺失时用最终 URL 顶替。
 
-## html 五步法
+## html 提取的步骤
 
-剥 `script/style/noscript/head/title/meta/link` → 块级标签（`br p div li tr h1-6 pre …`）转换行 → 去标签 → 解实体（命名 + `&#123;` + `&#x1F;`）→ 压空白（行内空白折叠、空行合并）。二进制内容类型（`image/*`、`application/pdf` 等）直接抛错顺延。
+`html.ts` 零依赖：剥 `script/style/noscript/head/title/meta/link` → 块级标签转换行 → 去标签 → 解实体 → 压空白；二进制内容类型（`image/*`、`application/pdf` 等）直接抛错顺延。
 
 ## 一处实现偏离
 
-任务原计划复用 provider 的 key 解析与端点常量，但 ARCHITECTURE.md 规定 `providers/` 与 `extractors/` 互不依赖，且缺 key 在链里的语义是跳过（不抛错），与 `providers.resolveApiKey` 不同。因此本层自持端点常量（`TAVILY_API_BASE` / `EXA_API_BASE` / `FIRECRAWL_API_BASE` / `JINA_READER_BASE`），key 只读 `config.apiKeys`。
+端点常量由本层自持（`TAVILY_API_BASE` / `EXA_API_BASE` / `FIRECRAWL_API_BASE` / `JINA_READER_BASE`）、key 只读 `config.apiKeys`：`providers/` 与 `extractors/` 互不依赖，且缺 key 在本层的语义是跳过而非报错（PLAN §3）。
 
 `raw: true` 不进本链（由工具层直接返回原始 body）。
