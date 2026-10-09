@@ -8,27 +8,29 @@
 
 ## T1 仓库骨架 + 配置模块
 
-- 状态：待审 ｜ 前置：无
-- 交付物：`package.json`、`tsconfig.json`、`index.ts`（最小可加载）、`config.ts`、`config/README.md`、`config.test.ts`、`README.md`（占位）
-- 验收：
-  - [x] `pnpm run typecheck`（`tsc --noEmit`）通过（2026-10-08）
-  - [x] `pnpm test` 通过（23 用例），覆盖：缺文件时全默认值、`TAVILY_API_KEY` 优先于 `config.apiKeys.tavily`、非法字段报错文本同时含文件路径与字段路径、`timeoutMs` / `minChars` / `maxResultsLimit` 的 clamp 边界、两个工具同时 `enabled: false` 时报错（2026-10-08）
-  - [x] 配置文件缺失时 `pi --extension ./index.ts -p "hi"` 不报错退出（2026-10-08）
-  - [x] 故意写坏 JSON 后同一命令输出含配置文件的绝对路径（2026-10-08）
+- 状态：完成 ｜ 前置：无
+- 交付物：`package.json`、`tsconfig.json`、`index.ts`（最小可加载）、`config/index.ts`、`config/README.md`、`test/config.test.ts`、`README.md`（占位）
+- 验收（TDD：先红后绿）：
+  - [x] 流程：先写 `test/config.test.ts` 并实测失败（红），再实现 `config/index.ts` 至全绿；脚手架文件（package.json / tsconfig 等）不适用 TDD
+  - [x] `pnpm run typecheck`（`tsc --noEmit`）通过
+  - [x] `pnpm test` 覆盖：缺文件时全默认值、`TAVILY_API_KEY` 优先于 `config.apiKeys.tavily`、非法字段报错文本同时含文件路径与字段路径、`timeoutMs` / `minChars` / `maxResultsLimit` 的 clamp 边界、两个工具同时 `enabled: false` 时报错
+  - [x] 配置文件缺失时 `pi --extension ./index.ts -p "hi"` 不报错退出
+  - [x] 故意写坏 JSON（`<agent dir>/pi-web-search-lite/config.json`）后同一命令输出含配置文件的绝对路径
 
 ## T2 HTTP 客户端 + SSRF 守卫
 
-- 状态：未开始 ｜ 前置：T1
-- 交付物：`http.ts`、`ssrf.ts`、两个模块 README、`http.test.ts`、`ssrf.test.ts`
-- 验收：
-  - [ ] `pnpm test` 通过；HTTP 用例（本地桩 server）：请求带 `userAgent`、`timeoutMs` 到期抛归一化超时错误、`AbortSignal` 中断、非 2xx 错误含状态码与 URL、配置 `proxy` 时经桩代理而非直连目标
-  - [ ] SSRF 用例：非 http(s) 拒绝；`localhost` / `127.0.0.1` / `::1` / `10.x` / `172.16-31.x` / `192.168.x` / `169.254.169.254` / `*.local` 拒绝；正常公网域名放行
-  - [ ] 两模块均不 import 宿主包（便于单测）；`ssrf.ts` 不发网络请求（桩 server 命中数为 0）
+- 状态：完成 ｜ 前置：T1
+- 交付物：`http/index.ts`、`ssrf/index.ts`、两个模块 README、`test/http.test.ts`、`test/ssrf.test.ts`
+- 验收（TDD：先红后绿）：
+  - [x] 流程：先写 `test/ssrf.test.ts` / `test/http.test.ts` 并实测失败（模块不存在），再实现至全绿
+  - [x] `pnpm test` 通过（70 用例）；HTTP 用例（本地桩 server）：请求带 `userAgent`、`timeoutMs` 到期抛归一化超时错误、`AbortSignal` 中断、非 2xx 错误含状态码与 URL、配置 `proxy` 时经桩代理而非直连目标
+  - [x] SSRF 用例：非 http(s) 拒绝；`localhost` / `127.0.0.1` / `::1` / `10.x` / `172.16-31.x` / `192.168.x` / `169.254.169.254` / `*.local` 拒绝；正常公网域名放行
+  - [x] 两模块均不 import 宿主包（`rg @earendil` 为空）；`ssrf/` 不发网络请求（桩 server 命中数为 0）
 
 ## T3 provider 层（Tavily / Brave / Exa）
 
 - 状态：未开始 ｜ 前置：T2
-- 交付物：`providers/{types,index,tavily,brave,exa}.ts`、`providers/README.md`、`providers/*.test.ts`
+- 交付物：`providers/{types,index,tavily,brave,exa}.ts`、`providers/README.md`、`test/providers/*.test.ts`
 - 验收：
   - [ ] 每个 provider 用桩 server 断言请求形状（endpoint、方法、认证头 / body 字段）与响应 → 统一结果形状的映射
   - [ ] 缺 key 时报错文本同时含环境变量名与 `config.apiKeys.<name>` 键名
@@ -38,7 +40,7 @@
 ## T4 GitHub handler
 
 - 状态：未开始 ｜ 前置：T2（`handlers.github.*` 配置已可用）
-- 交付物：`handlers/{types,index}.ts`、`handlers/github/{index,gh,render}.ts`、`handlers/README.md`、`handlers/*.test.ts`
+- 交付物：`handlers/{types,index}.ts`、`handlers/github/{index,gh,render}.ts`、`handlers/README.md`、`test/handlers/*.test.ts`
 - 验收：
   - [ ] URL 解析覆盖 6 类页面（仓库首页 / blob / tree / issue / pull / release）与不命中形态（gist、wiki、actions、discussions、非 github 域、带 query 与锚点）
   - [ ] `gh` 不在 PATH、或 `gh auth status` 失败时 handler 返回未处理并给出原因文本；断言此时**没有发起任何 HTTP 请求**
@@ -48,7 +50,7 @@
 ## T5 提取器层
 
 - 状态：未开始 ｜ 前置：T2、T3（复用 provider 的 key 解析与端点常量）
-- 交付物：`extractors/{types,index,tavily,exa,html}.ts`、`extractors/README.md`、`extractors/*.test.ts`
+- 交付物：`extractors/{types,index,tavily,exa,html}.ts`、`extractors/README.md`、`test/extractors/*.test.ts`
 - 验收：
   - [ ] 三条 fallback 语义各有用例：未配 key 跳过且不发请求、抛错顺延、结果长度 < `fetch.minChars` 顺延
   - [ ] 全部失败时错误文本列出链中每个提取器的名字与失败原因
@@ -58,7 +60,7 @@
 ## T6 工具层与结果信封
 
 - 状态：未开始 ｜ 前置：T3、T4、T5
-- 交付物：`tools/{search,fetch,result}.ts`、`tools/README.md`、`tools/*.test.ts`
+- 交付物：`tools/{search,fetch,result}.ts`、`tools/README.md`、`test/tools/*.test.ts`
 - 验收：
   - [ ] 超过 `context.maxInlineChars` 或 `maxInlineLines` 时 `content` 含截断说明与临时文件绝对路径，`details.fullOutputPath` 与之一致
   - [ ] `context.spillToFile: false` 时不写文件且 `content` 仍说明已截断

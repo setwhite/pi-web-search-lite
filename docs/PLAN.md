@@ -66,7 +66,7 @@ URL 形态 → 命令（实现时以本机 gh 版本支持的字段为准）：
 
 ### 2.5 配置：单 JSON 文件 + 可选环境变量
 
-- 路径：`PI_CODING_AGENT_DIR` > `~/.pi/agent`，文件名 `pi-web-search-lite.json`（不与 pi-web-access 的 `web-search.json` 冲突）。
+- 路径：`PI_CODING_AGENT_DIR` > `~/.pi/agent`，子路径 `pi-web-search-lite/config.json`（独立目录，不与 pi-web-access 的 `web-search.json` 冲突）。
 - 文件不存在 = 全默认值 + 环境变量 key，不报错。
 - 完整配置面（JSON 无注释，此处仅为说明）：
 
@@ -160,4 +160,4 @@ URL 形态 → 命令（实现时以本机 gh 版本支持的字段为准）：
 
 ## 5. 待确认
 
-包名 `pi-web-search-lite`（npm 未被占用）、项目目录 `C:/Users/Charles Liu/Desktop/test/pi-web-search-lite/`、配置文件 `~/.pi/agent/pi-web-search-lite.json`；其余默认值见 §2.5。
+包名 `pi-web-search-lite`（npm 未被占用）、项目目录 `C:/Users/Charles Liu/Desktop/test/pi-web-search-lite/`、配置文件 `~/.pi/agent/pi-web-search-lite/config.json`；其余默认值见 §2.5。
