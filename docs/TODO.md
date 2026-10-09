@@ -63,14 +63,16 @@
 
 ## T6 工具层与结果信封
 
-- 状态：未开始 ｜ 前置：T3、T4、T5
+- 状态：完成 ｜ 前置：T3、T4、T5
 - 交付物：`tools/{search,fetch,result}.ts`、`tools/README.md`、`test/tools/*.test.ts`
-- 验收：
-  - [ ] 超过 `context.maxInlineChars` 或 `maxInlineLines` 时 `content` 含截断说明与临时文件绝对路径，`details.fullOutputPath` 与之一致
-  - [ ] `context.spillToFile: false` 时不写文件且 `content` 仍说明已截断
-  - [ ] `web_fetch` 命中 handler 时提取器链不被调用；`raw: true` 时 handler 与提取器链都不被调用
-  - [ ] `web_search` 的 `max_results` 按 `search.maxResultsLimit` clamp，未传时用 `search.defaultMaxResults`
-  - [ ] 失败路径统一 `throw`，且错误文本包含下一步动作（去哪个文件配哪个键）
+- 验收（TDD：先红后绿）：
+  - [x] 流程：先写 `test/tools/*.test.ts` 并实测失败（`Cannot find module '../../tools/...'`），再实现至全绿（20 例）
+  - [x] 超过 `context.maxInlineChars` 或 `maxInlineLines` 时 `content` 含截断说明与临时文件绝对路径，`details.fullOutputPath` 与之一致
+  - [x] `context.spillToFile: false` 时不写文件且 `content` 仍说明已截断
+  - [x] `web_fetch` 命中 handler 时提取器链不被调用；`raw: true` 时 handler 与提取器链都不被调用（计数 fake 断言为 0）
+  - [x] `web_search` 的 `max_results` 按 `search.maxResultsLimit` clamp，未传时用 `search.defaultMaxResults`
+  - [x] 失败路径统一 `throw`，且错误文本包含下一步动作（去哪个文件配哪个键）
+- 决定：`context.maxInlineChars` 直接作为宿主 `maxBytes` 传入（宿主按字节截断），并在 `result.ts` 用 `Math.min` 夹到宿主 `DEFAULT_MAX_BYTES` / `DEFAULT_MAX_LINES`；`raw` 是否进 schema 由 `fetch.allowRaw` 决定（README 已记录）
 
 ## T7 入口注册、上下文开关与文档
 

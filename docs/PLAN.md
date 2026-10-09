@@ -2,7 +2,7 @@
 
 ## 1. 为什么做
 
-只做 `web_search` + `web_fetch`，所有出站请求必须能稳定走代理，实现 ≤ 2200 行（不含测试；按 T1–T4 实测 1748 行修订原 1300 行）。参考 pi-web-access（~15000 行 / 90+ 文件）与 rpiv-web-tools（~1500 行），剔除两者的复杂度来源：多 provider auto 链、curl 传输层、clone + 磁盘缓存。
+只做 `web_search` + `web_fetch`，所有出站请求必须能稳定走代理。参考 pi-web-access（~15000 行 / 90+ 文件）与 rpiv-web-tools（~1500 行），剔除两者的复杂度来源：多 provider auto 链、curl 传输层、clone + 磁盘缓存。
 
 **MVP 成功标准**
 
@@ -87,7 +87,7 @@ URL 形态 → 命令（实现时以本机 gh 版本支持的字段为准）：
     "web_fetch":  { "description": "...", "promptSnippet": "...", "promptGuidelines": ["..."] }
   },
   "context": {                                    // * 单次结果进入模型的体积上限
-    "maxInlineChars": null,                        // null = 用宿主 DEFAULT_MAX_BYTES；clamp 1_000–宿主上限
+    "maxInlineChars": null,                        // null = 用宿主 DEFAULT_MAX_BYTES；clamp 1_000–宿主上限（按字节截断）
     "maxInlineLines": null,                        // null = 用宿主 DEFAULT_MAX_LINES；clamp 50–宿主上限
     "spillToFile": true
   },
@@ -121,7 +121,7 @@ URL 形态 → 命令（实现时以本机 gh 版本支持的字段为准）：
 | `guidance.*.promptSnippet` | 工具列表里的一行短语 |
 | `guidance.*.promptGuidelines` | 系统提示 rules 里的条目（数组，逐条替换） |
 | `guidance.*.description` | 工具描述的整段覆盖 |
-| `context.maxInlineChars` / `maxInlineLines` | 单次工具结果进入模型的上限，超出走 `spillToFile` |
+| `context.maxInlineChars` / `maxInlineLines` | 单次工具结果进入模型的上限，超出走 `spillToFile`；`maxInlineChars` 由宿主 `truncateHead` **按字节**执行（CJK 约 3 字节/字，`null` 即宿主 `DEFAULT_MAX_BYTES`） |
 | `search.defaultMaxResults` | 模型不传 `max_results` 时的默认条数 |
 
 理由：`promptSnippet` / `promptGuidelines` 是 Pi 工具定义的真实字段（`examples/extensions/tic-tac-toe.ts:864`），rpiv 已把两者做成配置（`GuidanceFields`）。deferred 只调一次 `pi.setActiveTools` 激活内置 `tool_search`（不存在则退回 eager + 一行警告），不自建 loader、不处理 checkpoint —— transcript 重发是宿主职责。
@@ -144,7 +144,7 @@ URL 形态 → 命令（实现时以本机 gh 版本支持的字段为准）：
 | Tavily keyless、任何免 key provider | 参考实现都没有；免 key 源（DDG HTML、公共 SearXNG）脆弱且可能违反 ToS |
 | 搜索自动 fallback 链、`auto` / `all` / `routing` | pi-web-access 复杂度的主要来源；显式选择让失败原因唯一 |
 | responseId、`get_search_content` 分页、结果持久化 | "截断 + 临时文件"已覆盖续读；真有需求再加存储层 |
-| curator、摘要模型调用、answer 模式 | 与"2200 行内可读"冲突 |
+| curator、摘要模型调用、answer 模式 | 偏离轻量目标与单一职责 |
 | MCP server、core/host 分层、自建 loader（`web_enable`）、checkpoint 判定 | 只有一个宿主；deferred 复用宿主内置 `tool_search`，工具变更的 transcript 是宿主职责 |
 | 斜杠命令 / TUI picker | 改 JSON + 精确错误文案足够；列入 Phase 2 |
 | `outputSchema` / `structuredContent` | 需 schema 与实现严格同步，收益在 codemode 场景；列入 Phase 2 |
