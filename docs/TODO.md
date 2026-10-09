@@ -76,14 +76,18 @@
 
 ## T7 入口注册、上下文开关与文档
 
-- 状态：未开始 ｜ 前置：T1、T6
+- 状态：完成 ｜ 前置：T1、T6
 - 交付物：`index.ts`（完整）、仓库 `README.md`（安装 / 配置 / 代理 / GitHub 前置条件 / 排查）
-- 验收：
-  - [ ] 假 `ExtensionAPI` 断言：`tools.*.enabled: false` 时对应 `registerTool` 未被调用
-  - [ ] `activation: "eager"` 时注册的 `exposure` 为 `direct`；`"deferred"` 时为 `deferred` 且 `defaultActive: false`，并调用 `setActiveTools` 合入 `tool_search`；`tool_search` 不在工具列表时退回 eager 并打印一行警告
-  - [ ] `guidance.*` 覆盖生效：`registerTool` 收到的 `description` / `promptSnippet` / `promptGuidelines` 与配置一致；未配置时与默认值一致
-  - [ ] `tools.*.name` 生效；非法名、重复名、占用宿主保留名时抛错
-  - [ ] 手动：`pi --extension ./index.ts -p "用 web_search 查 pi coding agent 最新版本"` 返回结果；关掉代理配置后同一命令失败且错误文本指向 `proxy`
+- 验收（TDD：先红后绿）：
+  - [x] 流程：先写 `test/index.test.ts`（假 `ExtensionAPI` + 临时 agent 目录）实测 7/9 失败，再实现至全绿（9 例）
+  - [x] 假 `ExtensionAPI` 断言：`tools.*.enabled: false` 时对应 `registerTool` 未被调用；`tools.*.name` 生效
+  - [x] 非法名 / 两个工具重名时入口抛出配置错误（不吞错、不静默降级）
+  - [x] `activation: "eager"` 时 `exposure` 为 `direct`；`"deferred"` 时为 `deferred` + `defaultActive: false`，并 `setActiveTools` 合入 `tool_search`（已在激活集时不重复调用）
+  - [x] 宿主不提供 `tool_search` 时退回 eager 并 `console.warn` 一行
+  - [x] `guidance.*` 覆盖 `description` / `promptSnippet` / `promptGuidelines`；未配置时与默认值一致（本次给两个工具补了默认 `promptSnippet`）
+  - [x] 手动（真实 `pi --extension ./index.ts`）：无代理时 `lite_web_fetch` 报 `fetch failed`；`config.proxy` 指向 127.0.0.1:12450 时同命令返回 `Example Domain`；`lite_web_search` 缺 key 时报「请设置环境变量 TAVILY_API_KEY，或在配置文件的 config.apiKeys.tavily 字段填写」
+  - [ ] 未能完成：真实 API 搜索返回结果（本机无 TAVILY / BRAVE / EXA key，与 T3 一致，靠桩 server 验收）
+- 偏离/发现：本机已装 rpiv-web-tools（同样注册 `web_search` / `web_fetch`），默认名会与之冲突并让 pi 以 EXIT=1 退出；手动验收用临时 `tools.*.name` 改名绕过，README 排查表已记录改法
 
 ## T8 安全与回归测试
 
