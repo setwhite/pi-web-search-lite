@@ -4,6 +4,10 @@
 	"description": "Pi extension: lightweight web_search + web_fetch with configurable search provider and fetch chain.",
 	"type": "module",
 	"license": "MIT",
+	"packageManager": "pnpm@12.3.4",
+	"engines": {
+		"node": ">=22.19.0"
+	},
 	"keywords": [
 		"pi-package",
 		"pi-extension",

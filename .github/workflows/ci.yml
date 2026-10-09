@@ -1,0 +1,40 @@
+# CI：类型检查 + 全部测试（不打真实网络，全部用桩 server / 注入的 exec）。
+# 矩阵：Linux 覆盖 Node 22 / 24（宿主要求 >= 22.19.0，见 package.json engines），Windows 覆盖 Node 22
+# （gh 子进程、临时目录与路径分隔符只在 Windows 上跑一遍）。
+# pnpm/setup 自带 pnpm + Node（版本取自 package.json 的 packageManager / 本文件的 runtime），并在有 package.json 时自动执行 pnpm install。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            node: 22
+          - os: ubuntu-latest
+            node: 24
+          - os: windows-latest
+            node: 22
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@v3
+        with:
+          runtime: node@${{ matrix.node }}
+          cache: true
+      - run: pnpm run typecheck
+      - run: pnpm test

@@ -82,4 +82,6 @@ pnpm test          # vitest run
 pnpm run typecheck # tsc --noEmit
 ```
 
+要求 Node >= 22.19.0（与宿主 `pi` 一致，写在 `package.json` 的 `engines`）。CI（`.github/workflows/ci.yml`）在 Linux（Node 22 / 24）与 Windows（Node 22）上跑 `typecheck` + `test`；本地与 CI 的 pnpm 版本由 `packageManager` 字段锁定，测试全程不打真实网络。
+
 模块索引：`config/`（加载校验）→ `http/`（唯一出站口）→ `ssrf/`（发请求前静态检查）→ `providers/`、`handlers/`、`extractors/`（互不依赖）→ `tools/`（编排、结果信封与 TUI 渲染）→ `index.ts`（注册）。每个目录内有一份 README 记录契约与取舍。

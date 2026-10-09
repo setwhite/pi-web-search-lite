@@ -142,3 +142,17 @@
   - 测试标题、测试夹具（如 GitHub 中文标题样例）保持中文：它们不进 pi，也便于中文读者定位用例。
   - 两处截断标记分工不变：工具层 `[... output truncated: N lines / M bytes total, kept K lines here.]`（含续读路径），提取与 handler 层 `[... truncated: original N chars, kept first M chars ...]`。
   - TUI 失败态原样透传错误首行，因此错误本体必须英文（本轮已改），渲染层不做翻译。
+
+## T11 CI（GitHub Actions）
+
+- 状态：进行中 ｜ 前置：T9、T10（代码已推送到 `setwhite/pi-web-search-lite`）
+- 交付物：`.github/workflows/ci.yml`；`package.json` 补 `packageManager`（`pnpm@12.3.4`）与 `engines.node >= 22.19.0`；README 开发节说明
+- 验收：
+  - [ ] 矩阵：ubuntu（Node 22 / 24）+ windows（Node 22），每格跑 `pnpm run typecheck` 与 `pnpm test`
+  - [ ] main 推送与 `pull_request` 两个触发都生效
+  - [ ] 首次运行全绿（`gh run list` 证据）
+  - [ ] CI 不依赖任何 secret：测试全程不打真实网络（provider / 提取器用桩 server 与注入的 exec）
+- 决定：
+  - 用 `pnpm/setup@v3`（pnpm 12 属 v11+，官方推荐接替 `pnpm/action-setup`；自带 pnpm + Node 并自动执行 `pnpm install`），不再叠加 `actions/setup-node`。
+  - pnpm 版本以 `package.json` 的 `packageManager` 为 SSOT，CI 不硬编码版本。
+  - 不加 lint / 覆盖率卡口：仓库当前没有 ESLint 配置，也没有覆盖率要求。
