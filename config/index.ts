@@ -1,7 +1,7 @@
 /**
  * 配置模块：读取 `<agent dir>/pi-web-search-lite/config.json`，校验并 clamp。
  * - 文件缺失 = 全默认值；JSON 损坏或字段非法 = 抛 Error（消息含文件路径与字段路径）。
- * - API key 合并：PROVIDER_ENV_KEYS 环境变量优先于文件里的 apiKeys。
+ * - API key 合并：API_KEY_ENV_KEYS 环境变量优先于文件里的 apiKeys。
  */
 
 import { readFileSync } from "node:fs";

@@ -3,7 +3,7 @@
  * 缺 key → 跳过（不发请求、不计失败）；抛错或内容过短 → 记因试下一个；全部失败 → 汇总原因抛错。
  */
 
-import type { ExtractorId, ProviderId } from "../config/index.ts";
+import type { ApiKeyId, ExtractorId } from "../config/index.ts";
 import type { HttpClient } from "../http/index.ts";
 
 export interface ExtractedContent {
@@ -16,7 +16,7 @@ export interface ExtractedContent {
 export interface ExtractorContext {
 	http: HttpClient;
 	/** 已由配置层合并环境变量；缺 key 的提取器会被跳过。 */
-	apiKeys: Partial<Record<ProviderId, string>>;
+	apiKeys: Partial<Record<ApiKeyId, string>>;
 	minChars: number;
 	maxCharsPerPage: number;
 	signal?: AbortSignal;

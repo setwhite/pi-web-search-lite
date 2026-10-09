@@ -57,7 +57,7 @@ describe("loadConfig", () => {
 			context: { maxInlineChars: null, maxInlineLines: null, spillToFile: true },
 			search: { defaultMaxResults: 5, maxResultsLimit: 10 },
 			fetch: {
-				extractors: ["html", "tavily", "exa"],
+				extractors: ["html", "jina"],
 				minChars: 200,
 				allowRaw: false,
 				maxCharsPerPage: 150_000,
@@ -150,13 +150,49 @@ describe("loadConfig", () => {
 		expect(duplicated).toContain("tools");
 	});
 
-	it("未知 provider 报错并列出三个合法值", () => {
+	it("未知 provider 报错并列出合法值", () => {
 		const path = writeConfig(JSON.stringify({ provider: "google" }));
 		const message = captureError(() => loadConfig({ configPath: path, env: {} }));
 
 		expect(message).toContain("tavily");
 		expect(message).toContain("brave");
 		expect(message).toContain("exa");
+		expect(message).toContain("firecrawl");
+		expect(message).toContain("perplexity");
+	});
+
+	it("provider 接受 firecrawl 与 perplexity", () => {
+		const firecrawl = loadConfig({ configPath: writeConfig(JSON.stringify({ provider: "firecrawl" })), env: {} });
+		const perplexity = loadConfig({ configPath: writeConfig(JSON.stringify({ provider: "perplexity" })), env: {} });
+
+		expect(firecrawl.provider).toBe("firecrawl");
+		expect(perplexity.provider).toBe("perplexity");
+	});
+
+	it("fetch.extractors 接受 firecrawl 与 jina，且不动默认链", () => {
+		const config = loadConfig({
+			configPath: writeConfig(JSON.stringify({ fetch: { extractors: ["jina", "firecrawl"] } })),
+			env: {},
+		});
+
+		expect(config.fetch.extractors).toEqual(["jina", "firecrawl"]);
+	});
+
+	it("新增 key 支持环境变量与配置文件，环境变量优先", () => {
+		const path = writeConfig(JSON.stringify({ apiKeys: { jina: "file-jina", firecrawl: "file-fc" } }));
+		const config = loadConfig({
+			configPath: path,
+			env: { FIRECRAWL_API_KEY: "env-fc", PERPLEXITY_API_KEY: "env-pplx", JINA_API_KEY: "env-jina" },
+		});
+
+		expect(config.apiKeys).toEqual({ firecrawl: "env-fc", perplexity: "env-pplx", jina: "env-jina" });
+	});
+
+	it("未知 apiKeys 键仍然报错", () => {
+		const path = writeConfig(JSON.stringify({ apiKeys: { serpapi: "k" } }));
+		const message = captureError(() => loadConfig({ configPath: path, env: {} }));
+
+		expect(message).toContain("apiKeys.serpapi");
 	});
 
 	it("socks5 代理在配置校验阶段报错", () => {

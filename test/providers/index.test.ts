@@ -58,4 +58,20 @@ describe("resolveApiKey", () => {
 			expect((error as ProviderError).message).toContain("config.apiKeys.brave");
 		}
 	});
+
+	it("新增 provider 的缺 key 文案同样给出环境变量名与配置键名", () => {
+		for (const [id, envName] of [
+			["firecrawl", "FIRECRAWL_API_KEY"],
+			["perplexity", "PERPLEXITY_API_KEY"],
+		] as const) {
+			try {
+				resolveApiKey(id, {});
+				throw new Error("预期抛错但放行");
+			} catch (error) {
+				expect(error).toBeInstanceOf(ProviderError);
+				expect((error as ProviderError).message).toContain(envName);
+				expect((error as ProviderError).message).toContain(`config.apiKeys.${id}`);
+			}
+		}
+	});
 });

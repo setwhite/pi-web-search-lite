@@ -25,20 +25,23 @@ pi install git:github.com/setwhite/pi-web-search-lite    # 从 git 仓库安装
 }
 ```
 
-key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY`，优先于文件）；换默认搜索源改 `provider`。
+key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY`，优先于文件）；换默认搜索源改 `provider`。
 
-**完整示例**——列全所有配置项，注释说明每个键干什么；除 key 和 guidance 是覆盖示例外，其余值就是默认值：
+**完整示例**——列全所有配置项，注释说明每个键干什么；除 key、userAgent 和 guidance 是覆盖示例外，其余值就是默认值：
 
 ```jsonc
 {
-  // 搜索源：tavily | brave | exa；调用时也能用 provider 参数临时指定
+  // 搜索源：tavily | brave | exa | firecrawl | perplexity；调用时也能用 provider 参数临时指定
   "provider": "tavily",
   // API key：需要哪个源就填哪个键，也可以改用环境变量（环境变量优先）
-  // 环境变量名：TAVILY_API_KEY / BRAVE_API_KEY / EXA_API_KEY
+  // 环境变量名：TAVILY_API_KEY / BRAVE_API_KEY / EXA_API_KEY / FIRECRAWL_API_KEY / PERPLEXITY_API_KEY / JINA_API_KEY
   "apiKeys": {
     "tavily": "tvly-你的key",
     "brave": "你的key",
-    "exa": "你的key"
+    "exa": "你的key",
+    "firecrawl": "fc-你的key",
+    "perplexity": "pplx-你的key",
+    "jina": "jina-你的key"
   },
 
   // 代理：所有出站请求的唯一出口；"" = 直连
@@ -46,7 +49,7 @@ key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
   // 请求超时（毫秒）
   "timeoutMs": 30000,
   // 出站 User-Agent：不写则自动用「包名/版本」，写了就按写的发
-  "userAgent": "pi-web-search-lite/0.1.0",
+  "userAgent": "my-agent/1.0",
 
   // 工具开关与改名；改成别的名字可避开与其它扩展重名
   "tools": {
@@ -76,9 +79,9 @@ key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
   "context": { "maxInlineChars": null, "maxInlineLines": null, "spillToFile": true },
   // 搜索条数：不传时给多少、最多允许多少
   "search": { "defaultMaxResults": 5, "maxResultsLimit": 10 },
-  // 抓取：默认先本地 html 提取，不合格再顺延两个 provider 提取器；正文短于 minChars 视为无效；allowRaw 打开后才会出现 raw 参数（默认关）
+  // 抓取：默认只用本地 html 与 r.jina.ai（两位都不需要 key）；要 tavily / exa / firecrawl 就自己加进来；正文短于 minChars 视为无效；allowRaw 打开后才会出现 raw 参数（默认关）
   "fetch": {
-    "extractors": ["html", "tavily", "exa"],
+    "extractors": ["html", "jina"],
     "minChars": 200,
     "allowRaw": false,
     "maxCharsPerPage": 150000
@@ -92,8 +95,8 @@ key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 
 ## 功能
 
-- 搜网页：tavily / brave / exa 任选一个，不会偷偷换源；缺 key 会直接告诉你配哪里。
-- 抓网页：按你配的顺序挨个试提取器，第一个能用的胜出（默认先本地 html 提取，再顺延到 provider）；GitHub 页面优先用 `gh`；想直接拿原始响应，把 `fetch.allowRaw` 打开后才有 `raw` 参数。
+- 搜网页：tavily / brave / exa / firecrawl / perplexity 任选一个，不会偷偷换源；缺 key 会直接告诉你配哪里。
+- 抓网页：按你配的顺序挨个试提取器，第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key）；`tavily` / `exa` / `firecrawl` 要自己加进 `fetch.extractors`；GitHub 页面优先用 `gh`；想直接拿原始响应，把 `fetch.allowRaw` 打开后才有 `raw` 参数。
 - 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查；结果太长自动截断，全文落到临时文件。
 - 上下文可控：工具可改名、可关闭、可改成按需发现，减少常驻提示词。
 - 提示词精简：内置提示词都是英文单行；「截断了怎么续读」「key 配哪」「参数范围」这类信息写在报错和结果里，不占提示词；工具改名后，提示词里的名字自动跟着变。

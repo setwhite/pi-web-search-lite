@@ -4,6 +4,8 @@
  */
 
 import {
+	API_KEY_ENV_KEYS,
+	API_KEY_IDS,
 	DEFAULT_EXTRACTORS,
 	DEFAULT_HANDLER_COMMAND,
 	DEFAULT_HANDLER_MAX_CHARS,
@@ -18,19 +20,18 @@ import {
 	EXTRACTOR_IDS,
 	MAX_INLINE_CHARS_MIN,
 	MAX_INLINE_LINES_MIN,
-	PROVIDER_ENV_KEYS,
 	PROVIDER_IDS,
 	RANGES,
 	RESERVED_TOOL_NAMES,
 	TOOL_IDS,
 	TOOL_NAME_PATTERN,
+	type ApiKeyId,
 	type ContextSettings,
 	type Errors,
 	type ExtractorId,
 	type FetchSettings,
 	type GuidanceFields,
 	type GitHubHandlerSettings,
-	type ProviderId,
 	type Raw,
 	type ResolvedConfig,
 	type SearchSettings,
@@ -89,13 +90,13 @@ export function buildConfig(raw: Raw, env: NodeJS.ProcessEnv, errors: Errors): R
 	};
 }
 
-function readApiKeys(value: unknown, env: NodeJS.ProcessEnv, errors: Errors): Partial<Record<ProviderId, string>> {
+function readApiKeys(value: unknown, env: NodeJS.ProcessEnv, errors: Errors): Partial<Record<ApiKeyId, string>> {
 	const raw = asObject(value, "apiKeys", errors) ?? {};
-	checkUnknownKeys(raw, PROVIDER_IDS, "apiKeys", errors);
-	const keys: Partial<Record<ProviderId, string>> = {};
-	for (const id of PROVIDER_IDS) {
+	checkUnknownKeys(raw, API_KEY_IDS, "apiKeys", errors);
+	const keys: Partial<Record<ApiKeyId, string>> = {};
+	for (const id of API_KEY_IDS) {
 		const fromFile = optionalString(raw[id], `apiKeys.${id}`, errors);
-		const fromEnv = envNonEmpty(env[PROVIDER_ENV_KEYS[id]]);
+		const fromEnv = envNonEmpty(env[API_KEY_ENV_KEYS[id]]);
 		if (fromEnv !== undefined) keys[id] = fromEnv;
 		else if (fromFile !== undefined) keys[id] = fromFile;
 	}

@@ -5,10 +5,10 @@
 
 import { readFileSync } from "node:fs";
 
-export const PROVIDER_IDS = ["tavily", "brave", "exa"] as const;
+export const PROVIDER_IDS = ["tavily", "brave", "exa", "firecrawl", "perplexity"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
-export const EXTRACTOR_IDS = ["tavily", "exa", "html"] as const;
+export const EXTRACTOR_IDS = ["tavily", "exa", "html", "firecrawl", "jina"] as const;
 export type ExtractorId = (typeof EXTRACTOR_IDS)[number];
 
 export const TOOL_IDS = ["web_search", "web_fetch"] as const;
@@ -22,10 +22,20 @@ export const ENV_AGENT_DIR = "PI_CODING_AGENT_DIR";
 export const CONFIG_SUBPATH = "pi-web-search-lite";
 export const CONFIG_FILE_NAME = "config.json";
 
-export const PROVIDER_ENV_KEYS: Record<ProviderId, string> = {
+/**
+ * 需要 API key 的 id：搜索源与 jina 提取器（jina 可无 key，配了就用）。
+ * 缺 key 的语义不同：搜索源报错，提取器跳过。
+ */
+export const API_KEY_IDS = [...PROVIDER_IDS, "jina"] as const;
+export type ApiKeyId = (typeof API_KEY_IDS)[number];
+
+export const API_KEY_ENV_KEYS: Record<ApiKeyId, string> = {
 	tavily: "TAVILY_API_KEY",
 	brave: "BRAVE_API_KEY",
 	exa: "EXA_API_KEY",
+	firecrawl: "FIRECRAWL_API_KEY",
+	perplexity: "PERPLEXITY_API_KEY",
+	jina: "JINA_API_KEY",
 };
 
 /** 数值字段的 clamp 区间；越界取边界值而非报错。 */
@@ -48,8 +58,8 @@ export const DEFAULT_MAX_RESULTS = 5;
 export const DEFAULT_MAX_RESULTS_LIMIT = 10;
 export const DEFAULT_MIN_CHARS = 200;
 export const DEFAULT_MAX_CHARS_PER_PAGE = 150_000;
-/** 默认提取链顺序：本地 html 打头（不依赖 key、不额外计费），失败再顺延两个 provider 提取器。 */
-export const DEFAULT_EXTRACTORS: ExtractorId[] = ["html", "tavily", "exa"];
+/** 默认提取链只留免 key 的两位：本地 html 打头，抽不出东西再交给无 key 也能用的 jina；provider 提取器要显式配置。 */
+export const DEFAULT_EXTRACTORS: ExtractorId[] = ["html", "jina"];
 export const DEFAULT_HANDLER_COMMAND = "gh";
 export const DEFAULT_HANDLER_TIMEOUT_MS = 30_000;
 export const DEFAULT_HANDLER_MAX_CHARS = 150_000;
@@ -112,7 +122,7 @@ export type Errors = string[];
 /** 已完成校验、clamp 与 env key 合并的最终配置。 */
 export interface ResolvedConfig {
 	provider: ProviderId;
-	apiKeys: Partial<Record<ProviderId, string>>;
+	apiKeys: Partial<Record<ApiKeyId, string>>;
 	proxy: string | undefined;
 	timeoutMs: number;
 	userAgent: string;

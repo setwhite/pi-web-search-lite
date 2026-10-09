@@ -34,7 +34,10 @@
 		"web-fetch",
 		"tavily",
 		"brave",
-		"exa"
+		"exa",
+		"firecrawl",
+		"perplexity",
+		"jina"
 	],
 	"pi": {
 		"extensions": [

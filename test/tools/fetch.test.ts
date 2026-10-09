@@ -40,7 +40,10 @@ function countingExtractors() {
 			return { url, title: `${id} 标题`, content: "提取正文".repeat(60) };
 		},
 	});
-	return { extractors: { tavily: make("tavily"), exa: make("exa"), html: make("html") }, calls: () => calls };
+	return {
+		extractors: { tavily: make("tavily"), exa: make("exa"), html: make("html"), firecrawl: make("firecrawl"), jina: make("jina") },
+		calls: () => calls,
+	};
 }
 
 describe("executeFetch：handler 与提取器链", () => {
@@ -166,7 +169,9 @@ describe("executeFetch：截断与失败", () => {
 	it("全部提取器失败时抛错并汇总原因", async () => {
 		const http = fakeHttp(() => ({ text: "<html><body>太短</body></html>" }));
 
-		const error = await rejectionOf(executeFetch(makeConfig(), { url: "https://example.com/short" }, undefined, { http }));
+		// 显式带上 provider 提取器，才能同时覆盖「无 key 跳过」与「失败顺延」两种原因汇总。
+		const config = makeConfig({ fetch: { extractors: ["html", "tavily", "exa"] } });
+		const error = await rejectionOf(executeFetch(config, { url: "https://example.com/short" }, undefined, { http }));
 
 		expect(error.message).toContain("all extractors failed");
 		expect(error.message).toContain("tavily");

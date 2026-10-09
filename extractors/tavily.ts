@@ -1,6 +1,6 @@
 /** Tavily 提取：POST /extract，Bearer 认证，body `{ urls: [url] }`。 */
 
-import { PROVIDER_ENV_KEYS } from "../config/index.ts";
+import { API_KEY_ENV_KEYS } from "../config/index.ts";
 import type { ExtractedContent, Extractor, ExtractorContext } from "./types.ts";
 
 export const TAVILY_API_BASE = "https://api.tavily.com";
@@ -15,7 +15,7 @@ export function createTavilyExtractor(baseUrl = TAVILY_API_BASE): Extractor {
 	return {
 		id: "tavily",
 		unavailableReason: (ctx) =>
-			ctx.apiKeys.tavily?.trim() ? null : `not configured (${PROVIDER_ENV_KEYS.tavily} env var or config.apiKeys.tavily)`,
+			ctx.apiKeys.tavily?.trim() ? null : `not configured (${API_KEY_ENV_KEYS.tavily} env var or config.apiKeys.tavily)`,
 		async extract(url, ctx: ExtractorContext): Promise<ExtractedContent> {
 			const apiKey = ctx.apiKeys.tavily?.trim() ?? "";
 			const { data } = await ctx.http.fetchJson<TavilyExtractResponse>(endpoint, {

@@ -2,7 +2,9 @@
 
 import type { ExtractorId } from "../config/index.ts";
 import { exaExtractor } from "./exa.ts";
+import { firecrawlExtractor } from "./firecrawl.ts";
 import { htmlExtractor } from "./html.ts";
+import { jinaExtractor } from "./jina.ts";
 import { tavilyExtractor } from "./tavily.ts";
 import { ExtractError, type ExtractAttempt, type ExtractedPage, type Extractor, type ExtractorContext } from "./types.ts";
 
@@ -12,6 +14,8 @@ export const EXTRACTORS: Record<ExtractorId, Extractor> = {
 	tavily: tavilyExtractor,
 	exa: exaExtractor,
 	html: htmlExtractor,
+	firecrawl: firecrawlExtractor,
+	jina: jinaExtractor,
 };
 
 /**

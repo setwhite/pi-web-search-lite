@@ -7,9 +7,11 @@
 | 文件 | 内容 |
 |---|---|
 | `types.ts` | `Extractor` / `ExtractorContext` / `ExtractedPage` 契约与 `ExtractError`（含 `attempts`） |
-| `index.ts` | 注册表 `EXTRACTORS`（tavily / exa / html）与链式编排 `extractWithChain` |
+| `index.ts` | 注册表 `EXTRACTORS`（tavily / exa / html / firecrawl / jina）与链式编排 `extractWithChain` |
 | `tavily.ts` | `POST {base}/extract`，Bearer，body `{ urls: [url] }`；缺席 key → 跳过 |
 | `exa.ts` | `POST {base}/contents`，`x-api-key`，body `{ ids: [url], text.maxCharacters }`；缺席 key → 跳过 |
+| `firecrawl.ts` | `POST {base}/v2/scrape`，Bearer，body `{ url, formats: ["markdown"] }`；缺席 key → 跳过 |
+| `jina.ts` | `GET {base}/<url>`，`Accept: application/json`；**无 key 也可用**，有 key 时带 Bearer |
 | `html.ts` | 本地零依赖 HTML 提取：`htmlToText` / `extractTitle` |
 
 ## API
@@ -22,7 +24,7 @@ interface ExtractorContext { http; apiKeys; minChars; maxCharsPerPage; signal? }
 
 ## Fallback 语义（PLAN §2.2）
 
-1. 该提取器需要 key 但没配 → **跳过**：不发请求、不计失败，原因记入 `attempts`。
+1. 该提取器需要 key 但没配 → **跳过**：不发请求、不计失败，原因记入 `attempts`。`jina` 是唯一例外（无 key 也发请求，官方 20 RPM），`html` 不需 key。
 2. 抛错（非 2xx / 超时 / 二进制 / 响应缺字段）→ 记因试下一个。
 3. 结果长度 < `fetch.minChars` → 视为无效，记因试下一个。
 4. 全部失败 → 抛 `ExtractError`，错误文本逐条列出每个提取器名字 + 原因（跳过与失败都列出）。
@@ -34,6 +36,6 @@ interface ExtractorContext { http; apiKeys; minChars; maxCharsPerPage; signal? }
 
 ## 一处实现偏离
 
-任务原计划复用 provider 的 key 解析与端点常量，但 ARCHITECTURE.md 规定 `providers/` 与 `extractors/` 互不依赖，且缺 key 在链里的语义是跳过（不抛错），与 `providers.resolveApiKey` 不同。因此本层自持端点常量（`TAVILY_API_BASE` / `EXA_API_BASE`），key 只读 `config.apiKeys`。
+任务原计划复用 provider 的 key 解析与端点常量，但 ARCHITECTURE.md 规定 `providers/` 与 `extractors/` 互不依赖，且缺 key 在链里的语义是跳过（不抛错），与 `providers.resolveApiKey` 不同。因此本层自持端点常量（`TAVILY_API_BASE` / `EXA_API_BASE` / `FIRECRAWL_API_BASE` / `JINA_READER_BASE`），key 只读 `config.apiKeys`。
 
 `raw: true` 不进本链（由工具层直接返回原始 body）。

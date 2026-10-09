@@ -3,6 +3,7 @@
 import { join } from "node:path";
 import {
 	loadConfig,
+	type ApiKeyId,
 	type ContextSettings,
 	type FetchSettings,
 	type GitHubHandlerSettings,
@@ -17,7 +18,7 @@ import type { HttpClient, HttpJsonResult, HttpRequest, HttpTextResult } from "..
 
 export interface ConfigOverrides {
 	provider?: ProviderId;
-	apiKeys?: Partial<Record<ProviderId, string>>;
+	apiKeys?: Partial<Record<ApiKeyId, string>>;
 	proxy?: string;
 	timeoutMs?: number;
 	userAgent?: string;

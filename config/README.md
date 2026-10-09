@@ -17,7 +17,7 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 - `configPath` 缺省由 `env` 推导；`env` 缺省 `process.env`（测试可注入）。
 - JSON 损坏、顶层非对象、字段非法 → 抛 `Error`，消息含配置文件的绝对路径；字段非法时逐条列出 `<field path>: <reason>`。
 - 数值字段越界不报错，clamp 到 `schema.ts` 的 `RANGES` 区间；`context.maxInlineChars` / `maxInlineLines` 只保证下限，上限（宿主 `DEFAULT_MAX_BYTES` / `DEFAULT_MAX_LINES`）由 `tools/` 截断时对齐（config 不依赖宿主 API）。
-- API key：`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` 优先于文件 `apiKeys.<provider>`；空字符串环境变量视为未设置。
+- API key：`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY` 优先于文件 `apiKeys.<id>`；空字符串环境变量视为未设置。`jina` 是提取器专用键，**可缺**（官方允许匿名 20 RPM，配了走更高配额）。
 - 校验还包括：`provider` / `fetch.extractors` 枚举、`tools.*.name` 命名规则与保留名、两工具不能同时 `enabled: false`、`proxy` 仅 http(s)。
 
 ## 默认值与 clamp 区间
@@ -26,7 +26,7 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 
 | 字段 | 默认值 | clamp / 枚举 |
 | --- | --- | --- |
-| `provider` | `"tavily"` | `tavily` / `brave` / `exa` |
+| `provider` | `"tavily"` | `tavily` / `brave` / `exa` / `firecrawl` / `perplexity` |
 | `apiKeys` | `{}` | 环境变量优先 |
 | `proxy` | 无（直连） | 仅 `http(s)://`，空串 = 强制直连 |
 | `timeoutMs` | `30000` | `1000–120000` |
@@ -40,7 +40,7 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 | `context.spillToFile` | `true` | — |
 | `search.defaultMaxResults` | `5` | `1–maxResultsLimit` |
 | `search.maxResultsLimit` | `10` | `1–20` |
-| `fetch.extractors` | `["html", "tavily", "exa"]` | 枚举数组，重复项静默去重 |
+| `fetch.extractors` | `["html", "jina"]` | 枚举 `tavily` / `exa` / `html` / `firecrawl` / `jina`，重复项静默去重 |
 | `fetch.minChars` | `200` | `0–100000` |
 | `fetch.allowRaw` | `false` | — |
 | `fetch.maxCharsPerPage` | `150000` | `1000–1000000` |

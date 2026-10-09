@@ -8,24 +8,26 @@
 
 **MVP 成功标准**
 
-1. `pi install npm:pi-web-search-lite` 后只配 `TAVILY_API_KEY` 即可搜索与抓取（默认提取器链自动跳过无 key 的 provider）。
+1. `pi install npm:pi-web-search-lite` 后搜一次只需配 `TAVILY_API_KEY`（或任一 provider key，缺 key 直接报错指明去哪配）；抓取零配置即可用——默认链 `html` / `jina` 都不需要 key。
 2. 所有出站请求（搜索、抓取、provider 原生提取）经同一代理配置点，无例外。
 3. 每条失败路径给出可操作信息：缺哪个 key、缺哪个配置字段、HTTP 状态、超时来源。
 4. 结果超限自动截断，完整内容落到临时文件，`content` 里写明路径。
 
 ## 2. 选型
 
-### 2.1 搜索：三个 provider，显式选择
+### 2.1 搜索：五个 provider，显式选择
 
-白名单 `tavily`（默认）/ `brave` / `exa`；解析优先级与 key 规则见 `providers/README.md`。选中 provider 无 key、或名字不在白名单 → 抛错写明去哪配哪个键，**不静默换 provider**。
+白名单 `tavily`（默认）/ `brave` / `exa` / `firecrawl` / `perplexity`；解析优先级与 key 规则见 `providers/README.md`。选中 provider 无 key、或名字不在白名单 → 抛错写明去哪配哪个键，**不静默换 provider**。
+
+perplexity 用的是返回原始排名结果的 Search API，不是产出 LLM 答案的 Sonar 接口——与「不做 answer 模式」不冲突。
 
 理由：rpiv 已证明薄 provider 层 + 显式选择可维护；pi-web-access 的 auto 链是其最大复杂度来源，失败时模型只看到一句汇总错误。
 
 ### 2.2 抓取：可配置的提取器链
 
-`fetch.extractors` 里的提取器按顺序逐个尝试，第一个产出合格内容的赢。默认顺序 `html` 打头——本地提取、不需要 key，失败或内容不合格再顺延到 provider 提取器（该字段可自行重排）；跳过 / 顺延 / `minChars` 三条语义与全败时的原因汇总见 `extractors/README.md`。`raw: true` 跳过整链。
+`fetch.extractors` 里的提取器按顺序逐个尝试，第一个产出合格内容的赢。默认顺序 `html` → `jina`：两位都不需要 key 也不额外计费，本地抽不出东西时才把 URL 交给 `r.jina.ai`（该字段可自行重排，`tavily` / `exa` / `firecrawl` 要显式加进来）；跳过 / 顺延 / `minChars` 三条语义与全败时的原因汇总见 `extractors/README.md`。`raw: true` 跳过整链。
 
-理由：沿用 pi-web-access 已验证的 `MIN_USEFUL_CONTENT` + 失败顺延，但只保留「两个原生 + 一个本地」，用户能一眼看懂链会走哪几步。
+理由：沿用 pi-web-access 已验证的 `MIN_USEFUL_CONTENT` + 失败顺延，但默认链只留免 key 的两位，用户能一眼看懂链会走哪几步；需要 provider 提取器（`tavily` / `exa` / `firecrawl`）时显式配到 `fetch.extractors` 里。
 
 ### 2.3 专用页面 handler：GitHub 走 `gh` CLI
 
@@ -71,7 +73,7 @@
 
 | 不做 | 理由 |
 |---|---|
-| Tavily keyless、任何免 key provider | 参考实现都没有；免 key 源（DDG HTML、公共 SearXNG）脆弱且可能违反 ToS |
+| Tavily keyless、任何免 key 搜索源 | 参考实现都没有；免 key 源（DDG HTML、公共 SearXNG）脆弱且可能违反 ToS。**例外**：`jina` 提取器允许无 key（官方 20 RPM），它只做抓取、不是搜索源，不会让搜索在未配 key 时静默工作 |
 | 搜索自动 fallback 链、`auto` / `all` / `routing` | pi-web-access 复杂度的主要来源；显式选择让失败原因唯一 |
 | responseId、`get_search_content` 分页、结果持久化 | "截断 + 临时文件"已覆盖续读；真有需求再加存储层 |
 | curator、摘要模型调用、answer 模式 | 偏离轻量目标与单一职责 |
@@ -85,7 +87,7 @@
 ## 4. 阶段划分
 
 - **Phase 1 — MVP**：TODO 的 T1–T8。包骨架 → 配置 → HTTP + SSRF → provider → handler → 提取器 → 工具层 → 入口注册与文档 → 安全与回归测试。
-- **Phase 2 — 常用扩展**：`recency` / 域名过滤参数、`/web-search --show` 配置展示、`outputSchema`、Jina Reader 作为第四个提取器、`searchRouting` 式多 provider 并发、GitHub 整仓浏览（clone + 磁盘缓存 + tree 展开）按需求评估。
+- **Phase 2 — 常用扩展**：`recency` / 域名过滤参数、`/web-search --show` 配置展示、`outputSchema`、`searchRouting` 式多 provider 并发、GitHub 整仓浏览（clone + 磁盘缓存 + tree 展开）按需求评估。
 - **Phase 3 — 发布**：GitHub 仓库与 CI（T11）、npm 发布（T12）、pi package manifest 校验、多平台手动验收清单。
 
 ## 5. 项目坐标（已确认）
