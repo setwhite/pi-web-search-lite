@@ -86,7 +86,7 @@
   - [x] 宿主不提供 `tool_search` 时退回直接激活并 `console.warn` 一行
   - [x] `guidance.*` 覆盖 `description` / `promptSnippet` / `promptGuidelines`；未配置时与默认值一致（本次给两个工具补了默认 `promptSnippet`）
   - [x] 手动（真实 `pi --extension ./index.ts`）：无代理时 `lite_web_fetch` 报 `fetch failed`；`config.proxy` 指向 127.0.0.1:12450 时同命令返回 `Example Domain`；`lite_web_search` 缺 key 时报「请设置环境变量 TAVILY_API_KEY，或在配置文件的 config.apiKeys.tavily 字段填写」
-  - [ ] 未能完成：真实 API 搜索返回结果（本机无 TAVILY / BRAVE / EXA key，与 T3 一致，靠桩 server 验收）
+  - [x] 真实 API 搜索（补测）：默认 tavily 与 `provider: "exa"` 各一条真实返回，另验真实 tavily extractor 抓取，见 `docs/VERIFICATION.md` 第 5 节
   - [x] deferred 端到端（发现 → 激活 → 调用）已在 T8 真机验证，见 `docs/VERIFICATION.md` 第 3 节
 - 偏离/发现：本机已装 rpiv-web-tools（同样注册 `web_search` / `web_fetch`），默认名会与之冲突并让 pi 以 EXIT=1 退出；手动验收用临时 `tools.*.name` 改名绕过，README 排查表已记录改法
 
@@ -99,4 +99,4 @@
   - [x] 用桩 server 走完整链路：`web_search` 经真实 `createHttpClient` → 桩 server → 统一信封（断言 method / 路径 / Bearer / body）；`web_fetch` 经桩代理 CONNECT → html 提取器 → 截断落盘（`fullOutputPath` 文件内容 = 完整正文）
   - [x] 按 `docs/VERIFICATION.md` 手动跑通 11 项矩阵并记录实际结果与日期（配置矩阵 7 项、GitHub handler 开/关、deferred 2 项）
 - 本轮修出的真实缺陷：`index.ts` 在扩展加载期调用动作方法，deferred 配置直接让 pi EXIT=1（`Extension runtime not initialized`）；改为 `pi.on("session_start", ...)` 后探测/激活，单测同步改造，真机 M10/M11 通过
-- 未完成项：真实搜索 API 验收（本机无 key，与 T3 一致）
+- 未完成项：无。真实搜索 / 提取冒烟于 T8 收尾后补测完成（见 `docs/VERIFICATION.md` 第 5 节）

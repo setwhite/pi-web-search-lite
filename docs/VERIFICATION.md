@@ -43,8 +43,18 @@ URL 固定 `https://github.com/octocat/Hello-World`，均带代理。
 - `test/regression/security.test.ts`：12 条 SSRF 黑名单（回环 / IPv6 映射 / 私有段 / link-local / `*.local` / `file:` / `ftp:`）在工具入口逐条拒绝且零请求；公网域名放行。
 - `test/regression/messages.test.ts`：缺 key、非法配置值、坏 JSON、gh 未安装、gh 未登录、提取器全败六类文案。
 
-## 5. 局限
+## 5. 真实 API 冒烟（2026-10-09 18:39 补测）
 
-- 真实搜索 API 未验收（本机无 TAVILY / BRAVE / EXA key，自 T3 起靠桩 server 覆盖）；一旦有 key，重跑 1-7 与一条真实 `web_search` 即可闭环。
+key 取自本机 `~/.config/rpiv-web-tools/config.json` 的 tavily / exa，经环境变量 `TAVILY_API_KEY` / `EXA_API_KEY` 注入进程，未写入任何文件；其余条件同第 1 节（隔离 agent dir + 代理 `http://127.0.0.1:12450`）。
+
+| # | 调用 | 实际结果 |
+|---|---|---|
+| S1 | `web_search` 默认 provider，query `pi coding agent` | 3 条结果：Wikipedia / 第三方评测 / YouTube，均带真实链接，EXIT=0 |
+| S2 | `web_search` + `provider: "exa"` | provider 显示 `exa`，返回 `pi.dev` 官网 / 文档 / GitHub 仓库 3 条，EXIT=0 |
+| S3 | `web_fetch` 抓 `https://pi.dev/docs/latest` | 标题 `Pi · Documentation · Pi`，`提取方式：提取器 tavily`（真实 Tavily `/extract`），EXIT=0 |
+
+## 6. 局限
+
+- 第 5 节依赖外部 key 与代理，属一次性记录；换环境后重跑 S1–S3 即可复验。`chars` 只进 `details`（不进模型上下文），模型答不出字符数属预期。
 - `gh` 文案快照含平台细节（Windows 为 `spawn gh-missing-xyz ENOENT`），换平台需同步更新。
 - 代理开关只在 Clash 混合端口 `127.0.0.1:12450` 上验证过 CONNECT 隧道。
