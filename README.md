@@ -1,3 +1,5 @@
+**简体中文** | [English](README.en.md)
+
 # pi-web-search-lite
 
 给 pi 加两个工具：`web_search` 搜网页、`web_fetch` 抓网页正文；所有出站请求走同一个代理。
