@@ -1,6 +1,6 @@
 {
 	"name": "pi-web-search-lite",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "Pi extension: lightweight web_search + web_fetch with configurable search provider and fetch chain.",
 	"author": "setwhite",
 	"repository": {
