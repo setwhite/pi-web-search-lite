@@ -4,7 +4,7 @@
 
 - 设计目标、非目标与配置全貌：`docs/PLAN.md`
 - 模块边界与依赖方向：`docs/ARCHITECTURE.md`
-- 任务进度与验收记录：`docs/TODO.md`
+- 任务进度与验收记录：`docs/TODO.md`、`docs/VERIFICATION.md`
 
 ## 安装
 
