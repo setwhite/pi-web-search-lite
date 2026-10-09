@@ -1,0 +1,39 @@
+{
+	"name": "pi-web-search-lite",
+	"version": "0.1.0",
+	"description": "Pi extension: lightweight web_search + web_fetch with configurable search provider and fetch chain.",
+	"type": "module",
+	"license": "MIT",
+	"keywords": [
+		"pi-package",
+		"pi-extension",
+		"web-search",
+		"web-fetch",
+		"tavily",
+		"brave",
+		"exa"
+	],
+	"pi": {
+		"extensions": [
+			"./index.ts"
+		]
+	},
+	"scripts": {
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*",
+		"typebox": "*"
+	},
+	"devDependencies": {
+		"@earendil-works/pi-coding-agent": "^1.1.0",
+		"@types/node": "^26.6.4",
+		"typebox": "^1.3.36",
+		"typescript": "^7.0.2",
+		"vitest": "^5.0.3"
+	},
+	"dependencies": {
+		"undici": "8.10.2"
+	}
+}
