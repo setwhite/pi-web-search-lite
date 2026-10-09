@@ -3,7 +3,7 @@
 import type { GitHubTarget } from "./index.ts";
 
 const TREE_MAX_ENTRIES = 200;
-const EMPTY_BODY = "_（正文为空）_";
+const EMPTY_BODY = "_(empty body)_";
 
 export interface TruncatedText {
 	content: string;
@@ -18,7 +18,7 @@ export function truncateText(content: string, maxChars: number): TruncatedText {
 	if (content.length <= maxChars) return { content, truncated: false };
 	const kept = content.slice(0, maxChars);
 	return {
-		content: `${kept}\n\n[... 已截断：原文 ${content.length} 字符，仅保留前 ${maxChars} 字符 ...]`,
+		content: `${kept}\n\n[... truncated: original ${content.length} chars, kept first ${maxChars} chars ...]`,
 		truncated: true,
 	};
 }
@@ -41,7 +41,7 @@ export function renderTarget(target: GitHubTarget, outputs: string[], maxChars: 
 			break;
 		case "pull":
 			page = target.files
-				? { title: `${target.owner}/${target.repo}#${target.number} 变更`, content: renderDiff(first) }
+				? { title: `${target.owner}/${target.repo}#${target.number} changes`, content: renderDiff(first) }
 				: renderPull(target, first);
 			break;
 		case "release":
@@ -59,19 +59,19 @@ function renderRepo(
 	const data = parseJson(json);
 	const stars = num(data.stargazerCount);
 	const forks = num(data.forkCount);
-	const stats = stars === undefined ? undefined : forks === undefined ? String(stars) : `${stars} · Fork：${forks}`;
+	const stats = stars === undefined ? undefined : forks === undefined ? String(stars) : `${stars} · Fork: ${forks}`;
 	const lines = [`# ${target.owner}/${target.repo}`];
 	const description = str(data.description);
 	if (description) lines.push("", description);
 	lines.push(
 		"",
 		...meta([
-			["默认分支", str(record(data.defaultBranchRef)?.name)],
+			["Default branch", str(record(data.defaultBranchRef)?.name)],
 			["Star", stats],
-			["语言", str(record(data.primaryLanguage)?.name)],
-			["许可证", str(record(data.licenseInfo)?.spdxId)],
-			["更新", str(data.updatedAt)],
-			["链接", str(data.url)],
+			["Language", str(record(data.primaryLanguage)?.name)],
+			["License", str(record(data.licenseInfo)?.spdxId)],
+			["Updated", str(data.updatedAt)],
+			["Link", str(data.url)],
 		]),
 	);
 	const readme = decodeBase64(readmeBase64);
@@ -90,7 +90,7 @@ function renderTree(raw: string): string {
 		.filter((line) => line !== "");
 	const lines = ["```text", ...entries.slice(0, TREE_MAX_ENTRIES), "```"];
 	if (entries.length > TREE_MAX_ENTRIES) {
-		lines.push("", `（共 ${entries.length} 项，仅显示前 ${TREE_MAX_ENTRIES} 项）`);
+		lines.push("", `(${entries.length} entries, showing first ${TREE_MAX_ENTRIES})`);
 	}
 	return lines.join("\n");
 }
@@ -101,21 +101,21 @@ function renderIssue(
 ): { title: string; content: string } {
 	const data = parseJson(json);
 	const number = num(data.number) ?? target.number;
-	const heading = `#${number} ${str(data.title) ?? "（无标题）"}`;
+	const heading = `#${number} ${str(data.title) ?? "(no title)"}`;
 	const lines = [
 		`# ${heading}`,
 		"",
 		...meta([
-			["状态", str(data.state)],
-			["作者", authorLine(data.author)],
-			["创建", str(data.createdAt)],
-			["关闭", str(data.closedAt)],
-			["标签", names(data.labels, "name")],
-			["指派", names(data.assignees, "login")],
-			["链接", str(data.url)],
+			["State", str(data.state)],
+			["Author", authorLine(data.author)],
+			["Created", str(data.createdAt)],
+			["Closed", str(data.closedAt)],
+			["Labels", names(data.labels, "name")],
+			["Assignees", names(data.assignees, "login")],
+			["Link", str(data.url)],
 		]),
 		"",
-		"## 正文",
+		"## Body",
 		"",
 		str(data.body) ?? EMPTY_BODY,
 		...commentsSection(data.comments),
@@ -129,30 +129,30 @@ function renderPull(
 ): { title: string; content: string } {
 	const data = parseJson(json);
 	const number = num(data.number) ?? target.number;
-	const heading = `#${number} ${str(data.title) ?? "（无标题）"}`;
+	const heading = `#${number} ${str(data.title) ?? "(no title)"}`;
 	const additions = num(data.additions);
 	const deletions = num(data.deletions);
 	const changed = num(data.changedFiles);
 	const changes =
 		additions === undefined || deletions === undefined
 			? undefined
-			: `+${additions} / -${deletions}${changed === undefined ? "" : `（${changed} 个文件）`}`;
-	const draft = data.isDraft === true ? "（草稿）" : "";
+			: `+${additions} / -${deletions}${changed === undefined ? "" : ` (${changed} files)`}`;
+	const draft = data.isDraft === true ? " (draft)" : "";
 	const lines = [
 		`# ${heading}`,
 		"",
 		...meta([
-			["状态", str(data.state) === undefined ? undefined : `${str(data.state)}${draft}`],
-			["作者", authorLine(data.author)],
-			["分支", branchLine(data.headRefName, data.baseRefName)],
-			["变更", changes],
-			["创建", str(data.createdAt)],
-			["合并", str(data.mergedAt)],
-			["标签", names(data.labels, "name")],
-			["链接", str(data.url)],
+			["State", str(data.state) === undefined ? undefined : `${str(data.state)}${draft}`],
+			["Author", authorLine(data.author)],
+			["Branch", branchLine(data.headRefName, data.baseRefName)],
+			["Changes", changes],
+			["Created", str(data.createdAt)],
+			["Merged", str(data.mergedAt)],
+			["Labels", names(data.labels, "name")],
+			["Link", str(data.url)],
 		]),
 		"",
-		"## 正文",
+		"## Body",
 		"",
 		str(data.body) ?? EMPTY_BODY,
 		...commentsSection(data.comments),
@@ -171,18 +171,18 @@ function renderRelease(
 	const data = parseJson(json);
 	const tag = str(data.tagName) ?? target.tag;
 	const name = str(data.name);
-	const state = data.isDraft === true ? "草稿" : data.isPrerelease === true ? "预发布" : "已发布";
+	const state = data.isDraft === true ? "draft" : data.isPrerelease === true ? "pre-release" : "published";
 	const lines = [
-		name && name !== tag ? `# ${tag}（${name}）` : `# ${tag}`,
+		name && name !== tag ? `# ${tag} (${name})` : `# ${tag}`,
 		"",
 		...meta([
-			["状态", state],
-			["作者", authorLine(data.author)],
-			["发布", str(data.publishedAt)],
-			["链接", str(data.url)],
+			["State", state],
+			["Author", authorLine(data.author)],
+			["Published", str(data.publishedAt)],
+			["Link", str(data.url)],
 		]),
 		"",
-		"## 正文",
+		"## Body",
 		"",
 		str(data.body) ?? EMPTY_BODY,
 	];
@@ -192,12 +192,12 @@ function renderRelease(
 function commentsSection(value: unknown): string[] {
 	const items = Array.isArray(value) ? value : [];
 	if (items.length === 0) return [];
-	const lines = ["", `## 评论（${items.length}）`];
+	const lines = ["", `## Comments (${items.length})`];
 	for (const item of items) {
 		const comment = record(item) ?? {};
 		lines.push(
 			"",
-			`### @${person(comment.author) ?? "匿名"} · ${str(comment.createdAt) ?? "时间未知"}`,
+			`### @${person(comment.author) ?? "anonymous"} · ${str(comment.createdAt) ?? "unknown time"}`,
 			"",
 			str(comment.body) ?? EMPTY_BODY,
 		);
@@ -206,7 +206,7 @@ function commentsSection(value: unknown): string[] {
 }
 
 function meta(entries: Array<[string, string | undefined]>): string[] {
-	return entries.filter((entry): entry is [string, string] => entry[1] !== undefined).map(([label, value]) => `- ${label}：${value}`);
+	return entries.filter((entry): entry is [string, string] => entry[1] !== undefined).map(([label, value]) => `- ${label}: ${value}`);
 }
 
 function authorLine(value: unknown): string | undefined {

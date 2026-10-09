@@ -27,7 +27,7 @@ export function loadConfig(options: LoadConfigOptions = {}): ResolvedConfig {
 	const config = buildConfig(readRawConfig(configPath), env, errors);
 	if (errors.length > 0) {
 		const lines = errors.map((item) => `- ${item}`).join("\n");
-		throw new Error(`配置文件 ${configPath} 有 ${errors.length} 处非法字段：\n${lines}`);
+		throw new Error(`${configPath}: ${errors.length} invalid field(s):\n${lines}`);
 	}
 	return config;
 }
@@ -44,16 +44,16 @@ function readRawConfig(configPath: string): Raw {
 		text = readFileSync(configPath, "utf-8");
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
-		throw new Error(`无法读取配置文件 ${configPath}：${errorText(error)}`);
+		throw new Error(`cannot read config file ${configPath}: ${errorText(error)}`);
 	}
 	let parsed: unknown;
 	try {
 		parsed = JSON.parse(text);
 	} catch (error) {
-		throw new Error(`配置文件 ${configPath} 不是合法 JSON：${errorText(error)}`);
+		throw new Error(`config file ${configPath} is not valid JSON: ${errorText(error)}`);
 	}
 	if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-		throw new Error(`配置文件 ${configPath} 的顶层必须是 JSON 对象`);
+		throw new Error(`config file ${configPath} must be a JSON object at the top level`);
 	}
 	return parsed as Raw;
 }

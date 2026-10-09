@@ -15,7 +15,7 @@ export const htmlExtractor: Extractor = {
 		const response = await ctx.http.fetchText(url, { signal: ctx.signal });
 		const contentType = response.contentType?.toLowerCase() ?? "";
 		if (BINARY_CONTENT_TYPES.some((pattern) => pattern.test(contentType))) {
-			throw new Error(`不支持的内容类型：${contentType || "未知"}`);
+			throw new Error(`unsupported content type: ${contentType || "unknown"}`);
 		}
 		return { url: response.url, title: extractTitle(response.text), content: htmlToText(response.text) };
 	},

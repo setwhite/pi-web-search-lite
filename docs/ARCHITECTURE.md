@@ -13,7 +13,7 @@
 | `providers/{types,index,tavily,brave,exa}.ts` | 把一次查询翻译成某搜索 API 的请求与统一结果形状 | `SearchProvider` 接口 + 注册表 + 工厂；不认识提取器与工具层 |
 | `handlers/{types,index}.ts`、`handlers/github/{index,gh,render}.ts` | 识别专用页面 URL 并产出已清洗正文；不命中或失败返回 `null` | `PageHandler` 接口 + 注册表；github 子目录自管 `gh` 子进程 |
 | `extractors/{types,index,tavily,exa,html}.ts` | 按配置顺序尝试多个正文提取器，失败时汇总原因 | `Extractor` 接口 + 链式执行器；不关心 URL 是普通页还是专用页 |
-| `tools/{search,fetch,result}.ts` | 编排以上模块，产出模型可读的 `content` 与渲染用 `details` | 两个工具定义对象；唯一允许拼装面向模型文案的地方 |
+| `tools/{search,fetch,result,render}.ts` | 编排以上模块，产出模型可读的 `content` 与渲染用 `details`；`render.ts` 负责 TUI 调用行/结果行 | 两个工具定义对象；模型文案在 `search`/`fetch`，界面文案在 `render`；`result.ts` 是宿主能力的唯一 import 点 |
 
 ## 2. 依赖方向
 
@@ -25,15 +25,21 @@ index.ts
                         ├─→ extractors/ ─┼─→ http/index.ts ──→ ssrf/index.ts
                         ├─→ handlers/ ───┘        ↑
                         ├─→ config/index.ts ──────┘（config 不依赖任何业务模块）
-                        └─→ tools/result.ts ──→ 宿主截断工具
+                        ├─→ tools/result.ts ──→ 宿主截断工具
+                        └─→ tools/render.ts ──→ pi-tui 的 Text
 ```
+
+补充边（主图未画）：
+
+- 值边：`tools/{search,fetch}.ts → tools/render.ts`（把 `renderCall` / `renderResult` 挂到工具定义上，渲染实现在 `render.ts`）。
+- type-only 边（`import type`，运行时无环，不参与代码分层）：`index.ts ⇢ 宿主 ExtensionAPI`；`tools/render.ts ⇢ tools/{search,fetch}.ts`（复用 `SearchDetails` / `SearchParams`、`FetchDetails` / `FetchParams` 类型）。
 
 规则（新代码按此判断放哪）：
 
 - 只能从左向右依赖，禁止反向 import；`config/` / `http/` / `ssrf/` 是叶子，不 import 任何业务模块。
 - `providers/` / `extractors/` / `handlers/` 三者互不依赖；需要组合时由 `tools/` 编排。
-- 只有 `tools/result.ts` 可以 import 宿主 `@earendil-works/pi-coding-agent` 的截断工具；其余模块不依赖宿主 API，便于单测。
-- 面向模型的文案（工具描述、错误清单、结果信封）只出现在 `tools/`；下层模块抛结构化错误（类型 + 消息模板），由工具层拼装。
+- 宿主包 `@earendil-works/pi-coding-agent` 只在两处出现：`index.ts` 的 `import type { ExtensionAPI }`（扩展入口签名）与 `tools/result.ts`（截断工具与 `AgentToolResult` / `ToolDefinition` / `Theme` 类型）；`@earendil-works/pi-tui` 只在 `tools/render.ts`；其余模块不依赖宿主 API，便于单测。
+- 面向模型的文案（工具描述、错误清单、结果信封）只出现在 `tools/{search,fetch,result}.ts`，界面文案只出现在 `tools/render.ts`；两者统一用英文，注释与文档用中文。下层模块抛结构化错误（类型 + 消息模板），由工具层拼装。
 - Phase 2+ 能力清单见 PLAN §3 / §4；新增时不得改动上述依赖方向，必须改动则先更新本文件。
 
 ## 3. 目录与测试约定

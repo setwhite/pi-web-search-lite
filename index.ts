@@ -40,7 +40,7 @@ function activateDeferred(pi: ExtensionAPI, toolNames: readonly string[]): void 
 		if (!active.includes(LOADER_TOOL)) pi.setActiveTools([...active, LOADER_TOOL]);
 		return;
 	}
-	console.warn(`[pi-web-search-lite] activation 为 "deferred" 但宿主未提供 ${LOADER_TOOL}，已在会话开始时直接激活工具。`);
+	console.warn(`[pi-web-search-lite] activation is "deferred" but the host does not provide ${LOADER_TOOL}; activated the tools directly at session start.`);
 	const missing = toolNames.filter((name) => !active.includes(name));
 	if (missing.length > 0) pi.setActiveTools([...active, ...missing]);
 }

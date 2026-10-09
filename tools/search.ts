@@ -5,6 +5,7 @@ import { PROVIDER_IDS, type ProviderId, type ResolvedConfig } from "../config/in
 import { createHttpClient, type HttpClient } from "../http/index.ts";
 import { createSearchProvider, resolveApiKey, resolveProviderId, type SearchProvider, type SearchResult } from "../providers/index.ts";
 import { buildToolResult, finalizeContent, type AgentToolResult, type ToolDefinition } from "./result.ts";
+import { renderSearchCall, renderSearchResult } from "./render.ts";
 
 export interface SearchParams {
 	query: string;
@@ -47,10 +48,10 @@ export async function executeSearch(
 
 	const results = await provider.search({ query: params.query, maxResults, signal });
 
-	const header = `web_search（provider: ${providerId}，max_results: ${maxResults}，共 ${results.length} 条）`;
+	const header = `web_search: ${results.length} results (provider: ${providerId}, max_results: ${maxResults})`;
 	const body =
 		results.length === 0
-			? "未返回结果。"
+			? "No results returned."
 			: results
 					.map((item, index) =>
 						[`${index + 1}. ${item.title}`, `   ${item.url}`, ...(item.snippet ? [`   ${item.snippet}`] : [])].join("\n"),
@@ -70,22 +71,32 @@ export async function executeSearch(
 
 const PROVIDER_SCHEMA = Type.Union(
 	PROVIDER_IDS.map((id) => Type.Literal(id)),
-	{ description: `覆盖 provider；合法值：${PROVIDER_IDS.join("、")}` },
+	{ description: `Provider override; valid values: ${PROVIDER_IDS.join(", ")}` },
 );
 
 /** 未配置 guidance.promptSnippet 时的默认一行短语（工具列表用）。 */
-const DEFAULT_PROMPT_SNIPPET = "搜索网页（Tavily / Brave / Exa，需显式选 provider）";
+const DEFAULT_PROMPT_SNIPPET = "Search the web via Tavily / Brave / Exa (provider is chosen explicitly)";
 
-export function createSearchTool(config: ResolvedConfig, overrides: SearchOverrides = {}): ToolDefinition {
-	const parameters = Type.Object({
-		query: Type.String({ description: "搜索关键词" }),
+/** schema 独立成函数：返回类型要用 `Static<typeof ...>`，函数签名引用不到函数体内的变量。 */
+function buildParameters(config: ResolvedConfig) {
+	return Type.Object({
+		query: Type.String({ description: "Search query" }),
 		max_results: Type.Optional(
 			Type.Integer({
-				description: `返回结果数，clamp 到 1–${config.search.maxResultsLimit}；缺省 ${config.search.defaultMaxResults}`,
+				description: `Number of results, clamped to 1-${config.search.maxResultsLimit}; default ${config.search.defaultMaxResults}`,
 			}),
 		),
 		provider: Type.Optional(PROVIDER_SCHEMA),
 	});
+}
+
+type SearchParameters = ReturnType<typeof buildParameters>;
+
+export function createSearchTool(
+	config: ResolvedConfig,
+	overrides: SearchOverrides = {},
+): ToolDefinition<SearchParameters, SearchDetails> {
+	const parameters = buildParameters(config);
 	const guidance = config.guidance.web_search ?? {};
 	const guidanceFields = {
 		promptSnippet: guidance.promptSnippet ?? DEFAULT_PROMPT_SNIPPET,
@@ -98,13 +109,15 @@ export function createSearchTool(config: ResolvedConfig, overrides: SearchOverri
 		description:
 			guidance.description ??
 			[
-				"通过 Tavily / Brave / Exa 之一搜索网页，返回标题 / URL / 摘要。",
-				`provider 解析顺序：provider 参数 > WEB_SEARCH_PROVIDER 环境变量 > config.provider > tavily；缺 key 会直接报错，不会自动换 provider。`,
-				`max_results 会 clamp 到 1–${config.search.maxResultsLimit}（缺省 ${config.search.defaultMaxResults}）。`,
-				"结果超 context 上限时自动截断；被截断时完整内容写入临时文件，结果里会给出绝对路径，可用 read 工具继续读取。",
+				"Search the web via one of Tavily / Brave / Exa; returns titles, URLs and snippets.",
+				`Provider resolution order: "provider" argument > WEB_SEARCH_PROVIDER env var > config.provider > tavily; a missing API key is an error and never falls back to another provider.`,
+				`max_results is clamped to 1-${config.search.maxResultsLimit} (default ${config.search.defaultMaxResults}).`,
+				"Results are truncated at the context limit; when truncated, the full content is written to a temp file whose absolute path is included so the read tool can continue.",
 			].join("\n"),
 		parameters,
 		...guidanceFields,
+		renderCall: renderSearchCall,
+		renderResult: renderSearchResult,
 		async execute(_toolCallId, params: Static<typeof parameters>, signal) {
 			return executeSearch(config, params, signal, overrides);
 		},

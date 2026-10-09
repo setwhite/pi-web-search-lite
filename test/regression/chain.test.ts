@@ -115,7 +115,7 @@ describe("回归：web_fetch 全链路", () => {
 		expect(spilled).not.toContain("已截断");
 
 		const text = firstText(result);
-		expect(text).toContain("已截断");
+		expect(text).toContain("[... output truncated:");
 		expect(text).toContain(out ?? "");
 	});
 });

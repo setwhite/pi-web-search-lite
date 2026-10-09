@@ -51,7 +51,7 @@ export const githubHandler: PageHandler = {
 		if (!target) return null;
 		const settings = ctx.github;
 		if (!settings.enabled) {
-			return skip("handlers.github.enabled 为 false，已跳过 GitHub 专用处理");
+			return skip("handlers.github.enabled is false; GitHub-specific handling skipped");
 		}
 
 		const exec = ctx.execGh ?? execGh;
@@ -73,7 +73,7 @@ export const githubHandler: PageHandler = {
 			}
 			if (!result.ok) {
 				// 首条命令失败 = 整个 handler 放弃；附加内容（如 README）失败则忽略
-				if (index === 0) return skip(`gh ${step.args[0]} 执行失败：${shortDetail(result)}`);
+				if (index === 0) return skip(`gh ${step.args[0]} failed: ${shortDetail(result)}`);
 				break;
 			}
 			outputs.push(result.stdout);

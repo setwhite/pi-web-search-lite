@@ -94,7 +94,7 @@ describe("truncateText", () => {
 
 		expect(page.truncated).toBe(true);
 		expect(page.content.startsWith("x".repeat(100))).toBe(true);
-		expect(page.content).toContain("已截断");
+		expect(page.content).toContain("[... truncated:");
 		expect(page.content).toContain("500");
 	});
 });
@@ -104,6 +104,6 @@ describe("renderTarget 超 maxChars", () => {
 		const page = renderTarget(issue, [JSON.stringify(ISSUE)], 120);
 
 		expect(page.truncated).toBe(true);
-		expect(page.content).toContain("已截断");
+		expect(page.content).toContain("[... truncated:");
 	});
 });

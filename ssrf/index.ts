@@ -11,7 +11,7 @@ export class SsrfError extends Error {
 	readonly url: string;
 
 	constructor(type: SsrfErrorType, url: string, reason: string) {
-		super(`${reason}：${url}`);
+		super(`${reason}: ${url}`);
 		this.name = "SsrfError";
 		this.type = type;
 		this.url = url;
@@ -27,17 +27,17 @@ export function assertPublicUrl(input: string): URL {
 	try {
 		url = new URL(input);
 	} catch {
-		throw new SsrfError("invalid_url", input, "不是一个合法 URL");
+		throw new SsrfError("invalid_url", input, "not a valid URL");
 	}
 
 	if (url.protocol !== "http:" && url.protocol !== "https:") {
-		throw new SsrfError("blocked_protocol", input, `只允许 http/https，实际 ${url.protocol}`);
+		throw new SsrfError("blocked_protocol", input, `only http/https is allowed, got ${url.protocol}`);
 	}
 
 	const host = normalizeHostname(url.hostname);
-	if (host === "") throw new SsrfError("invalid_url", input, "缺少主机名");
-	if (isLocalName(host)) throw new SsrfError("blocked_host", input, `拒绝本机或本地域名 ${host}`);
-	if (isBlockedIp(host)) throw new SsrfError("blocked_ip", input, `拒绝私有 / 回环 / link-local 地址 ${host}`);
+	if (host === "") throw new SsrfError("invalid_url", input, "missing host name");
+	if (isLocalName(host)) throw new SsrfError("blocked_host", input, `blocked host (localhost or .local): ${host}`);
+	if (isBlockedIp(host)) throw new SsrfError("blocked_ip", input, `blocked private, loopback or link-local address: ${host}`);
 
 	return url;
 }

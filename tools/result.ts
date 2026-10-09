@@ -14,7 +14,7 @@ import {
 	type AgentToolResult,
 } from "@earendil-works/pi-coding-agent";
 
-export type { AgentToolResult, ToolDefinition } from "@earendil-works/pi-coding-agent";
+export type { AgentToolResult, Theme, ToolDefinition, ToolRenderResultOptions } from "@earendil-works/pi-coding-agent";
 
 export interface FinalizeOptions {
 	/** `config.context.maxInlineChars`；null = 宿主 DEFAULT_MAX_BYTES。超过宿主上限时按宿主上限截断。 */
@@ -48,10 +48,10 @@ export async function finalizeContent(text: string, options: FinalizeOptions): P
 	}
 
 	const notes = [
-		`[... 输出已截断：共 ${result.totalLines} 行 / ${result.totalBytes} 字节，此处保留 ${result.outputLines} 行。]`,
+		`[... output truncated: ${result.totalLines} lines / ${result.totalBytes} bytes total, kept ${result.outputLines} lines here.]`,
 		fullOutputPath
-			? `完整内容已写入 ${fullOutputPath}，可用 read 工具读取该文件继续。`
-			: "未写入临时文件（context.spillToFile 为 false）。",
+			? `Full output written to ${fullOutputPath}; read that file to continue.`
+			: "Not written to a temp file (context.spillToFile is false).",
 	];
 	return { content: `${result.content}\n\n${notes.join("\n")}`, truncated: true, fullOutputPath };
 }

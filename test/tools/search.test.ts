@@ -71,7 +71,7 @@ describe("executeSearch", () => {
 
 		const result = await executeSearch(config, { query: "空" }, undefined, { provider });
 
-		expect(firstText(result)).toContain("未返回结果");
+		expect(firstText(result)).toContain("No results returned");
 		expect(result.details.count).toBe(0);
 	});
 

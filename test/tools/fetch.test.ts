@@ -78,8 +78,8 @@ describe("executeFetch：handler 与提取器链", () => {
 		const result = await executeFetch(makeConfig(), { url: "https://github.com/o/r/issues/7" }, undefined, { http, execGh: missingExec });
 
 		expect(result.details.source).toBe("html");
-		expect(result.details.handlerSkips?.[0]).toContain("未找到可用的 gh");
-		expect(firstText(result)).toContain("未接管");
+		expect(result.details.handlerSkips?.[0]).toContain("gh command not found");
+		expect(firstText(result)).toContain("handler skipped");
 		expect(firstText(result)).toContain("回退正文");
 		expect(http.calls).toHaveLength(1);
 	});
@@ -155,7 +155,7 @@ describe("executeFetch：截断与失败", () => {
 
 		expect(result.details.truncated).toBe(true);
 		expect(path).toBeTruthy();
-		expect(firstText(result)).toContain("已截断");
+		expect(firstText(result)).toContain("[... output truncated:");
 		// visibleChars 反映截断后的可见量，避免 chars（截断前）让模型误以为「已拿全」
 		expect(result.details.visibleChars).toBe(firstText(result).length);
 		expect(result.details.visibleChars).toBeLessThan(result.details.chars);
@@ -168,10 +168,10 @@ describe("executeFetch：截断与失败", () => {
 
 		const error = await rejectionOf(executeFetch(makeConfig(), { url: "https://example.com/short" }, undefined, { http }));
 
-		expect(error.message).toContain("所有提取器");
+		expect(error.message).toContain("all extractors failed");
 		expect(error.message).toContain("tavily");
 		expect(error.message).toContain("TAVILY_API_KEY");
 		expect(error.message).toContain("html");
-		expect(error.message).toContain("内容过短");
+		expect(error.message).toContain("content too short");
 	});
 });

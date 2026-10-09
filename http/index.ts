@@ -99,7 +99,7 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 		}
 
 		if (!response.ok) {
-			throw new HttpError("http_status", finalUrl, `HTTP ${response.status}：${state.method} ${finalUrl}`, {
+			throw new HttpError("http_status", finalUrl, `HTTP ${response.status}: ${state.method} ${finalUrl}`, {
 				status: response.status,
 				body: text,
 			});
@@ -117,7 +117,7 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 			try {
 				return { ...result, data: JSON.parse(result.text) as T };
 			} catch {
-				throw new HttpError("parse", result.url, `响应不是合法 JSON：${request?.method ?? "GET"} ${result.url}`);
+				throw new HttpError("parse", result.url, `invalid JSON response: ${request?.method ?? "GET"} ${result.url}`);
 			}
 		},
 	};
@@ -163,7 +163,7 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 			}
 			current = next;
 		}
-		throw new HttpError("too_many_redirects", current.href, `重定向超过 ${MAX_REDIRECTS} 次：${url}`);
+		throw new HttpError("too_many_redirects", current.href, `too many redirects (limit ${MAX_REDIRECTS}): ${url}`);
 	}
 }
 
@@ -173,7 +173,7 @@ function redirectTarget(current: URL, location: string): URL {
 	try {
 		next = new URL(location, current);
 	} catch {
-		throw new HttpError("redirect", current.href, `重定向目标非法：${location}（来自 ${current.href}）`);
+		throw new HttpError("redirect", current.href, `invalid redirect target: ${location} (from ${current.href})`);
 	}
 	assertPublicUrl(next.href);
 	return next;
@@ -182,10 +182,10 @@ function redirectTarget(current: URL, location: string): URL {
 /** 归一化 fetch / 读体阶段的异常：区分调用方中断、超时与网络错误。 */
 function toHttpError(cause: unknown, url: string, state: RequestState): HttpError | SsrfError {
 	if (cause instanceof HttpError || cause instanceof SsrfError) return cause;
-	if (state.userSignal?.aborted === true) return new HttpError("abort", url, `请求被中断：${state.method} ${url}`);
-	if (state.timeout.aborted) return new HttpError("timeout", url, `请求超时：${state.method} ${url}`);
+	if (state.userSignal?.aborted === true) return new HttpError("abort", url, `request aborted: ${state.method} ${url}`);
+	if (state.timeout.aborted) return new HttpError("timeout", url, `request timed out: ${state.method} ${url}`);
 	const detail = cause instanceof Error ? cause.message : String(cause);
-	return new HttpError("network", url, `网络错误：${state.method} ${url}：${detail}`);
+	return new HttpError("network", url, `network error: ${state.method} ${url}: ${detail}`);
 }
 
 function dropHeader(headers: Record<string, string>, name: string): void {

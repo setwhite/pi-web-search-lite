@@ -1,6 +1,6 @@
 /**
  * 配置校验：逐字段检查类型、枚举与名称规则，数值越界 clamp。
- * 只被 index.ts 调用；错误文本格式为 `<字段路径>：<原因>`，由 index.ts 汇总抛出。
+ * 只被 index.ts 调用；错误文本格式为 `<field path>: <reason>`，由 index.ts 汇总抛出。
  */
 
 import {
@@ -71,7 +71,7 @@ export function buildConfig(raw: Raw, env: NodeJS.ProcessEnv, errors: Errors): R
 	);
 	const tools = readTools(raw.tools, errors);
 	if (!tools.web_search.enabled && !tools.web_fetch.enabled) {
-		errors.push("tools：web_search 与 web_fetch 不能同时 enabled: false，至少保留一个");
+		errors.push("tools: web_search and web_fetch cannot both be disabled; keep at least one enabled");
 	}
 	return {
 		provider: readEnum(raw.provider, PROVIDER_IDS, DEFAULT_PROVIDER, "provider", errors),
@@ -105,7 +105,7 @@ function readApiKeys(value: unknown, env: NodeJS.ProcessEnv, errors: Errors): Pa
 function readProxy(value: unknown, errors: Errors): string | undefined {
 	if (value === undefined || value === null) return undefined;
 	if (typeof value !== "string") {
-		errors.push(`proxy：期望 http/https URL 字符串，实际 ${JSON.stringify(value)}`);
+		errors.push(`proxy: expected an http/https URL string, got ${JSON.stringify(value)}`);
 		return undefined;
 	}
 	const text = value.trim();
@@ -114,11 +114,11 @@ function readProxy(value: unknown, errors: Errors): string | undefined {
 	try {
 		url = new URL(text);
 	} catch {
-		errors.push(`proxy：不是合法 URL，实际 ${JSON.stringify(value)}`);
+		errors.push(`proxy: not a valid URL, got ${JSON.stringify(value)}`);
 		return undefined;
 	}
 	if (url.protocol !== "http:" && url.protocol !== "https:") {
-		errors.push(`proxy：只支持 http/https 代理，实际 ${url.protocol}//`);
+		errors.push(`proxy: only http/https proxies are supported, got ${url.protocol}//`);
 		return undefined;
 	}
 	return text;
@@ -132,7 +132,7 @@ function readTools(value: unknown, errors: Errors): Record<ToolId, ToolSettings>
 		web_fetch: readToolSettings(raw.web_fetch, "tools.web_fetch", "web_fetch", errors),
 	};
 	if (tools.web_search.name === tools.web_fetch.name) {
-		errors.push(`tools：两个工具的名称不能相同（都是 "${tools.web_search.name}"）`);
+		errors.push(`tools: web_search and web_fetch cannot share the same name (both "${tools.web_search.name}")`);
 	}
 	return tools;
 }
@@ -143,9 +143,9 @@ function readToolSettings(value: unknown, path: string, defaultName: string, err
 	const name = readString(raw.name, defaultName, `${path}.name`, errors);
 	if (typeof raw.name === "string" && raw.name.trim() !== "") {
 		if (!TOOL_NAME_PATTERN.test(name)) {
-			errors.push(`${path}.name：只能以字母开头、只含字母数字下划线连字符，实际 ${JSON.stringify(name)}`);
+			errors.push(`${path}.name: must start with a letter and contain only letters, digits, "_" or "-", got ${JSON.stringify(name)}`);
 		} else if (RESERVED_TOOL_NAMES.has(name)) {
-			errors.push(`${path}.name："${name}" 是宿主保留工具名`);
+			errors.push(`${path}.name: "${name}" is reserved by the host`);
 		}
 	}
 	return { enabled: readBoolean(raw.enabled, true, `${path}.enabled`, errors), name };
@@ -218,13 +218,13 @@ function isExtractorId(value: unknown): value is ExtractorId {
 function readExtractors(value: unknown, errors: Errors): ExtractorId[] {
 	if (value === undefined) return [...DEFAULT_EXTRACTORS];
 	if (!Array.isArray(value) || value.length === 0) {
-		errors.push("fetch.extractors：期望非空数组");
+		errors.push("fetch.extractors: expected a non-empty array");
 		return [...DEFAULT_EXTRACTORS];
 	}
 	const extractors: ExtractorId[] = [];
 	for (const item of value) {
 		if (!isExtractorId(item)) {
-			errors.push(`fetch.extractors：只支持 ${EXTRACTOR_IDS.join(" / ")}，实际 ${JSON.stringify(item)}`);
+			errors.push(`fetch.extractors: supported ids are ${EXTRACTOR_IDS.join(" / ")}, got ${JSON.stringify(item)}`);
 			continue;
 		}
 		if (!extractors.includes(item)) extractors.push(item);

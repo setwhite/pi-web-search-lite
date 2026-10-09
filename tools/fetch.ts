@@ -7,6 +7,7 @@ import { runPageHandlers, type GhExecutor } from "../handlers/index.ts";
 import { createHttpClient, type HttpClient } from "../http/index.ts";
 import { assertPublicUrl } from "../ssrf/index.ts";
 import { buildToolResult, finalizeContent, type AgentToolResult, type ToolDefinition } from "./result.ts";
+import { renderFetchCall, renderFetchResult } from "./render.ts";
 
 export interface FetchParams {
 	url: string;
@@ -50,10 +51,10 @@ export async function executeFetch(
 
 	if (params.raw === true) {
 		if (!config.fetch.allowRaw) {
-			throw new Error("raw 模式未启用：请把配置文件的 fetch.allowRaw 设为 true，或不传 raw 参数。");
+			throw new Error("raw mode is disabled: set fetch.allowRaw to true in the config file, or omit the raw argument.");
 		}
 		const response = await http.fetchText(target.toString(), { signal });
-		const text = `原始内容（${response.contentType ?? "未知类型"}，${response.text.length} 字符）\n来源：${response.url}\n\n${response.text}`;
+		const text = `Raw content (${response.contentType ?? "unknown type"}, ${response.text.length} chars)\nSource: ${response.url}\n\n${response.text}`;
 		const envelope = await finalizeContent(text, { ...config.context, fileName: "web-fetch.md" });
 		return buildToolResult(envelope.content, {
 			url: response.url,
@@ -74,7 +75,7 @@ export async function executeFetch(
 		signal,
 		execGh: overrides.execGh,
 	});
-	const handlerSkips = handlerRun.skips.map((skip) => `${skip.handler} handler 未接管：${skip.reason}`);
+	const handlerSkips = handlerRun.skips.map((skip) => `${skip.handler} handler skipped: ${skip.reason}`);
 
 	let page: { url: string; title: string; content: string; source: FetchSource; truncated: boolean };
 	if (handlerRun.result) {
@@ -109,8 +110,8 @@ export async function executeFetch(
 
 	const header = [
 		`# ${page.title}`,
-		`来源：${page.url}`,
-		`提取方式：${page.source === "github" ? "GitHub handler" : `提取器 ${page.source}`}`,
+		`Source: ${page.url}`,
+		`Extracted by: ${page.source === "github" ? "GitHub handler" : `extractor ${page.source}`}`,
 		...(handlerSkips.length > 0 ? ["", ...handlerSkips.map((line) => `> ${line}`)] : []),
 	].join("\n");
 
@@ -129,14 +130,14 @@ export async function executeFetch(
 }
 
 /** 未配置 guidance.promptSnippet 时的默认一行短语（工具列表用）。 */
-const DEFAULT_PROMPT_SNIPPET = "抓取网页正文（GitHub 页面走 gh CLI，其余走提取器链）";
+const DEFAULT_PROMPT_SNIPPET = "Fetch a web page and extract its text (GitHub pages via gh CLI, otherwise the extractor chain)";
 
 export function createFetchTool(config: ResolvedConfig, overrides: FetchOverrides = {}): ToolDefinition<TSchema, FetchDetails> {
 	const properties: Record<string, TSchema> = {
-		url: Type.String({ description: "要抓取的 http(s) URL；内网 / 本机地址会被拒绝" }),
+		url: Type.String({ description: "http(s) URL to fetch; private and loopback addresses are rejected" }),
 	};
 	if (config.fetch.allowRaw) {
-		properties.raw = Type.Boolean({ description: "true = 直接返回原始响应体，跳过 GitHub handler 与提取器链" });
+		properties.raw = Type.Boolean({ description: "true = return the raw response body, skipping the GitHub handler and the extractor chain" });
 	}
 	const guidance = config.guidance.web_fetch ?? {};
 	const guidanceFields = {
@@ -150,13 +151,15 @@ export function createFetchTool(config: ResolvedConfig, overrides: FetchOverride
 		description:
 			guidance.description ??
 			[
-				`抓取网页并提取正文：先试 GitHub 专用 handler（gh CLI），未命中或失败则按配置顺序尝试提取器 ${config.fetch.extractors.join(" → ")}。`,
-				...(config.fetch.allowRaw ? ["raw: true 时直接返回原始响应体，跳过 handler 与提取器链。"] : []),
-				"内容短于 fetch.minChars 或全部提取器失败会报错；handler 未接管时会在结果里注明原因并顺延。",
-				"超 context 上限时自动截断；被截断时完整内容写入临时文件，结果里会给出绝对路径，可用 read 工具继续读取。",
+				`Fetch a web page and extract its text: the GitHub handler (gh CLI) runs first, then the configured extractors in order: ${config.fetch.extractors.join(" -> ")}.`,
+				...(config.fetch.allowRaw ? ["raw: true returns the raw response body, skipping the handler and the extractor chain."] : []),
+				"Fails when the content is shorter than fetch.minChars or when every extractor fails; skipped handlers are reported with a reason in the result.",
+				"Truncated at the context limit; when truncated, the full content is written to a temp file whose absolute path is included, readable with the read tool.",
 			].join("\n"),
 		parameters: Type.Object(properties),
 		...guidanceFields,
+		renderCall: renderFetchCall,
+		renderResult: renderFetchResult,
 		async execute(_toolCallId, params, signal) {
 			return executeFetch(config, params as FetchParams, signal, overrides);
 		},

@@ -25,7 +25,7 @@ describe("finalizeContent", () => {
 
 		expect(outcome.truncated).toBe(true);
 		expect(path).toBeTruthy();
-		expect(outcome.content).toContain("已截断");
+		expect(outcome.content).toContain("[... output truncated:");
 		expect(outcome.content).toContain(path);
 		expect(existsSync(path ?? "")).toBe(true);
 		expect(readFileSync(path ?? "", "utf-8")).toBe(text);
@@ -36,7 +36,7 @@ describe("finalizeContent", () => {
 
 		expect(outcome.truncated).toBe(true);
 		expect(outcome.fullOutputPath).toBeUndefined();
-		expect(outcome.content).toContain("已截断");
+		expect(outcome.content).toContain("[... output truncated:");
 		expect(outcome.content).toContain("spillToFile");
 	});
 

@@ -122,7 +122,7 @@ describe("extractWithChain", () => {
 
 	it("全部失败时汇总每个提取器的名字与原因", async () => {
 		const tavily = fake("tavily", { error: "HTTP 401" });
-		const exa = fake("exa", { skipped: "未配置 EXA_API_KEY / config.apiKeys.exa" });
+		const exa = fake("exa", { skipped: "not configured (EXA_API_KEY env var or config.apiKeys.exa)" });
 		const html = fake("html", { content: "太短" });
 
 		const error = await failureOf(extractWithChain("https://example.com/a", ["tavily", "exa", "html"], baseContext(), table(tavily, exa, html)));
@@ -133,7 +133,7 @@ describe("extractWithChain", () => {
 		expect(error.message).toContain("exa");
 		expect(error.message).toContain("EXA_API_KEY");
 		expect(error.message).toContain("html");
-		expect(error.message).toContain("内容过短");
+		expect(error.message).toContain("content too short");
 	});
 
 	it("title 缺失时用最终 URL 顶替", async () => {
@@ -151,6 +151,6 @@ describe("extractWithChain", () => {
 
 		expect(page.truncated).toBe(true);
 		expect(page.content.startsWith("x".repeat(1_000))).toBe(true);
-		expect(page.content).toContain("已截断");
+		expect(page.content).toContain("[... truncated:");
 	});
 });

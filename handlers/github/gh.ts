@@ -88,12 +88,12 @@ async function runProbe(command: string, options: ProbeOptions): Promise<GhAvail
 	if (!version.ok) {
 		return {
 			ok: false,
-			reason: `未找到可用的 gh 命令（${command}）：${shortDetail(version)}。请安装 GitHub CLI 或修改 handlers.github.command。`,
+			reason: `gh command not found (${command}): ${shortDetail(version)}. Install GitHub CLI or change handlers.github.command.`,
 		};
 	}
 	const auth = await options.exec(command, ["auth", "status"], runOptions(options));
 	if (!auth.ok) {
-		return { ok: false, reason: `gh 未登录：${shortDetail(auth)}。请先运行 gh auth login。` };
+		return { ok: false, reason: `gh is not authenticated: ${shortDetail(auth)}. Run gh auth login first.` };
 	}
 	return { ok: true, reason: "" };
 }
@@ -105,6 +105,6 @@ function runOptions(options: ProbeOptions): GhRunOptions {
 /** 取错误输出首行并限长，用于原因文本。 */
 export function shortDetail(result: GhExecResult): string {
 	const line = (result.stderr || result.error || "").trim().split("\n")[0] ?? "";
-	if (line === "") return "未知错误";
+	if (line === "") return "unknown error";
 	return line.length > 200 ? `${line.slice(0, 200)}…` : line;
 }

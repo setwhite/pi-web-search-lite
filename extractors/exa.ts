@@ -13,7 +13,7 @@ export function createExaExtractor(baseUrl = EXA_API_BASE): Extractor {
 	const endpoint = `${baseUrl}/contents`;
 	return {
 		id: "exa",
-		unavailableReason: (ctx) => (ctx.apiKeys.exa?.trim() ? null : `未配置 ${PROVIDER_ENV_KEYS.exa} / config.apiKeys.exa`),
+		unavailableReason: (ctx) => (ctx.apiKeys.exa?.trim() ? null : `not configured (${PROVIDER_ENV_KEYS.exa} env var or config.apiKeys.exa)`),
 		async extract(url, ctx: ExtractorContext): Promise<ExtractedContent> {
 			const apiKey = ctx.apiKeys.exa?.trim() ?? "";
 			const { data } = await ctx.http.fetchJson<ExaContentsResponse>(endpoint, {
@@ -24,7 +24,7 @@ export function createExaExtractor(baseUrl = EXA_API_BASE): Extractor {
 			});
 
 			const result = data.results?.[0];
-			if (!result?.text) throw new Error("响应里没有 text");
+			if (!result?.text) throw new Error("response has no text");
 			return { url: result.url ?? url, title: result.title, content: result.text };
 		},
 	};

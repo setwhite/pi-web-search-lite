@@ -105,7 +105,7 @@ export interface GitHubHandlerSettings {
 }
 
 export type Raw = Record<string, unknown>;
-/** 校验错误文本列表，格式 `<字段路径>：<原因>`。 */
+/** 校验错误文本列表，格式 `<field path>: <reason>`。 */
 export type Errors = string[];
 
 /** 已完成校验、clamp 与 env key 合并的最终配置。 */
@@ -128,7 +128,7 @@ function readPackageVersion(): string {
 	const url = new URL("../package.json", import.meta.url);
 	const pkg = JSON.parse(readFileSync(url, "utf-8")) as { version?: unknown };
 	if (typeof pkg.version !== "string" || pkg.version.trim() === "") {
-		throw new Error(`package.json 缺少可用的 version 字段：${url.pathname}`);
+		throw new Error(`package.json has no usable version field: ${url.pathname}`);
 	}
 	return pkg.version;
 }

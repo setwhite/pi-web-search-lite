@@ -100,3 +100,45 @@
   - [x] 按 `docs/VERIFICATION.md` 手动跑通 11 项矩阵并记录实际结果与日期（配置矩阵 7 项、GitHub handler 开/关、deferred 2 项）
 - 本轮修出的真实缺陷：`index.ts` 在扩展加载期调用动作方法，deferred 配置直接让 pi EXIT=1（`Extension runtime not initialized`）；改为 `pi.on("session_start", ...)` 后探测/激活，单测同步改造，真机 M10/M11 通过
 - 未完成项：无。真实搜索 / 提取冒烟于 T8 收尾后补测完成（见 `docs/VERIFICATION.md` 第 5 节）
+
+## T9 工具 UI 渲染
+
+- 状态：完成 ｜ 前置：T6、T7；返工项 1–3 全部达成；验收最后一项（交互式真机目测）由审计以 ConPTY 实机捕获复核通过（调用行、折叠/展开、失败、截断标记与语义色全部命中）
+- 交付物：`tools/render.ts`、`tools/{search,fetch}.ts` 接线、`test/tools/render.test.ts`、`tools/README.md` 与 `docs/ARCHITECTURE.md` 更新；`package.json` 加 `@earendil-works/pi-tui`（peer `*` + dev，依据 `docs/packages.md`「Pi supplies these packages」）
+- 返工（审计提出）：
+  - [x] 1. 补成功路径的 success 语义色断言（`renderSearchResult` / `renderFetchResult` 折叠行各一条）
+  - [x] 2. 失败夹具改用宿主真实形状 `details: {}`（`pi-agent-core` 的 `createErrorToolResult`），另留 `details: undefined` 防御用例；注释同步修正
+  - [x] 3. `docs/ARCHITECTURE.md` 宿主 import 点表述改为「`index.ts` 的 `import type { ExtensionAPI }` + `result.ts` 的运行时/类型入口」，依赖图补 type-only 引用（`index.ts ⇢ 宿主`、`tools/{search,fetch}.ts ⇢ tools/render.ts`）
+  - [ ] 4. 用户完成交互式真机目测后勾选验收最后一项，重新送审
+- 验收（TDD：先红后绿）：
+  - [x] `renderCall`：search 显示查询词与显式 provider；fetch 显示 URL
+  - [x] `renderResult`：折叠只给一行摘要（`✓ N results (provider)` / `✓ Fetched: title` + ` (truncated)`），`expanded` 才展开预览（搜索列标题 + `… N more`、fetch 列正文前 15 行 + `… N more lines`）
+  - [x] `isPartial` 显示进行中；失败结果（details 为空对象）显示「✗ + 错误首行」，展开显示完整错误，**绝不显示 ✓**
+  - [x] 流式参数（`args` 为 `{}`）不抛错；非法 details 走失败分支
+  - [x] 控制断言：`color: "success" / "warning" / "error"` 与折叠/展开文案
+  - [x] 红/绿记录：先写 `test/tools/render.test.ts` 实测失败（`Cannot find module '../../tools/render.ts'`），实现至 16 例全绿；含接线断言（工具定义上的 `renderCall` / `renderResult` 与 `render.ts` 同引用）
+  - [x] `pnpm test` 全绿（23 文件 225 例）+ `pnpm run typecheck` 通过
+  - [ ] 真机目测（待用户）：调用行与结果行的折叠/展开、失败结果、截断标记
+- 决定：
+  - 渲染文案只出现在 `render.ts`；pi-tui 是渲染层唯一新增依赖（peer `*` + dev `^1.1.0`），宿主 `Theme` / `ToolRenderResultOptions` 类型经 `result.ts` 转出；宿主包入口共两处：`index.ts` 的 `import type { ExtensionAPI }` 与 `result.ts`（见 `docs/ARCHITECTURE.md` §2 规则）。
+  - 工具定义与渲染的引用是双向的：值边 `tools/{search,fetch}.ts → tools/render.ts`（挂渲染函数），type-only 边 `tools/render.ts ⇢ tools/{search,fetch}.ts`（复用 Details / Params 类型）；运行时仍是单向依赖。
+  - 失败判定按 `details` 形状（宿主对抛错工具给 `details = {}`）；渲染层拿不到 `isError`（宿主只传 `content` / `details`，见 `tool-execution.js` 的 `resultRenderer({ content, details }, ...)`）。
+  - `search.ts` 的参数 schema 提取为 `buildParameters`，才能把返回类型写成 `ToolDefinition<SearchParameters, SearchDetails>`（函数签名引用不到函数体变量）；fetch 的参数是条件 schema，保持 `unknown` + `render.ts` 内按需读取。
+  - 预览上限沿用 rpiv：搜索 5 条标题、fetch 15 行正文。
+  - 界面文案统一用简短英文（`✓ 5 results (tavily)` / `✓ Fetched: title` / `Searching…` / ` (truncated)` / `… N more`）；错误首行原样透传（T10 后错误本体即为英文）。
+
+## T10 运行时文案英文化
+
+- 状态：完成 ｜ 前置：T9；复验项 1–5 达成；第 6 项（交互式 TUI 目测）由审计以 ConPTY 实机捕获复核通过
+- 范围：「pi 里能看到的」字符串全部英文——工具 `description` / `promptSnippet` / `promptGuidelines`、参数 schema 描述、结果信封与截断提示、全部错误消息（config / http / ssrf / providers / extractors / handlers / gh 探测 / GitHub 渲染）、TUI 文案、`index.ts` 警告。注释、docstring 与 `docs/` 保持中文。
+- 验收：
+  - [x] 源码零中文用户文案：`rg -n '\p{Han}' index.ts config http ssrf providers extractors handlers tools` 命中项全为注释
+  - [x] 风格：小写技术英语；错误一律带定位（环境变量名 / 配置键 / URL / 状态码），格式 `<field path>: <reason>`
+  - [x] 同步更新 22 处断言（index / github-render / github / html / extractors-index / chain / messages / fetch / result / search），`pnpm test` 全绿（23 文件 225 例）+ `pnpm run typecheck` 通过
+  - [x] 文档同步：README 排查表、`tools/README.md`、`config/README.md`、`docs/ARCHITECTURE.md`；`docs/VERIFICATION.md` 顶部注明旧报文已过期
+  - [x] 真机（`-p`，隔离 agent dir）：缺 key 报英文错误且 EXIT=0；真实 `web_fetch` / `web_search` 信封为 `# Example Domain` / `Source:` / `Extracted by: extractor exa` / `web_search: 2 results (provider: tavily, max_results: 2)`
+  - [ ] 交互式 TUI 目测（待用户）：renderCall / renderResult 的折叠、展开与失败态
+- 决定：
+  - 测试标题、测试夹具（如 GitHub 中文标题样例）保持中文：它们不进 pi，也便于中文读者定位用例。
+  - 两处截断标记分工不变：工具层 `[... output truncated: N lines / M bytes total, kept K lines here.]`（含续读路径），提取与 handler 层 `[... truncated: original N chars, kept first M chars ...]`。
+  - TUI 失败态原样透传错误首行，因此错误本体必须英文（本轮已改），渲染层不做翻译。

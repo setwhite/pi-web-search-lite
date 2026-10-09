@@ -37,7 +37,7 @@ export async function extractWithChain(
 			const result = await extractor.extract(url, ctx);
 			const content = result.content.trim();
 			if (content.length < ctx.minChars) {
-				attempts.push({ extractor: id, status: "failed", reason: `内容过短（${content.length} < ${ctx.minChars} 字符）` });
+				attempts.push({ extractor: id, status: "failed", reason: `content too short (${content.length} < ${ctx.minChars} chars)` });
 				continue;
 			}
 			const truncated = content.length > ctx.maxCharsPerPage;
@@ -46,7 +46,7 @@ export async function extractWithChain(
 				url: result.url,
 				title: result.title?.trim() || result.url,
 				content: truncated
-					? `${content.slice(0, ctx.maxCharsPerPage)}\n\n[... 已截断：原文 ${content.length} 字符，仅保留前 ${ctx.maxCharsPerPage} 字符 ...]`
+					? `${content.slice(0, ctx.maxCharsPerPage)}\n\n[... truncated: original ${content.length} chars, kept first ${ctx.maxCharsPerPage} chars ...]`
 					: content,
 				truncated,
 			};
@@ -59,8 +59,8 @@ export async function extractWithChain(
 
 function chainFailureText(attempts: ExtractAttempt[]): string {
 	const lines = attempts.map((attempt) => {
-		const label = attempt.status === "skipped" ? "跳过" : "失败";
-		return `- ${attempt.extractor}：${label}（${attempt.reason}）`;
+		const label = attempt.status === "skipped" ? "skipped" : "failed";
+		return `- ${attempt.extractor}: ${label} (${attempt.reason})`;
 	});
-	return `所有提取器均未产出有效内容（共 ${attempts.length} 个）：\n${lines.join("\n")}`;
+	return `all extractors failed to produce usable content (${attempts.length} tried):\n${lines.join("\n")}`;
 }

@@ -66,9 +66,9 @@ gh --version && gh auth login   # handler 用 `gh repo view` 等只读命令，�
 
 | 现象 | 原因与做法 |
 |---|---|
-| 启动即报「配置文件 ... 有 N 处非法字段」 | 按错误里的字段路径改配置；字段会严格校验，不做逐字段抢救 |
+| 启动即报「`<config path>: N invalid field(s)`」 | 按错误里的字段路径改配置；字段会严格校验，不做逐字段抢救 |
 | 报缺 API key | 按错误文本设置对应环境变量，或写进 `config.apiKeys.<provider>` |
-| `所有提取器均未产出有效内容` | 错误里逐行列出每个提取器的原因（缺 key 跳过 / 请求失败 / 正文过短或类型不支持） |
+| `all extractors failed to produce usable content` | 错误里逐行列出每个提取器的原因（缺 key 跳过 / 请求失败 / 正文过短或类型不支持） |
 | 结果被截断 | 超过 `context.maxInlineChars` / `maxInlineLines`（按字节）时截断，`content` 会给出临时文件绝对路径，用 `read` 继续读；不想落盘设 `context.spillToFile: false` |
 | 网络请求超时或连不上 | 检查 `config.proxy`；关掉代理后目标站点不可达时错误会指向该请求 |
 | 启动报 `Tool "web_search" conflicts with ...` | 与本机其它注册同名工具的扩展（如 rpiv-web-tools）重名，pi 会拒绝加载并退出；用 `tools.*.name` 改名或移除其中一个扩展 |
@@ -82,4 +82,4 @@ pnpm test          # vitest run
 pnpm run typecheck # tsc --noEmit
 ```
 
-模块索引：`config/`（加载校验）→ `http/`（唯一出站口）→ `ssrf/`（发请求前静态检查）→ `providers/`、`handlers/`、`extractors/`（互不依赖）→ `tools/`（编排与结果信封）→ `index.ts`（注册）。每个目录内有一份 README 记录契约与取舍。
+模块索引：`config/`（加载校验）→ `http/`（唯一出站口）→ `ssrf/`（发请求前静态检查）→ `providers/`、`handlers/`、`extractors/`（互不依赖）→ `tools/`（编排、结果信封与 TUI 渲染）→ `index.ts`（注册）。每个目录内有一份 README 记录契约与取舍。

@@ -15,7 +15,7 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 ```
 
 - `configPath` 缺省由 `env` 推导；`env` 缺省 `process.env`（测试可注入）。
-- JSON 损坏、顶层非对象、字段非法 → 抛 `Error`，消息含配置文件的绝对路径；字段非法时逐条列出 `<字段路径>：<原因>`。
+- JSON 损坏、顶层非对象、字段非法 → 抛 `Error`，消息含配置文件的绝对路径；字段非法时逐条列出 `<field path>: <reason>`。
 - 数值字段越界不报错，clamp 到 `schema.ts` 的 `RANGES` 区间；`context.maxInlineChars` / `maxInlineLines` 只保证下限，上限（宿主 `DEFAULT_MAX_BYTES` / `DEFAULT_MAX_LINES`）由 `tools/` 截断时对齐（config 不依赖宿主 API）。
 - API key：`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` 优先于文件 `apiKeys.<provider>`；空字符串环境变量视为未设置。
 - 校验还包括：`provider` / `fetch.extractors` 枚举、`tools.*.name` 命名规则与保留名、两工具不能同时 `enabled: false`、`proxy` 仅 http(s)。

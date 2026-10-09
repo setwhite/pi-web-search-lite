@@ -105,13 +105,13 @@ describe("index：注册与开关", () => {
 	it("占用宿主保留名时抛错", () => {
 		useConfig({ tools: { web_search: { name: "read" } } });
 
-		expect(() => piWebSearchLite(fakeApi().api)).toThrow(/保留/);
+		expect(() => piWebSearchLite(fakeApi().api)).toThrow(/reserved/);
 	});
 
 	it("两个工具重名时抛错", () => {
 		useConfig({ tools: { web_search: { name: "same" }, web_fetch: { name: "same" } } });
 
-		expect(() => piWebSearchLite(fakeApi().api)).toThrow(/不能相同/);
+		expect(() => piWebSearchLite(fakeApi().api)).toThrow(/cannot share the same name/);
 	});
 });
 

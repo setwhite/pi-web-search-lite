@@ -38,7 +38,7 @@ export function resolveProviderId(
 	if ((PROVIDER_IDS as readonly string[]).includes(candidate)) return candidate as ProviderId;
 	throw new ProviderError(
 		"unknown_provider",
-		`未知 provider "${candidate}"；合法值：${PROVIDER_IDS.join("、")}。请检查 web_search 的 provider 参数、${SEARCH_PROVIDER_ENV_KEY} 环境变量或 config.provider 字段。`,
+		`unknown provider "${candidate}"; valid values: ${PROVIDER_IDS.join(", ")}. Check the web_search "provider" argument, the ${SEARCH_PROVIDER_ENV_KEY} env var, or the config.provider field.`,
 	);
 }
 
@@ -48,7 +48,7 @@ export function resolveApiKey(id: ProviderId, apiKeys: Partial<Record<ProviderId
 	if (apiKey) return apiKey;
 	throw new ProviderError(
 		"missing_api_key",
-		`provider "${id}" 缺少 API key：请设置环境变量 ${PROVIDER_ENV_KEYS[id]}，或在配置文件的 config.apiKeys.${id} 字段填写。`,
+		`provider "${id}" is missing an API key: set the ${PROVIDER_ENV_KEYS[id]} env var, or fill config.apiKeys.${id} in the config file.`,
 	);
 }
 

@@ -38,7 +38,7 @@ describe("回归：错误文案", () => {
 		);
 
 		expect(error.message).toBe(
-			'provider "tavily" 缺少 API key：请设置环境变量 TAVILY_API_KEY，或在配置文件的 config.apiKeys.tavily 字段填写。',
+			'provider "tavily" is missing an API key: set the TAVILY_API_KEY env var, or fill config.apiKeys.tavily in the config file.',
 		);
 	});
 
@@ -50,7 +50,7 @@ describe("回归：错误文案", () => {
 		);
 
 		expect(error.message.replace(path, "<config>")).toBe(
-			"配置文件 <config> 有 1 处非法字段：\n- proxy：只支持 http/https 代理，实际 socks5://",
+			"<config>: 1 invalid field(s):\n- proxy: only http/https proxies are supported, got socks5://",
 		);
 	});
 
@@ -61,15 +61,15 @@ describe("回归：错误文案", () => {
 			Promise.resolve().then(() => loadConfig({ configPath: path, env: {} })),
 		);
 
-		expect(error.message.replace(path, "<config>")).toContain("配置文件 <config> 不是合法 JSON：");
+		expect(error.message.replace(path, "<config>")).toContain("config file <config> is not valid JSON:");
 	});
 
 	it("gh 未安装时给出安装提示与配置键", async () => {
 		const availability = await checkGhAvailable("gh-missing-xyz", { exec: execGh, timeoutMs: 5_000, env: process.env });
 
 		expect(availability.ok).toBe(false);
-		expect(availability.reason).toContain("未找到可用的 gh 命令（gh-missing-xyz）");
-		expect(availability.reason).toContain("请安装 GitHub CLI 或修改 handlers.github.command。");
+		expect(availability.reason).toContain("gh command not found (gh-missing-xyz)");
+		expect(availability.reason).toContain("Install GitHub CLI or change handlers.github.command.");
 	});
 
 	it("gh 未登录时提示先登录", async () => {
@@ -80,7 +80,7 @@ describe("回归：错误文案", () => {
 
 		const availability = await checkGhAvailable("gh-probe-fake", { exec, timeoutMs: 5_000, env: {} });
 
-		expect(availability.reason).toBe("gh 未登录：HTTP 401: Bad credentials。请先运行 gh auth login。");
+		expect(availability.reason).toBe("gh is not authenticated: HTTP 401: Bad credentials. Run gh auth login first.");
 	});
 
 	it("提取器全败时逐行聚合每个提取器的原因", async () => {
@@ -97,10 +97,10 @@ describe("回归：错误文案", () => {
 
 		expect(error.message).toBe(
 			[
-				"所有提取器均未产出有效内容（共 3 个）：",
-				"- tavily：跳过（未配置 TAVILY_API_KEY / config.apiKeys.tavily）",
-				"- exa：跳过（未配置 EXA_API_KEY / config.apiKeys.exa）",
-				"- html：失败（HTTP 500）",
+				"all extractors failed to produce usable content (3 tried):",
+				"- tavily: skipped (not configured (TAVILY_API_KEY env var or config.apiKeys.tavily))",
+				"- exa: skipped (not configured (EXA_API_KEY env var or config.apiKeys.exa))",
+				"- html: failed (HTTP 500)",
 			].join("\n"),
 		);
 	});

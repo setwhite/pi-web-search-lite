@@ -15,7 +15,7 @@ export function createTavilyExtractor(baseUrl = TAVILY_API_BASE): Extractor {
 	return {
 		id: "tavily",
 		unavailableReason: (ctx) =>
-			ctx.apiKeys.tavily?.trim() ? null : `未配置 ${PROVIDER_ENV_KEYS.tavily} / config.apiKeys.tavily`,
+			ctx.apiKeys.tavily?.trim() ? null : `not configured (${PROVIDER_ENV_KEYS.tavily} env var or config.apiKeys.tavily)`,
 		async extract(url, ctx: ExtractorContext): Promise<ExtractedContent> {
 			const apiKey = ctx.apiKeys.tavily?.trim() ?? "";
 			const { data } = await ctx.http.fetchJson<TavilyExtractResponse>(endpoint, {
@@ -26,9 +26,9 @@ export function createTavilyExtractor(baseUrl = TAVILY_API_BASE): Extractor {
 			});
 
 			const failed = data.failed_results?.[0];
-			if (failed) throw new Error(`提取失败：${failed.error ?? "未知错误"}`);
+			if (failed) throw new Error(`extract failed: ${failed.error ?? "unknown error"}`);
 			const result = data.results?.[0];
-			if (!result?.raw_content) throw new Error("响应里没有 raw_content");
+			if (!result?.raw_content) throw new Error("response has no raw_content");
 			return { url: result.url ?? url, title: result.title, content: result.raw_content };
 		},
 	};

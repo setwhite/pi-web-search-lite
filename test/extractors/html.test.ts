@@ -84,6 +84,6 @@ describe("htmlExtractor", () => {
 	it("二进制内容类型直接抛错", async () => {
 		const stub = await startTrackedStubServer(() => ({ contentType: "application/pdf", body: "%PDF-1.4" }));
 
-		await expect(htmlExtractor.extract(`${stub.base}/file.pdf`, makeContext())).rejects.toThrow(/不支持的内容类型/);
+		await expect(htmlExtractor.extract(`${stub.base}/file.pdf`, makeContext())).rejects.toThrow(/unsupported content type/);
 	});
 });

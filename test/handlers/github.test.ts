@@ -69,7 +69,7 @@ describe("github handler：gh 不可用", () => {
 
 		const skip = asSkip(await githubHandler.run(new URL("https://github.com/o/r"), baseContext({ execGh: exec })));
 
-		expect(skip.reason).toContain("未登录");
+		expect(skip.reason).toContain("not authenticated");
 		expect(skip.reason).toContain("gh auth login");
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
@@ -93,7 +93,7 @@ describe("github handler：gh 不可用", () => {
 		);
 		const second = asHandled(await githubHandler.run(new URL("https://github.com/o/r/issues/7"), baseContext({ execGh: exec })));
 
-		expect(first.reason).toContain("未登录");
+		expect(first.reason).toContain("not authenticated");
 		expect(second.title).toContain("#7");
 		expect(authProbes).toBe(2);
 	});
