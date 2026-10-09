@@ -45,4 +45,15 @@ index.ts
 ## 3. 目录与测试约定
 
 - 模块以目录为单位：单文件模块用 `<name>/index.ts`，多文件模块在目录内平铺（如 `providers/tavily.ts`）；模块 README 与实现同目录。
-- 测试统一放仓库根 `test/`，命名 `<模块>.test.ts`；模块内多文件时镜像子目录（如 `test/providers/tavily.test.ts`）。测试不进 npm 发布产物。
+- 测试统一放仓库根 `test/`，命名 `<模块>.test.ts`；模块内多文件时镜像子目录（如 `test/providers/tavily.test.ts`）。测试不进 npm 发布产物。测试标题与夹具可用中文（不进 pi），断言运行时文案时必须与源码英文一致。
+
+## 4. 文档职责（防止重复）
+
+| 文件 | 只写 | 不写 |
+|---|---|---|
+| 根 `README.md` | 安装、配置、代理、GitHub 前置、排查、开发 | 选型理由、模块签名 |
+| `docs/PLAN.md` | 目标、选型理由、非目标、阶段划分 | 字段表、契约细节 |
+| `docs/ARCHITECTURE.md` | 模块划分、依赖方向、目录 / 测试 / 文档约定 | 模块内部签名与字段 |
+| `docs/TODO.md` | 任务状态、待验项、验收证据指针 | 契约与理由 |
+| `docs/VERIFICATION.md` | 一次性实测记录（时间 / 环境 / 结果 / 局限） | 验收状态 |
+| 模块 `README.md` | 该模块的 API、契约与取舍 | 其它模块的内容 |

@@ -22,7 +22,7 @@ finalizeContent(text, options): Promise<FinalizeOutcome>
 renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   // 直接挂在工具定义上
 ```
 
-`overrides` 是测试 seam（`http` / `provider` / `execGh` / `extractors`），生产不传。`ToolDefinition` 的 name/label/description 在此组装（`config.tools.*.name`、`config.guidance.*` 覆盖），T7 只做注册与开关。
+`overrides` 是测试 seam（`http` / `provider` / `execGh` / `extractors`），生产不传。`ToolDefinition` 的五个展示字段（`name` / `label` / `description` / `promptSnippet` / `promptGuidelines`）都在此组装：`name` 取 `config.tools.*.name`，其余可被 `config.guidance.*` 整字段覆盖；内置默认值为英文单行，guidelines 用配置的工具名组装（fetch 的规则引用 search 的实际名字）。`index.ts` 只做注册与开关。
 
 ## 信封与截断（`result.ts`）
 

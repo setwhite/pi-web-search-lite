@@ -1,90 +1,127 @@
 # pi-web-search-lite
 
-轻量 Pi 扩展：`web_search` + `web_fetch` 两个工具，所有出站请求走同一个代理配置点。
-
-- 设计目标、非目标与配置全貌：`docs/PLAN.md`
-- 模块边界与依赖方向：`docs/ARCHITECTURE.md`
-- 任务进度与验收记录：`docs/TODO.md`、`docs/VERIFICATION.md`
+给 pi 加两个工具：`web_search` 搜网页、`web_fetch` 抓网页正文；所有出站请求走同一个代理。
 
 ## 安装
 
 ```bash
-# 从 npm 安装（发布后可用）
-pi install npm:pi-web-search-lite
-
-# 试用一次（不改 settings）
-pi -e /path/to/pi-web-search-lite -p "hi"
-
-# 常驻：把本地仓库装进 pi 包
-pi install /path/to/pi-web-search-lite
+pi install npm:pi-web-search-lite                        # 从 npm 安装
+pi install git:github.com/setwhite/pi-web-search-lite    # 从 git 仓库安装
 ```
 
-也可以把 `index.ts` 放进 `~/.pi/agent/extensions/` 由宿主自动加载。生产依赖只有 `undici`（HTTP 层），宿主包与 `typebox` 是 peer 依赖，安装后无需构建。
+装完配一个搜索 key 就能用，不需要构建。
 
 ## 配置
 
-单个 JSON 文件：`<PI_CODING_AGENT_DIR 或 ~/.pi/agent>/pi-web-search-lite/config.json`。文件缺失时用全默认值，不报错；字段非法时启动即失败，错误文本含配置文件绝对路径与字段路径。
+一个 JSON 文件：`<PI_CODING_AGENT_DIR 或 ~/.pi/agent>/pi-web-search-lite/config.json`。文件不存在时全用默认值；字段写错会启动失败，并告诉你错在哪个字段。
+
+**最小可用配置**——填上自己的 key 就能用：
 
 ```json
 {
-  "provider": "tavily",
-  "apiKeys": { "tavily": "tvly-...", "brave": "", "exa": "" },
-  "proxy": "http://127.0.0.1:12450",
-  "timeoutMs": 30000,
-  "activation": "eager",
-  "context": { "maxInlineChars": null, "maxInlineLines": null, "spillToFile": true },
-  "search": { "defaultMaxResults": 5, "maxResultsLimit": 10 },
-  "fetch": {
-    "extractors": ["tavily", "exa", "html"],
-    "minChars": 200,
-    "allowRaw": true,
-    "maxCharsPerPage": 150000
-  },
-  "handlers": { "github": { "enabled": true, "command": "gh", "timeoutMs": 10000, "maxChars": 150000 } }
+  "apiKeys": { "tavily": "tvly-你的key" }
 }
 ```
 
-字段、默认值与 clamp 区间见 `config/README.md`（上面为节选）。要点：
+key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY`，优先于文件）；换默认搜索源改 `provider`。
 
-- **provider 解析**：`web_search` 的 `provider` 参数 > `WEB_SEARCH_PROVIDER` 环境变量 > `config.provider` > `tavily`；没有自动 fallback 链。
-- **API key**：`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` 优先于 `config.apiKeys.<provider>`；缺失时直接报错并指明该配哪里。
-- **activation**：`eager` 常驻工具声明；`deferred` 注册为 `deferred` + `defaultActive: false`，会话开始时把宿主内置 `tool_search` 加入激活集（宿主没有 `tool_search` 时直接激活本扩展工具并打印一行警告）。
-- **guidance**：`guidance.web_search` / `guidance.web_fetch` 可覆盖 `description`、`promptSnippet`、`promptGuidelines`（后两者进系统提示）。
+**完整示例**——列全所有配置项，注释说明每个键干什么；除 key 和 guidance 是覆盖示例外，其余值就是默认值：
 
-## 代理
+```jsonc
+{
+  // 搜索源：tavily | brave | exa；调用时也能用 provider 参数临时指定
+  "provider": "tavily",
+  // API key：需要哪个源就填哪个键，也可以改用环境变量（环境变量优先）
+  // 环境变量名：TAVILY_API_KEY / BRAVE_API_KEY / EXA_API_KEY
+  "apiKeys": {
+    "tavily": "tvly-你的key",
+    "brave": "你的key",
+    "exa": "你的key"
+  },
 
-`config.proxy` 是**唯一**代理配置点，刻意不读 `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`；`localhost` / `127.0.0.1` / `::1` 始终直连。只支持 `http://` / `https://` 代理，`socks5://` 在配置校验阶段即被拒绝。空字符串表示强制直连。
+  // 代理：所有出站请求的唯一出口；"" = 直连
+  "proxy": "",
+  // 请求超时（毫秒）
+  "timeoutMs": 30000,
+  // 出站 User-Agent：不写则自动用「包名/版本」，写了就按写的发
+  "userAgent": "pi-web-search-lite/0.1.0",
 
-## GitHub 前置条件（可选）
+  // 工具开关与改名；改成别的名字可避开与其它扩展重名
+  "tools": {
+    "web_search": { "enabled": true, "name": "web_search" },
+    "web_fetch": { "enabled": true, "name": "web_fetch" }
+  },
+  // eager：工具常驻上下文；deferred：由宿主 tool_search 按需发现，更省上下文
+  "activation": "eager",
 
-`web_fetch` 先试 GitHub 专用 handler（覆盖仓库首页、`/blob/`、`/tree/`、`/issues/N`、`/pull/N`、`/releases/tag/T`），它依赖 `gh` CLI：
-
-```bash
-gh --version && gh auth login   # handler 用 `gh repo view` 等只读命令，不需要 clone
+  // 覆盖内置提示词；不配就用内置的英文单行。每个工具（web_search / web_fetch）可覆盖三个字段：
+  //   description        工具描述，会进入工具检索的语料，建议英文
+  //   promptSnippet      工具列表里的一行短语
+  //   promptGuidelines   系统提示 Guidelines 区的规则，字符串数组
+  "guidance": {
+    "web_search": {
+      "description": "Search the web; returns titles, URLs and snippets.",
+      "promptSnippet": "Search the web",
+      "promptGuidelines": ["web_search: cite sources as [Title](URL) links."]
+    },
+    "web_fetch": {
+      "description": "Extract content of URL.",
+      "promptSnippet": "Extract URL text",
+      "promptGuidelines": ["web_fetch: use to get full text of a URL, e.g. docs or URLs found by web_search."]
+    }
+  },
+  // 结果进模型的体积上限：null = 用宿主默认上限；超出截断并默认把全文写进临时文件供继续读
+  "context": { "maxInlineChars": null, "maxInlineLines": null, "spillToFile": true },
+  // 搜索条数：不传时给多少、最多允许多少
+  "search": { "defaultMaxResults": 5, "maxResultsLimit": 10 },
+  // 抓取：默认先本地 html 提取，不合格再顺延两个 provider 提取器；正文短于 minChars 视为无效；allowRaw 打开后才会出现 raw 参数（默认关）
+  "fetch": {
+    "extractors": ["html", "tavily", "exa"],
+    "minChars": 200,
+    "allowRaw": false,
+    "maxCharsPerPage": 150000
+  },
+  // GitHub 页面交给 gh CLI 处理：换命令、改上限在这里
+  "handlers": { "github": { "enabled": true, "command": "gh", "timeoutMs": 30000, "maxChars": 150000 } }
+}
 ```
 
-`gh` 缺失或未登录时 handler 跳过，结果里会注明原因并顺延到提取器链。已知 URL 局限见 `handlers/README.md`。设置 `handlers.github.enabled: false` 可完全关闭。
+每个键都可省略。默认值与取值范围见 `config/README.md`；要覆盖提示词就往 `guidance.web_search` / `guidance.web_fetch` 里填字段。
 
-## 排查
+## 功能
 
-| 现象 | 原因与做法 |
-|---|---|
-| 启动即报「`<config path>: N invalid field(s)`」 | 按错误里的字段路径改配置；字段会严格校验，不做逐字段抢救 |
-| 报缺 API key | 按错误文本设置对应环境变量，或写进 `config.apiKeys.<provider>` |
-| `all extractors failed to produce usable content` | 错误里逐行列出每个提取器的原因（缺 key 跳过 / 请求失败 / 正文过短或类型不支持） |
-| 结果被截断 | 超过 `context.maxInlineChars` / `maxInlineLines`（按字节）时截断，`content` 会给出临时文件绝对路径，用 `read` 继续读；不想落盘设 `context.spillToFile: false` |
-| 网络请求超时或连不上 | 检查 `config.proxy`；关掉代理后目标站点不可达时错误会指向该请求 |
-| 启动报 `Tool "web_search" conflicts with ...` | 与本机其它注册同名工具的扩展（如 rpiv-web-tools）重名，pi 会拒绝加载并退出；用 `tools.*.name` 改名或移除其中一个扩展 |
-| `deferred` 模式工具不可见 | 扩展会在会话开始时把宿主 `tool_search` 加入激活集；宿主不提供时已直接激活本扩展工具并打印警告 |
+- 搜网页：tavily / brave / exa 任选一个，不会偷偷换源；缺 key 会直接告诉你配哪里。
+- 抓网页：按你配的顺序挨个试提取器，第一个能用的胜出（默认先本地 html 提取，再顺延到 provider）；GitHub 页面优先用 `gh`；想直接拿原始响应，把 `fetch.allowRaw` 打开后才有 `raw` 参数。
+- 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查；结果太长自动截断，全文落到临时文件。
+- 上下文可控：工具可改名、可关闭、可改成按需发现，减少常驻提示词。
+- 提示词精简：内置提示词都是英文单行；「截断了怎么续读」「key 配哪」「参数范围」这类信息写在报错和结果里，不占提示词；工具改名后，提示词里的名字自动跟着变。
+
+## Requirements
+
+- pi 宿主（Node 版本随宿主要求）。
+- `gh` CLI **可选**：只有抓 GitHub 页面会用到，没装不影响其它功能。
+
+## 参考项目
+
+- [nicobailon/pi-web-access](https://github.com/nicobailon/pi-web-access) —— 提取器链与专用页面 handler 的思路来源。
+- [juicesharp/rpiv-mono · rpiv-web-tools](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-web-tools) —— 薄 provider 层、提示词配置面与 TUI 渲染的参考。
+
+感谢两位作者把方案完整开源，本项目的取舍建立在对它们代码的阅读上。
+
+## 文档索引
+
+- 设计目标与取舍：`docs/PLAN.md`
+- 模块划分与依赖方向：`docs/ARCHITECTURE.md`
+- 任务台账：`docs/TODO.md`
+- 实测记录：`docs/VERIFICATION.md`
+- 模块 API 与契约：各目录下的 `README.md`（`config/`、`http/`、`ssrf/`、`providers/`、`handlers/`、`extractors/`、`tools/`）
 
 ## 开发
 
 ```bash
 pnpm install
-pnpm test          # vitest run
-pnpm run typecheck # tsc --noEmit
+pnpm test        # 单元测试，不打真实网络
+pnpm typecheck
 ```
 
-要求 Node >= 22.19.0（与宿主 `pi` 一致，写在 `package.json` 的 `engines`）。CI（`.github/workflows/ci.yml`）在 Linux（Node 22 / 24）与 Windows（Node 22）上跑 `typecheck` + `test`；本地与 CI 的 pnpm 版本由 `packageManager` 字段锁定，测试全程不打真实网络。
-
-模块索引：`config/`（加载校验）→ `http/`（唯一出站口）→ `ssrf/`（发请求前静态检查）→ `providers/`、`handlers/`、`extractors/`（互不依赖）→ `tools/`（编排、结果信封与 TUI 渲染）→ `index.ts`（注册）。每个目录内有一份 README 记录契约与取舍。
+CI 跑同样的两条命令（Linux / Windows、多 Node 版本），pnpm 版本由 `packageManager` 锁定。
