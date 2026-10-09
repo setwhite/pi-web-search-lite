@@ -1,0 +1,54 @@
+# 发布：main 上的 package.json 版本号一变，就把这个版本发到 npm。
+# 版本已存在于 registry 时整条流水线跳过（幂等），改文档等不碰 package.json 的推送不会触发。
+# 认证走 npm 可信发布（OIDC），仓库里不存 token；需在 npmjs.com 包设置里加一个 Trusted Publisher：
+# 仓库 setwhite/pi-web-search-lite、workflow 文件名 npm-publish.yml。若改用 token，给发布步加
+# env: NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 即可（npm 会优先用 OIDC，回退到 token）。
+name: Publish
+
+on:
+  push:
+    branches: [main]
+    paths: [package.json]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # 可信发布换 OIDC 令牌用
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@v3
+        with:
+          runtime: node@24 # 可信发布要求 Node >= 22.14
+          cache: false # 发布构建不用缓存
+      - name: 判断该版本是否已发布
+        id: check
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "$name@$version 已在 registry 上，跳过"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "$name@$version 未发布，继续"
+          fi
+      - if: ${{ steps.check.outputs.publish == 'true' }}
+        run: pnpm install --frozen-lockfile
+      - if: ${{ steps.check.outputs.publish == 'true' }}
+        run: pnpm run typecheck
+      - if: ${{ steps.check.outputs.publish == 'true' }}
+        run: pnpm test
+      - if: ${{ steps.check.outputs.publish == 'true' }}
+        name: 升级 npm（可信发布要求 >= 11.5.1）
+        run: npm install -g npm@latest
+      - if: ${{ steps.check.outputs.publish == 'true' }}
+        name: 发布到 npm
+        run: npm publish --access public
