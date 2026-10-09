@@ -128,6 +128,9 @@ export async function executeFetch(
 	});
 }
 
+/** 未配置 guidance.promptSnippet 时的默认一行短语（工具列表用）。 */
+const DEFAULT_PROMPT_SNIPPET = "抓取网页正文（GitHub 页面走 gh CLI，其余走提取器链）";
+
 export function createFetchTool(config: ResolvedConfig, overrides: FetchOverrides = {}): ToolDefinition<TSchema, FetchDetails> {
 	const properties: Record<string, TSchema> = {
 		url: Type.String({ description: "要抓取的 http(s) URL；内网 / 本机地址会被拒绝" }),
@@ -137,7 +140,7 @@ export function createFetchTool(config: ResolvedConfig, overrides: FetchOverride
 	}
 	const guidance = config.guidance.web_fetch ?? {};
 	const guidanceFields = {
-		...(guidance.promptSnippet ? { promptSnippet: guidance.promptSnippet } : {}),
+		promptSnippet: guidance.promptSnippet ?? DEFAULT_PROMPT_SNIPPET,
 		...(guidance.promptGuidelines ? { promptGuidelines: guidance.promptGuidelines } : {}),
 	};
 

@@ -73,6 +73,9 @@ const PROVIDER_SCHEMA = Type.Union(
 	{ description: `覆盖 provider；合法值：${PROVIDER_IDS.join("、")}` },
 );
 
+/** 未配置 guidance.promptSnippet 时的默认一行短语（工具列表用）。 */
+const DEFAULT_PROMPT_SNIPPET = "搜索网页（Tavily / Brave / Exa，需显式选 provider）";
+
 export function createSearchTool(config: ResolvedConfig, overrides: SearchOverrides = {}): ToolDefinition {
 	const parameters = Type.Object({
 		query: Type.String({ description: "搜索关键词" }),
@@ -85,7 +88,7 @@ export function createSearchTool(config: ResolvedConfig, overrides: SearchOverri
 	});
 	const guidance = config.guidance.web_search ?? {};
 	const guidanceFields = {
-		...(guidance.promptSnippet ? { promptSnippet: guidance.promptSnippet } : {}),
+		promptSnippet: guidance.promptSnippet ?? DEFAULT_PROMPT_SNIPPET,
 		...(guidance.promptGuidelines ? { promptGuidelines: guidance.promptGuidelines } : {}),
 	};
 
