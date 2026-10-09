@@ -48,9 +48,10 @@ export const DEFAULT_MAX_RESULTS = 5;
 export const DEFAULT_MAX_RESULTS_LIMIT = 10;
 export const DEFAULT_MIN_CHARS = 200;
 export const DEFAULT_MAX_CHARS_PER_PAGE = 150_000;
-export const DEFAULT_EXTRACTORS: ExtractorId[] = [...EXTRACTOR_IDS];
+/** 默认提取链顺序：本地 html 打头（不依赖 key、不额外计费），失败再顺延两个 provider 提取器。 */
+export const DEFAULT_EXTRACTORS: ExtractorId[] = ["html", "tavily", "exa"];
 export const DEFAULT_HANDLER_COMMAND = "gh";
-export const DEFAULT_HANDLER_TIMEOUT_MS = 10_000;
+export const DEFAULT_HANDLER_TIMEOUT_MS = 30_000;
 export const DEFAULT_HANDLER_MAX_CHARS = 150_000;
 
 /** 工具名：字母开头，只含字母数字下划线连字符。 */

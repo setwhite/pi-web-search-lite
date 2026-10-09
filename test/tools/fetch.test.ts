@@ -95,7 +95,7 @@ describe("executeFetch：raw 与安全", () => {
 		};
 		const http = fakeHttp(() => ({ text: "RAW <b>BODY</b>", contentType: "text/plain" }));
 
-		const result = await executeFetch(makeConfig(), { url: "https://example.com/raw", raw: true }, undefined, {
+		const result = await executeFetch(makeConfig({ fetch: { allowRaw: true } }), { url: "https://example.com/raw", raw: true }, undefined, {
 			http,
 			execGh,
 			extractors: counted.extractors,
@@ -132,7 +132,7 @@ describe("executeFetch：raw 与安全", () => {
 	it("raw 是否进 schema 由 fetch.allowRaw 决定", () => {
 		const properties = (tool: { parameters: unknown }) => Object.keys((tool.parameters as { properties: object }).properties);
 
-		expect(properties(createFetchTool(makeConfig()))).toContain("raw");
+		expect(properties(createFetchTool(makeConfig({ fetch: { allowRaw: true } })))).toContain("raw");
 		expect(properties(createFetchTool(makeConfig({ fetch: { allowRaw: false } })))).not.toContain("raw");
 	});
 

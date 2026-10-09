@@ -206,7 +206,8 @@ function readFetch(value: unknown, errors: Errors): FetchSettings {
 	return {
 		extractors: readExtractors(raw.extractors, errors),
 		minChars: readNumber(raw.minChars, DEFAULT_MIN_CHARS, "fetch.minChars", errors, RANGES.minChars),
-		allowRaw: readBoolean(raw.allowRaw, true, "fetch.allowRaw", errors),
+		// raw 默认关：原始响应体噪声大，需要时显式打开；关闭时 raw 参数不进 schema
+		allowRaw: readBoolean(raw.allowRaw, false, "fetch.allowRaw", errors),
 		maxCharsPerPage: readNumber(raw.maxCharsPerPage, DEFAULT_MAX_CHARS_PER_PAGE, "fetch.maxCharsPerPage", errors, RANGES.maxCharsPerPage),
 	};
 }

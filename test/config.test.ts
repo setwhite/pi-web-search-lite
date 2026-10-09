@@ -57,12 +57,12 @@ describe("loadConfig", () => {
 			context: { maxInlineChars: null, maxInlineLines: null, spillToFile: true },
 			search: { defaultMaxResults: 5, maxResultsLimit: 10 },
 			fetch: {
-				extractors: ["tavily", "exa", "html"],
+				extractors: ["html", "tavily", "exa"],
 				minChars: 200,
-				allowRaw: true,
+				allowRaw: false,
 				maxCharsPerPage: 150_000,
 			},
-			handlers: { github: { enabled: true, command: "gh", timeoutMs: 10_000, maxChars: 150_000 } },
+			handlers: { github: { enabled: true, command: "gh", timeoutMs: 30_000, maxChars: 150_000 } },
 		});
 		expect(config.userAgent).toBe(`pi-web-search-lite/${pkg.version}`);
 	});

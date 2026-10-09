@@ -40,13 +40,13 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 | `context.spillToFile` | `true` | — |
 | `search.defaultMaxResults` | `5` | `1–maxResultsLimit` |
 | `search.maxResultsLimit` | `10` | `1–20` |
-| `fetch.extractors` | `["tavily", "exa", "html"]` | 枚举数组，重复项静默去重 |
+| `fetch.extractors` | `["html", "tavily", "exa"]` | 枚举数组，重复项静默去重 |
 | `fetch.minChars` | `200` | `0–100000` |
-| `fetch.allowRaw` | `true` | — |
+| `fetch.allowRaw` | `false` | — |
 | `fetch.maxCharsPerPage` | `150000` | `1000–1000000` |
 | `handlers.github.enabled` | `true` | — |
 | `handlers.github.command` | `"gh"` | 非空 |
-| `handlers.github.timeoutMs` | `10000` | `1000–120000` |
+| `handlers.github.timeoutMs` | `30000` | `1000–120000` |
 | `handlers.github.maxChars` | `150000` | `1000–1000000` |
 
 ## 文件
