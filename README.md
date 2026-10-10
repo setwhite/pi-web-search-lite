@@ -29,7 +29,7 @@ pi install git:github.com/setwhite/pi-web-search-lite    # 从 git 仓库安装
 
 key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY`，优先于文件）；换默认搜索源改 `provider`，也能用 `WEB_SEARCH_PROVIDER` 环境变量临时覆盖。
 
-**完整示例**——列全所有配置项，注释说明每个键干什么；除 key、userAgent 和 guidance 是覆盖示例外，其余值就是默认值：
+**完整示例**——列全所有配置项，注释说明每个键干什么；除 key、userAgent、`proxy` 和 guidance 是覆盖示例外，其余值就是默认值：
 
 ```jsonc
 {
@@ -103,7 +103,7 @@ key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 - 上下文可控：工具可改名、可关闭、可改成按需发现，减少常驻提示词。
 - 提示词精简：内置提示词是英文单行；续读提示、key 位置、参数范围这些信息由报错与结果承载，不占提示词；工具改名后提示词自动跟着变。
 
-## Requirements
+## 环境要求
 
 - pi 宿主（Node 版本随宿主要求）。
 - `gh` CLI **可选**：只有抓 GitHub 页面会用到，没装不影响其它功能。
@@ -120,7 +120,6 @@ key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 - 设计目标与取舍：`docs/PLAN.md`
 - 模块划分与依赖方向：`docs/ARCHITECTURE.md`
 - 任务台账：`docs/TODO.md`
-- 实测记录：`docs/VERIFICATION.md`
 - 模块 API 与契约：各目录下的 `README.md`（`config/`、`http/`、`ssrf/`、`providers/`、`handlers/`、`extractors/`、`tools/`）
 
 ## 开发

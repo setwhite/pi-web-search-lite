@@ -15,49 +15,18 @@
 
 ## 2. 选型
 
-### 2.1 搜索：五个 provider，显式选择
+一条决策一行：`决策 | 一句话理由 | 详细出处`。字段、签名与异常归对应模块 README，本文不复述；与参考实现的取舍对照见 §3。
 
-白名单 `tavily`（默认）/ `brave` / `exa` / `firecrawl` / `perplexity`；解析优先级与 key 规则见 `providers/README.md`。选中 provider 无 key、或名字不在白名单 → 抛错写明去哪配哪个键，**不静默换 provider**。
-
-perplexity 用的是返回原始排名结果的 Search API，不是产出 LLM 答案的 Sonar 接口——与「不做 answer 模式」不冲突。
-
-理由：rpiv 已证明薄 provider 层 + 显式选择可维护；pi-web-access 的 auto 链是其最大复杂度来源，失败时模型只看到一句汇总错误。
-
-### 2.2 抓取：可配置的提取器链
-
-`fetch.extractors` 里的提取器按顺序逐个尝试，第一个产出合格内容的赢。默认顺序 `html` → `jina`：两位都不需要 key 也不额外计费，本地抽不出东西时才把 URL 交给 `r.jina.ai`（该字段可自行重排，`tavily` / `exa` / `firecrawl` 要显式加进来）；跳过 / 顺延 / `minChars` 三条语义与全败时的原因汇总见 `extractors/README.md`。`raw: true` 跳过整链。
-
-理由：沿用 pi-web-access 已验证的 `MIN_USEFUL_CONTENT` + 失败顺延，但默认链只留免 key 的两位，用户能一眼看懂链会走哪几步；需要 provider 提取器（`tavily` / `exa` / `firecrawl`）时显式配到 `fetch.extractors` 里。
-
-### 2.3 专用页面 handler：GitHub 走 `gh` CLI
-
-`web_fetch` 的第 0 步：命中且成功 → 跳过整条链；未命中或失败 → 顺延到链并注明 handler 名与顺延原因（透明顺延，不是静默降级）。URL 形态、`gh` 子进程约定与已知局限见 `handlers/README.md`。
-
-理由：单页内容由 `gh` 直接返回清洗文本，省掉 clone 生命周期与磁盘缓存。
-
-### 2.4 代理：配置唯一入口
-
-`config.proxy`（可选）是唯一代理配置点，空串 = 强制直连；**不读** `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`，本机目标永远绕过；只支持 `http:` / `https:` 代理，socks5 在配置校验阶段报错（本期不做 curl 传输，避免外部二进制依赖）。实现见 `http/README.md`。
-
-理由：目标场景的 Clash / V2Ray 都提供 http 代理端口；pi-web-access 为此把全局 `fetch` 替换成 curl 子进程适配层，可省。
-
-### 2.5 配置：单 JSON 文件 + 可选环境变量
-
-路径 `<agent dir>/pi-web-search-lite/config.json`（独立目录，不与 pi-web-access 的 `web-search.json` 冲突）；文件不存在 = 全默认值 + 环境变量 key，不报错；任何字段非法 → 报错并带文件绝对路径与字段路径。**严格失败**，不做 rpiv 式逐字段 salvage——配置面虽宽，静默丢字段比报错更难排查。字段、默认值与 clamp 区间见 `config/README.md`。
-
-### 2.6 上下文控制：每个影响上下文的开关都可配
-
-`tools.*.enabled` / `tools.*.name` / `activation` / `guidance.*` / `context.maxInline*` / `search.defaultMaxResults` 都能改变进入上下文的内容，字段与默认值见 `config/README.md`。
-
-理由：`promptSnippet` / `promptGuidelines` 是 Pi 工具定义的真实字段，rpiv 已把两者做成配置；deferred 在会话开始时调一次 `pi.setActiveTools`（宿主没有 `tool_search` 就退化为直接激活 + 一行警告；加载期不调用动作方法），不自建 loader、不处理 checkpoint——transcript 重发是宿主职责。
-
-### 2.7 内容超限与安全边界
-
-搜索与抓取统一截断，契约见 `tools/README.md` §信封与截断。SSRF 只做发请求前的静态判定（协议 / 主机名 / 字面量 IP），不解析 DNS；范围与例外见 `ssrf/README.md`。
-
-### 2.8 工具契约
-
-两个工具的入参、返回信封与 `details` 形状见 `tools/README.md`。错误一律 `throw`（宿主标记为失败结果），不在 `content` 里假装成功。面向模型的文案保持英文单行：能在报错或结果文案里现学的行为契约（截断续读、provider 解析、clamp、失败条件）不写进 `description`。
+| # | 决策 | 一句话理由 | 详细出处 |
+|---|---|---|---|
+| 2.1 | 搜索白名单五个 provider（默认 `tavily`）；选中者缺 key 或名字不在白名单 → 抛错，不静默换源 | 显式选择让失败原因唯一；perplexity 用返回原始排名结果的 Search API，不引入 answer 模式 | `providers/README.md` |
+| 2.2 | 抓取按 `fetch.extractors` 顺序逐链尝试，默认 `html` → `jina`；`raw: true` 跳过整链 | 默认两位都不需要 key 也不额外计费；沿用已验证的 `minChars` 门槛 + 失败顺延；provider 提取器要显式加进来 | `extractors/README.md` |
+| 2.3 | GitHub 页面在 `web_fetch` 第 0 步交给 `gh` handler，未命中或失败透明顺延到链 | gh 单次调用直接产出清洗正文，省掉 clone 生命周期与磁盘缓存 | `handlers/README.md` |
+| 2.4 | `config.proxy` 是唯一代理配置点；不读 `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`，本机目标永远绕过；socks5 在配置校验阶段报错 | 目标场景的 Clash / V2Ray 都提供 http 代理端口，可免去 curl 传输层与外部二进制依赖 | `http/README.md` |
+| 2.5 | 单 JSON 文件 + 环境变量注入 key；文件缺失 = 全默认值，字段非法 = 抛错，不做逐字段 salvage | 配置面宽，静默丢字段比报错更难排查 | `config/README.md` |
+| 2.6 | 影响上下文的开关（`tools.*`、`activation`、`guidance.*`、截断上限、默认结果数）全部可配 | deferred 复用宿主内置 `tool_search`，不自建 loader、不处理 checkpoint | `config/README.md`、`tools/README.md` |
+| 2.7 | 搜索与抓取统一截断 + 全文落临时文件续读；SSRF 只做发请求前的静态判定，不解析 DNS | 轻量目标优先；DNS 重绑定检测成本高、收益低，列入 §3 非目标 | `tools/README.md` §信封与截断、`ssrf/README.md` |
+| 2.8 | 错误一律 `throw`；模型可见文案英文单行，能在报错里现学的行为不写进 `description` | 宿主把 throw 标记为失败结果；提示词只留无法从报错现学的信息 | `tools/README.md` |
 
 ## 3. 不做什么
 
@@ -76,6 +45,6 @@ perplexity 用的是返回原始排名结果的 Search API，不是产出 LLM �
 
 ## 4. 阶段划分
 
-- **Phase 1 — MVP**：完成（任务台账见 `docs/TODO.md`）。
-- **Phase 2 — 常用扩展**：`recency` / 域名过滤参数、`/web-search --show` 配置展示、`outputSchema`、多 provider 并发搜索、GitHub 整仓浏览（clone + 磁盘缓存 + tree 展开），按需求评估。
-- **Phase 3 — 发布**：完成；CI 与 npm 发布已落地（T11 / T12）；多平台手动验收见 `docs/VERIFICATION.md`。
+- **Phase 1 — MVP**：完成；任务台账与验收证据 `docs/TODO.md`。
+- **Phase 2 — 常用扩展**：`recency` / 域名过滤参数、`/web-search --show` 配置展示、`outputSchema`、多 provider 并发搜索、GitHub 整仓浏览（clone + 磁盘缓存 + tree 展开），按需求评估后在 `docs/TODO.md` 开卡。
+- **Phase 3 — 发布**：完成；CI（T11）与 OIDC 自动发布（T12）已落地，证据见 `docs/TODO.md` T11 / T12。

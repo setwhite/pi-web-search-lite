@@ -30,6 +30,8 @@ interface ExtractorContext { http; apiKeys; minChars; maxCharsPerPage; signal? }
 4. 全部失败 → 抛 `ExtractError`，错误文本逐条列出每个提取器名字 + 原因（跳过与失败都列出）。
 5. 成功 → 内容超 `fetch.maxCharsPerPage` 截断并标记 `truncated`；`title` 缺失时用最终 URL 顶替。
 
+> 隐私提示：默认链里的 `jina` 会把目标 URL 交给 `r.jina.ai`（匿名 20 RPM）；在意隐私就把它移出 `fetch.extractors`。
+
 ## html 提取的步骤
 
 `html.ts` 零依赖：剥 `script/style/noscript/head/title/meta/link` → 块级标签转换行 → 去标签 → 解实体 → 压空白；二进制内容类型（`image/*`、`application/pdf` 等）直接抛错顺延。

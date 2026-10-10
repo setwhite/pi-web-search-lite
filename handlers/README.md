@@ -41,6 +41,10 @@ checkGhAvailable(command, { exec, timeoutMs, env, signal }): Promise<{ ok, reaso
 - 分支名含 `/`：`/O/R/blob/feat/x/file.ts` 会被解析成 `ref=feat`、`path=x/file.ts`，gh 请求的其实是错误路径；请求失败后返回 `skipped` 顺延到提取器链。`tree` 同理。
 - `/O/R/releases/latest`：只支持 `/releases/tag/<tag>`，`latest` 不命中，直接走提取器链。
 
+## 平台差异
+
+`gh` 缺失 / 未登录时透传子进程错误，文案含平台细节（Windows 报 `spawn gh-... ENOENT`）；排查以实际平台输出为准。
+
 ## gh 子进程约定
 
 - 探测：`gh --version` + `gh auth status`，按 `command` 进程内缓存一次；失败即整个 handler 跳过，不做逐 URL 探测。

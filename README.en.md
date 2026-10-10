@@ -29,7 +29,7 @@ One JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.j
 
 Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY`, which win over the file); change `provider` to switch the default backend, or override it for one run with the `WEB_SEARCH_PROVIDER` env var.
 
-**Full example** — every option, commented; apart from the key values, userAgent and the guidance overrides, the values shown are the defaults:
+**Full example** — every option, commented; apart from the key values, userAgent, `proxy` and the guidance overrides, the values shown are the defaults:
 
 ```jsonc
 {
@@ -120,7 +120,6 @@ Both are fully open-sourced; this project's trade-offs come from reading their c
 - Goals and trade-offs: `docs/PLAN.md`
 - Module layout and dependency direction: `docs/ARCHITECTURE.md`
 - Task ledger: `docs/TODO.md`
-- Verification records: `docs/VERIFICATION.md`
 - Per-module API and contracts: the `README.md` inside each directory (`config/`, `http/`, `ssrf/`, `providers/`, `handlers/`, `extractors/`, `tools/`)
 
 Docs are currently written in Chinese.

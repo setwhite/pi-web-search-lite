@@ -20,3 +20,7 @@ type HttpErrorType = "timeout" | "abort" | "http_status" | "parse" | "network" |
 - **重定向**：上限 5 跳；跨 origin 丢弃 `authorization`；303 与 301/302 下的非 GET 请求改为 GET，307/308 保持 method / body。
 - **userAgent**：强制使用配置值，请求头里的同名值会被覆盖；调用方无法绕过。
 - **错误**：非 2xx 抛 `http_status`（`status` + `body` 供上层拼装信息）；200 但 body 非 JSON 抛 `parse`；DNS / 连接失败抛 `network`。
+
+## 验证局限
+
+代理只在 Clash 混合端口的 CONNECT 隧道上实测过；换代理软件或转发方式需重跑。
