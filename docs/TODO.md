@@ -20,20 +20,7 @@
 | T8 | 安全与回归测试 | 完成 | `test/regression/` | `test/regression/*.test.ts`；VERIFICATION T8 |
 | T9 | 工具 UI 渲染 | 完成 | `tools/render.ts` | `test/tools/render.test.ts`；VERIFICATION T9 |
 | T10 | 运行时文案英文化 | 完成 | 全仓模型可见字符串 | `test/regression/messages.test.ts`；VERIFICATION T10 |
-| T11 | CI（GitHub Actions） | 待审 | `.github/workflows/ci.yml` | VERIFICATION T11 |
+| T11 | CI（GitHub Actions） | 完成 | `.github/workflows/ci.yml` | VERIFICATION T11 |
 | T12 | npm 发布 | 完成 | `package.json`、`LICENSE` | VERIFICATION T12 |
 | T13 | 默认提示词精简 | 完成 | `tools/{search,fetch}.ts` | commit `f200655`；`test/index.test.ts` 的 guidance 用例 |
 | T14 | 新增搜索源与提取器（firecrawl / perplexity / jina） | 完成 | `providers/{firecrawl,perplexity}.ts`、`extractors/{firecrawl,jina}.ts` | `test/providers/{firecrawl,perplexity}.test.ts`、`test/extractors/{firecrawl,jina}.test.ts` |
-
-## 待验项
-
-- **T11**：`pull_request` 触发待首个 PR 验证；main 推送的三 job 已全绿（VERIFICATION T11）。
-- **T14**：单测桩覆盖请求形状、响应映射、缺 key 跳过与报错文案，未打真实 API；`jina` 无 key 也能跑，可零成本真机冒烟，`firecrawl` / `perplexity` 需要各自的 key。
-
-## 偏离与决定（仍有效）
-
-- **T14 决定**：默认提取链只留免 key 的两位（`DEFAULT_EXTRACTORS = ["html", "jina"]`），`tavily` / `exa` / `firecrawl` 要显式配置才参与；`jina` 提取器允许无 key（PLAN §3 的唯一例外）。
-- **T5 偏离**：`extractors/` 自持端点常量，不复用 `providers/`——两层互不依赖，且缺 key 在链里的语义是跳过而非报错（`extractors/README.md`）。
-- **T7 发现**：与本机 rpiv-web-tools 默认工具名冲突会让 pi EXIT=1，用 `tools.*.name` 改名绕过。
-- **T9 / T10 决定**：渲染契约（文案位置、失败判定、预览上限 5 / 15）见 `tools/README.md`。
-- 其余选型理由与非目标集中在 `docs/PLAN.md`。

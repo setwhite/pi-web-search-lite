@@ -76,6 +76,6 @@ perplexity 用的是返回原始排名结果的 Search API，不是产出 LLM �
 
 ## 4. 阶段划分
 
-- **Phase 1 — MVP**：已交付（任务台账见 `docs/TODO.md`）。
+- **Phase 1 — MVP**：完成（任务台账见 `docs/TODO.md`）。
 - **Phase 2 — 常用扩展**：`recency` / 域名过滤参数、`/web-search --show` 配置展示、`outputSchema`、多 provider 并发搜索、GitHub 整仓浏览（clone + 磁盘缓存 + tree 展开），按需求评估。
-- **Phase 3 — 发布**：CI 与 npm 发布已落地（T11 / T12）；多平台手动验收见 `docs/VERIFICATION.md`。
+- **Phase 3 — 发布**：完成；CI 与 npm 发布已落地（T11 / T12）；多平台手动验收见 `docs/VERIFICATION.md`。
