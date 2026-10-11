@@ -121,7 +121,7 @@ A fetch result passes three independent caps on its way to the model:
 | `handlers.github.maxChars` | gh output after it is rendered to markdown | same; GitHub handler only |
 | `context.maxInlineChars` / `maxInlineLines` | the envelope handed to the model (both tools) | sliced; with `spillToFile` the full text goes to a temp file and the path is included in the result |
 
-Both `context.*` caps are clamped with `Math.min` against the host caps, so larger values have no effect. GitHub pages pass gates 2 and 3; ordinary pages pass 1 and 3. Supported GitHub URL shapes: `handlers/README.md`.
+Both `context.*` caps are clamped with `Math.min` against the host caps, so larger values have no effect. GitHub pages pass gates 2 and 3; ordinary pages pass 1 and 3. Supported GitHub / Reddit URL shapes: `handlers/README.md`.
 
 ## Features
 
