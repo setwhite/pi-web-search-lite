@@ -23,7 +23,7 @@
 | 2.2 | 抓取按 `fetch.extractors` 顺序逐链尝试，默认 `html` → `jina`；`raw: true` 跳过整链 | 默认两位都不需要 key 也不额外计费；沿用已验证的 `minChars` 门槛 + 失败顺延；provider 提取器要显式加进来 | `extractors/README.md` |
 | 2.3 | GitHub 页面在 `web_fetch` 第 0 步交给 `gh` handler，未命中或失败透明顺延到链 | gh 单次调用直接产出清洗正文，省掉 clone 生命周期与磁盘缓存 | `handlers/README.md` |
 | 2.4 | `config.proxy` 是唯一代理配置点；不读 `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`，本机目标永远绕过；socks5 在配置校验阶段报错 | 目标场景的 Clash / V2Ray 都提供 http 代理端口，可免去 curl 传输层与外部二进制依赖 | `http/README.md` |
-| 2.5 | 单 JSON 文件 + 环境变量注入 key；文件缺失 = 全默认值，字段非法 = 抛错，不做逐字段 salvage | 配置面宽，静默丢字段比报错更难排查 | `config/README.md` |
+| 2.5 | 单 JSON 文件 + 环境变量注入 key；文件缺失 = 全默认值，类型 / 枚举 / 未知键非法 = 抛错不做 salvage，数值越界只 clamp | 配置面宽，静默丢字段比报错更难排查；数值越界可自动收敛到区间，不值得为它打断启动 | `config/README.md` |
 | 2.6 | 影响上下文的开关（`tools.*`、`activation`、`guidance.*`、截断上限、默认结果数）全部可配 | deferred 复用宿主内置 `tool_search`，不自建 loader、不处理 checkpoint | `config/README.md`、`tools/README.md` |
 | 2.7 | 搜索与抓取统一截断 + 全文落临时文件续读；SSRF 只做发请求前的静态判定，不解析 DNS | 轻量目标优先；DNS 重绑定检测成本高、收益低，列入 §3 非目标 | `tools/README.md` §信封与截断、`ssrf/README.md` |
 | 2.8 | 错误一律 `throw`；模型可见文案英文单行，能在报错里现学的行为不写进 `description` | 宿主把 throw 标记为失败结果；提示词只留无法从报错现学的信息 | `tools/README.md` |

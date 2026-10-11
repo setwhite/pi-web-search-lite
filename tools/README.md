@@ -39,7 +39,7 @@ renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   //
 | details | `{ provider, query, count, results, truncated, fullOutputPath? }` | `{ url, title, source, mode, chars, visibleChars, truncated, fullOutputPath?, handlerSkips }` |
 
 - `source` 取 `"github"` / `ExtractorId` / `"raw"`；handler 命中但跳过时 `handlerSkips` 记录原因，`content` 用引用行注明「未接管」，再顺延到链（透明顺延）。
-- `chars` 是提取正文的字符数（截断前），`visibleChars` 是模型实际收到的 `content` 长度（截断后，含头部与提示）；两者不等即说明发生过截断。
+- `chars` 是提取正文的字符数（信封截断前；可能已被提取器或 handler 截断过），`visibleChars` 是模型实际收到的 `content` 长度（信封截断后，含头部与提示）；两者不等即说明发生过截断。
 - `raw` 与 handler 互斥：raw 分支根本不调用 `runPageHandlers`。
 - 空搜索结果仍返回成功信封（`content` 写明 `No results returned`）；缺 key / 内网 URL / 全部提取器失败都会 `throw`，错误文本给出环境变量、配置键或原因汇总。
 

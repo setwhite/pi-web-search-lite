@@ -17,7 +17,7 @@ pi install git:github.com/setwhite/pi-web-search-lite    # 从 git 仓库安装
 
 ## 配置
 
-一个 JSON 文件：`<PI_CODING_AGENT_DIR 或 ~/.pi/agent>/pi-web-search-lite/config.json`。文件不存在时全用默认值；字段写错会启动失败，并告诉你错在哪个字段。
+一个 JSON 文件：`<PI_CODING_AGENT_DIR 或 ~/.pi/agent>/pi-web-search-lite/config.json`。文件不存在时全用默认值。类型 / 枚举名 / 未知键写错会启动失败并指出字段；数值越界不报错，静默 clamp 到区间（见 `config/README.md`）。下面示例带 `//` 注释，实际文件必须是严格 JSON，拷走前先删掉注释。
 
 **最小可用配置**——填上自己的 key 就能用：
 
@@ -77,8 +77,12 @@ key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
       "promptGuidelines": ["web_fetch: use to get full text of a URL, e.g. docs or URLs found by web_search."]
     }
   },
-  // 结果进模型的体积上限：null = 用宿主默认上限；超出截断并默认把全文写进临时文件供继续读
-  "context": { "maxInlineChars": null, "maxInlineLines": null, "spillToFile": true },
+  // 真正进模型的那道闸：内容超过任一上限就截断；null = 用宿主默认上限，写大于宿主上限的值不生效
+  "context": {
+    "maxInlineChars": null,  // 按字节截断（下限 1000，写小了会被抬到 1000）
+    "maxInlineLines": null,  // 按行截断（下限 50）
+    "spillToFile": true      // 截断时把完整文本写到 <tmp>/pi-web-search-lite-*/web-{search,fetch}.md，路径回填进结果供 read 续读；false = 全文丢弃
+  },
   // 搜索条数：不传时给多少、最多允许多少
   "search": { "defaultMaxResults": 5, "maxResultsLimit": 10 },
   // 抓取：默认只用本地 html 与 r.jina.ai（两位都不需要 key）；要 tavily / exa / firecrawl 就自己加进来；正文短于 minChars 视为无效；allowRaw 打开后才会出现 raw 参数（默认关）
@@ -88,18 +92,37 @@ key 也可以走环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
     "allowRaw": false,
     "maxCharsPerPage": 150000
   },
-  // GitHub 页面交给 gh CLI 处理：换命令、改上限在这里
-  "handlers": { "github": { "enabled": true, "command": "gh", "timeoutMs": 30000, "maxChars": 150000 } }
+  // GitHub 页面优先交给 gh CLI；未装 / 未登录 / 命令失败 → 透明顺延到提取器链，原因记在 details.handlerSkips
+  "handlers": {
+    "github": {
+      "enabled": true,     // false = 完全不碰 gh，GitHub URL 走提取器链
+      "command": "gh",     // execFile 直连、不经 shell：只能写可执行文件（PATH 名或绝对路径），不能带参数；Windows 上 .cmd/.bat 会失败
+      "timeoutMs": 30000,  // 每个 gh 子进程的超时；可用性探测按 command 在进程内缓存，改完要 /reload
+      "maxChars": 150000   // gh 输出渲染成 markdown 后的截断上限，见下方「三道 max 闸」
+    }
+  }
 }
 ```
 
 每个键都可省略。默认值与取值范围见 `config/README.md`；要覆盖提示词就往 `guidance.web_search` / `guidance.web_fetch` 里填字段。
 
+### 三道 max 闸，别混
+
+抓取结果从出网到进模型要过三层上限，各自独立截断：
+
+| 键 | 作用对象 | 超限后果 |
+|---|---|---|
+| `fetch.maxCharsPerPage` | 提取器链拿回的正文（不含 GitHub handler） | 切片 + 追加 `[... truncated ...]`，原始全文不再保留 |
+| `handlers.github.maxChars` | gh 输出渲染成 markdown 之后 | 同上；只作用于 GitHub handler |
+| `context.maxInlineChars` / `maxInlineLines` | 组装好、要发给模型的信封（两个工具都过） | 切片；`spillToFile` 为真时完整文本落临时文件，路径写进结果 |
+
+`context.*` 两个上限用 `Math.min` 夹到宿主上限，写大了不生效；GitHub 页面只过第 2、3 道，普通网页只过第 1、3 道。支持的 GitHub URL 形态见 `handlers/README.md`。
+
 ## 功能
 
 - 搜网页：tavily / brave / exa / firecrawl / perplexity 任选一个，不会偷偷换源；缺 key 会直接告诉你配哪里。
-- 抓网页：按你配的顺序挨个试提取器，第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key）；`tavily` / `exa` / `firecrawl` 要自己加进 `fetch.extractors`；GitHub 页面优先用 `gh`；想直接拿原始响应，把 `fetch.allowRaw` 打开后才有 `raw` 参数。
-- 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查；结果太长自动截断，全文落到临时文件。
+- 抓网页：按你配的顺序挨个试提取器，第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key）；`tavily` / `exa` / `firecrawl` 要自己加进 `fetch.extractors`；GitHub 页面优先用 `gh`（支持范围见 `handlers/README.md`）；想直接拿原始响应，把 `fetch.allowRaw` 打开后才有 `raw` 参数。
+- 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查；结果太长自动截断，`context.spillToFile` 为真时全文落到临时文件（路径写进结果）。
 - 上下文可控：工具可改名、可关闭、可改成按需发现，减少常驻提示词。
 - 提示词精简：内置提示词是英文单行；续读提示、key 位置、参数范围这些信息由报错与结果承载，不占提示词；工具改名后提示词自动跟着变。
 

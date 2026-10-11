@@ -16,7 +16,7 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 
 - `configPath` 缺省由 `env` 推导；`env` 缺省 `process.env`（测试可注入）。
 - JSON 损坏、顶层非对象、字段非法 → 抛 `Error`，消息含配置文件的绝对路径；字段非法时逐条列出 `<field path>: <reason>`。
-- 数值字段越界不报错，clamp 到 `schema.ts` 的 `RANGES` 区间（区间见下表）。
+- 数值字段越界不报错，clamp 到 `schema.ts` 的 `RANGES` 区间；`context.maxInlineChars` / `maxInlineLines` 只 clamp 下限（`1000` / `50`），同样不报错（区间见下表）。
 - API key：`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY` 优先于文件 `apiKeys.<id>`；空字符串环境变量视为未设置。`jina` 是提取器专用键，**可缺**（官方允许匿名 20 RPM，配了走更高配额）。
 - `proxy` 仅接受 `http(s)://`；其余枚举与命名规则见下表。
 
@@ -35,8 +35,8 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 | `tools.<id>.name` | `web_search` / `web_fetch` | 字母开头，字母数字下划线连字符；不得重名或占宿主保留名 |
 | `activation` | `"eager"` | `eager` / `deferred` |
 | `guidance.<id>` | `{}` | 字段限 `description` / `promptSnippet` / `promptGuidelines` |
-| `context.maxInlineChars` | `null`（宿主 `DEFAULT_MAX_BYTES`） | 下限 `1000`；上限由 `tools/` 夹到宿主值（按字节截断） |
-| `context.maxInlineLines` | `null`（宿主 `DEFAULT_MAX_LINES`） | 下限 `50`；上限同上 |
+| `context.maxInlineChars` | `null`（宿主 `DEFAULT_MAX_BYTES`） | 下限 `1000`（写小即抬到 1000）；上限由 `tools/` 夹到宿主值（按字节截断） |
+| `context.maxInlineLines` | `null`（宿主 `DEFAULT_MAX_LINES`） | 下限 `50`（写小即抬到 50）；上限同上 |
 | `context.spillToFile` | `true` | — |
 | `search.defaultMaxResults` | `5` | `1–maxResultsLimit` |
 | `search.maxResultsLimit` | `10` | `1–20` |
@@ -48,6 +48,8 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 | `handlers.github.command` | `"gh"` | 非空 |
 | `handlers.github.timeoutMs` | `30000` | `1000–120000` |
 | `handlers.github.maxChars` | `150000` | `1000–1000000` |
+
+三层截断（`fetch.maxCharsPerPage` → `handlers.github.maxChars` → `context.*`）的作用对象与顺序见根 `README.md`「三道 max 闸」。
 
 ## 文件
 

@@ -6,7 +6,7 @@
 
 | 模块 | 职责 | 契约边界 |
 |---|---|---|
-| `index.ts` | 读配置，按 `tools.*` / `activation` / `guidance.*` 注册两个工具；deferred 时在 `session_start` 激活内置 `tool_search` | 仅扩展入口：默认导出工厂函数；不导出可复用 API |
+| `index.ts` | 读配置，按 `tools.*` / `activation` / `guidance.*` 注册两个工具；deferred 时在 `session_start` 激活内置 `tool_search`（宿主没有就激活自身工具并 `console.warn`） | 仅扩展入口：默认导出工厂函数；不导出可复用 API |
 | `config/` | 加载、校验、clamp 配置文件；校验 provider 取值、合并 key 来源（env 优先） | `ResolvedConfig` 类型 + 解析函数 + 配置路径；不碰网络 |
 | `http/` | 出站 HTTP 唯一出口：代理、超时、UA、`AbortSignal`、错误归一化 | `fetchText` / `fetchJson` 一族；不认 provider 语义 |
 | `ssrf/` | 抓取前的静态 URL 判定（协议、主机名、字面量 IP；不做端口白名单） | 单一断言函数；不解析 DNS、不发请求 |
@@ -54,7 +54,7 @@ index.ts
 
 | 文件 | 只写 | 不写 |
 |---|---|---|
-| 根 `README.md` | 安装、配置、功能、环境要求、参考项目、文档索引、开发 | 选型理由、模块签名 |
+| 根 `README.md` / `README.en.md`（中英镜像） | 安装、配置、功能、环境要求、参考项目、文档索引、开发 | 选型理由、模块签名 |
 | `docs/PLAN.md` | 目标、选型理由、非目标、阶段划分 | 字段表、契约细节 |
 | `docs/ARCHITECTURE.md` | 模块划分、依赖方向、目录 / 测试 / 文档约定 | 模块内部签名与字段 |
 | `docs/TODO.md` | 任务清单与勾选状态、验收标准、验收证据指针、前置依赖 | 契约与理由 |

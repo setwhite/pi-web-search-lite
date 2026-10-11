@@ -17,7 +17,7 @@ Add a search key and you are ready — no build step.
 
 ## Configuration
 
-One JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.json`. If it does not exist, everything falls back to defaults; a bad field fails startup and tells you which field it was.
+One JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.json`. If it does not exist, everything falls back to defaults. A wrong type, enum value or unknown key fails startup and names the field; out-of-range numbers are silently clamped to the range (see `config/README.md`). The example below uses `//` comments; the real file must be strict JSON, so strip them before copying.
 
 **Minimal config** — fill in your key and it works:
 
@@ -77,8 +77,12 @@ Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY
       "promptGuidelines": ["web_fetch: use to get full text of a URL, e.g. docs or URLs found by web_search."]
     }
   },
-  // How much of a result may reach the model: null = host defaults; overflow is truncated and the full text is written to a temp file by default
-  "context": { "maxInlineChars": null, "maxInlineLines": null, "spillToFile": true },
+  // The last gate before the model: content beyond either cap is truncated; null = host defaults, and values above the host caps have no effect
+  "context": {
+    "maxInlineChars": null,  // byte cap (lower bound 1000; smaller values are raised to 1000)
+    "maxInlineLines": null,  // line cap (lower bound 50)
+    "spillToFile": true      // on truncation, write the full text to <tmp>/pi-web-search-lite-*/web-{search,fetch}.md and return the path for read; false = full text is dropped
+  },
   // Search results: how many by default, and the ceiling
   "search": { "defaultMaxResults": 5, "maxResultsLimit": 10 },
   // Fetching: html and r.jina.ai by default (neither needs a key); add tavily / exa / firecrawl yourself; content shorter than minChars counts as unusable; the raw argument only exists when allowRaw is on (off by default)
@@ -88,18 +92,37 @@ Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY
     "allowRaw": false,
     "maxCharsPerPage": 150000
   },
-  // GitHub pages are handled by the gh CLI: swap the command or raise the caps here
-  "handlers": { "github": { "enabled": true, "command": "gh", "timeoutMs": 30000, "maxChars": 150000 } }
+  // GitHub pages go to the gh CLI first; missing / not logged in / command failure → transparent fallthrough to the extractor chain, reason recorded in details.handlerSkips
+  "handlers": {
+    "github": {
+      "enabled": true,     // false = never touch gh, GitHub URLs take the extractor chain
+      "command": "gh",     // executed via execFile, no shell: an executable only (PATH name or absolute path), no arguments; .cmd/.bat fails on Windows
+      "timeoutMs": 30000,  // per gh subprocess; the availability probe is cached per command inside the process, so /reload after changing it
+      "maxChars": 150000   // cap after gh output is rendered to markdown, see "The three max gates" below
+    }
+  }
 }
 ```
 
 Every key is optional. Defaults and ranges: `config/README.md`; to override prompts, fill fields under `guidance.web_search` / `guidance.web_fetch`.
 
+### The three max gates
+
+A fetch result passes three independent caps on its way to the model:
+
+| Key | Applies to | On overflow |
+|---|---|---|
+| `fetch.maxCharsPerPage` | text returned by the extractor chain (not the GitHub handler) | sliced with a `[... truncated ...]` note; the full text is not kept |
+| `handlers.github.maxChars` | gh output after it is rendered to markdown | same; GitHub handler only |
+| `context.maxInlineChars` / `maxInlineLines` | the envelope handed to the model (both tools) | sliced; with `spillToFile` the full text goes to a temp file and the path is included in the result |
+
+Both `context.*` caps are clamped with `Math.min` against the host caps, so larger values have no effect. GitHub pages pass gates 2 and 3; ordinary pages pass 1 and 3. Supported GitHub URL shapes: `handlers/README.md`.
+
 ## Features
 
 - Search: pick one of tavily / brave / exa / firecrawl / perplexity — no silent switching; a missing key tells you exactly where to set it.
-- Fetch: extractors are tried in the order you configure until one produces usable content (`html` → `jina` by default, neither needs a key; add `tavily` / `exa` / `firecrawl` to `fetch.extractors` yourself); GitHub pages go through `gh`; turn on `fetch.allowRaw` to get the `raw` argument for raw response bodies.
-- Safe by default: private and loopback addresses are rejected, and every redirect hop is re-checked; oversized results are truncated with the full text spilled to a temp file.
+- Fetch: extractors are tried in the order you configure until one produces usable content (`html` → `jina` by default, neither needs a key; add `tavily` / `exa` / `firecrawl` to `fetch.extractors` yourself); GitHub pages go through `gh` (see `handlers/README.md` for the supported shapes); turn on `fetch.allowRaw` to get the `raw` argument for raw response bodies.
+- Safe by default: private and loopback addresses are rejected, and every redirect hop is re-checked; oversized results are truncated with the full text spilled to a temp file when `context.spillToFile` is on (the path is included in the result).
 - Controllable context: tools can be renamed, disabled or switched to on-demand discovery.
 - Lean prompts: built-in prompts are single-line English; how to continue after truncation, where to put the key or what the argument ranges are live in errors and results instead of the prompt, and renamed tools are reflected in the prompts automatically.
 
