@@ -103,6 +103,19 @@
   - 验收证据：`test/handlers/reddit.test.ts`（17 例）、`test/tools/fetch.test.ts`（reddit URL 改写 3 例）、`test/config.test.ts`（handlers.reddit 2 例）；`pnpm vitest run` 28 文件 / 270 测试全绿、`pnpm typecheck` 通过；commit `690fa13`
   - 前置：T4
 
+- [x] T16 移除 web_search 的 provider 参数
+  - 交付物：`tools/search.ts`、`tools/render.ts`、`providers/index.ts`、`providers/README.md`、`tools/README.md`、`README.md`、`README.en.md`、`docs/PLAN.md`、`docs/TODO.md`（补取代说明）、`test/tools/{search,render}.test.ts`、`test/providers/index.test.ts`
+  - 验收：工具 schema 只剩 `query` / `max_results`，不再随 provider 数量膨胀；解析优先级降为 `WEB_SEARCH_PROVIDER > config.provider > tavily`，未知值仍抛错并列出合法值；`SearchParams.provider` 与 `resolveProviderId` 的 override 首参删除，不留死代码；调用行不再有 `via`；模型可见文案与文档不再提 per-call provider；`pnpm test` / `pnpm typecheck` 全绿。
+  - 验收证据：`test/providers/index.test.ts`（三层优先级、报错不提工具参数）、`test/tools/search.test.ts`（`WEB_SEARCH_PROVIDER` 覆盖 config、schema 只剩 `query`/`max_results`）、`test/tools/render.test.ts`（调用行不再有 via）；`pnpm test` 28 文件 / 270 测试全绿、`pnpm typecheck` 通过
+  - 取代：T3 卡验收里的「解析优先级 `参数 > …`」是当时的契约快照，已被本卡取代；历史条目保留原文，不追改
+  - 前置：T3、T6、T9
+
+- [x] T17 折叠行显示 web_fetch 的提取来源
+  - 交付物：`tools/render.ts`、`tools/README.md`、`test/tools/render.test.ts`
+  - 验收：成功折叠行追加最终胜出的 source（`github` / `html` / `exa` / `firecrawl` / `jina` / `raw`），形如 `✓ Fetched: 标题 (exa)`；partial、失败态、展开态与 ` (truncated)` 的追加位置不变；渲染仍只读 `args` + `details`，不进模型上下文。
+  - 验收证据：`test/tools/render.test.ts`（折叠行 `(html)` / `(github)` / `(exa)` / `(raw)`，截断标记在 source 之后）；`pnpm test` 28 文件 / 270 测试全绿、`pnpm typecheck` 通过
+  - 前置：T9
+
 ## 后续候选
 
 Phase 2 候选清单见 `docs/PLAN.md` §4；确认启动后再按同一格式追加任务卡。
