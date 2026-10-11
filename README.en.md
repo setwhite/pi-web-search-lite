@@ -33,7 +33,7 @@ Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY
 
 ```jsonc
 {
-  // Search backend: tavily | brave | exa | firecrawl | perplexity; can also be set per call via the provider argument
+  // Search backend: tavily | brave | exa | firecrawl | perplexity; override with the WEB_SEARCH_PROVIDER env var
   "provider": "tavily",
   // API keys: fill in the ones you need, or use environment variables (they win over the file)
   // Env vars: TAVILY_API_KEY / BRAVE_API_KEY / EXA_API_KEY / FIRECRAWL_API_KEY / PERPLEXITY_API_KEY / JINA_API_KEY

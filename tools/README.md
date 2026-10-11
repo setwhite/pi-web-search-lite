@@ -8,7 +8,7 @@
 |---|---|
 | `result.ts` | `finalizeContent`（宿主截断 + spill）、`buildToolResult`（信封组装）、宿主类型的单一 import 点 |
 | `render.ts` | `renderCall` / `renderResult`：调用行与结果行、折叠/展开、partial、失败回退（pi-tui 唯一 import 点） |
-| `search.ts` | `executeSearch` 与 `createSearchTool`：provider 四层解析、key 检查、`max_results` clamp、结果信封 |
+| `search.ts` | `executeSearch` 与 `createSearchTool`：provider 三层解析、key 检查、`max_results` clamp、结果信封 |
 | `fetch.ts` | `executeFetch` 与 `createFetchTool`：SSRF 检查 → handler 层（github 直取 / reddit 改写）→ 提取器链（或 raw）、来源标注 |
 
 ## API
@@ -34,7 +34,7 @@ renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   //
 
 | | `web_search` | `web_fetch` |
 |---|---|---|
-| 参数 | `query` 必填；`max_results`（clamp 1–`search.maxResultsLimit`，缺省 `search.defaultMaxResults`）；`provider` 覆盖 | `url` 必填；`raw` **仅当 `fetch.allowRaw` 为真才进 schema** |
+| 参数 | `query` 必填；`max_results`（clamp 1–`search.maxResultsLimit`，缺省 `search.defaultMaxResults`） | `url` 必填；`raw` **仅当 `fetch.allowRaw` 为真才进 schema** |
 | 顺序 | `resolveProviderId`（序号见 `providers/README.md`）→ `resolveApiKey` → provider | `assertPublicUrl` → handler → 提取器链；handler 只改写 URL 时，改写后的 URL 再跑一遍 `assertPublicUrl` 才进链；`raw: true` 跳过 handler 与链 |
 | details | `{ provider, query, count, results, truncated, fullOutputPath? }` | `{ url, title, source, mode, chars, visibleChars, truncated, fullOutputPath?, handlerSkips, rewrittenFrom? }` |
 
@@ -48,7 +48,7 @@ renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   //
 
 数据源只有 `args` 与 `details`：不读网络、不改 details、不进模型上下文；渲染抛错时宿主回退到默认样式。
 
-- 调用行：`Web Search "查询词"[ via provider]`（provider 只在参数显式传入时才有）、`Web Fetch <url>`。
+- 调用行：`Web Search "查询词"`、`Web Fetch <url>`。
 - 结果行折叠时只给一行摘要：搜索 `✓ N results (provider)`，fetch `✓ Fetched: 标题`；`truncated` 追加 ` (truncated)`。
 - `expanded` 才展开：搜索列前 5 条标题后给 `… N more`，fetch 列正文前 15 行后给 `… N more lines`（上限参考 rpiv 的 5 / 15）。
 - `isPartial` 显示 `Searching…` / `Fetching…`（本扩展不调 `onUpdate`，只有宿主流式更新才会出现）。

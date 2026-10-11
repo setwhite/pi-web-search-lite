@@ -19,7 +19,7 @@
 
 | # | 决策 | 一句话理由 | 详细出处 |
 |---|---|---|---|
-| 2.1 | 搜索白名单五个 provider（默认 `tavily`）；选中者缺 key 或名字不在白名单 → 抛错，不静默换源 | 显式选择让失败原因唯一；perplexity 用返回原始排名结果的 Search API，不引入 answer 模式 | `providers/README.md` |
+| 2.1 | 搜索白名单五个 provider（默认 `tavily`）；选中者缺 key 或名字不在白名单 → 抛错，不静默换源；换源只走 `WEB_SEARCH_PROVIDER` / `config.provider`，工具不提供 per-call 参数 | 显式选择让失败原因唯一；参数 schema 不随 provider 数量膨胀 | `providers/README.md` |
 | 2.2 | 抓取按 `fetch.extractors` 顺序逐链尝试，默认 `html` → `jina`；`raw: true` 跳过整链 | 默认两位都不需要 key 也不额外计费；沿用已验证的 `minChars` 门槛 + 失败顺延；provider 提取器要显式加进来 | `extractors/README.md` |
 | 2.3 | GitHub 页面在 `web_fetch` 第 0 步交给 `gh` handler，未命中或失败透明顺延到链 | gh 单次调用直接产出清洗正文，省掉 clone 生命周期与磁盘缓存 | `handlers/README.md` |
 | 2.4 | `config.proxy` 是唯一代理配置点；不读 `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`，本机目标永远绕过；socks5 在配置校验阶段报错 | 目标场景的 Clash / V2Ray 都提供 http 代理端口，可免去 curl 传输层与外部二进制依赖 | `http/README.md` |

@@ -33,7 +33,7 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 
 ```jsonc
 {
-  // 搜索源：tavily | brave | exa | firecrawl | perplexity；调用时还可以用 provider 参数临时指定
+  // 搜索源：tavily | brave | exa | firecrawl | perplexity；可用 WEB_SEARCH_PROVIDER 环境变量覆盖
   "provider": "tavily",
   // API key：需要哪个源就填哪个键，也可以改用环境变量（环境变量优先）
   // 环境变量名：TAVILY_API_KEY / BRAVE_API_KEY / EXA_API_KEY / FIRECRAWL_API_KEY / PERPLEXITY_API_KEY / JINA_API_KEY

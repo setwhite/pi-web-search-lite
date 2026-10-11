@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProviderId } from "../../config/index.ts";
 import type { SearchOptions, SearchProvider, SearchResult } from "../../providers/index.ts";
 import { createSearchTool, executeSearch } from "../../tools/search.ts";
@@ -22,6 +22,10 @@ function fakeProvider(id: ProviderId, results: SearchResult[] = []) {
 }
 
 const config = makeConfig({ apiKeys: { tavily: "tvly-key" }, search: { defaultMaxResults: 5, maxResultsLimit: 10 } });
+
+afterEach(() => {
+	vi.unstubAllEnvs();
+});
 
 describe("executeSearch", () => {
 	it("max_results 超上限时 clamp 到 maxResultsLimit，未传时用 defaultMaxResults", async () => {
@@ -48,13 +52,14 @@ describe("executeSearch", () => {
 		expect(result.details).toMatchObject({ provider: "tavily", query: "pi", count: 2, truncated: false });
 	});
 
-	it("provider 参数覆盖 config.provider", async () => {
-		const { provider } = fakeProvider("brave", RESULTS);
-		const braveConfig = makeConfig({ provider: "tavily", apiKeys: { brave: "brave-key" } });
+	it("WEB_SEARCH_PROVIDER 覆盖 config.provider", async () => {
+		const { provider } = fakeProvider("exa", RESULTS);
+		const envConfig = makeConfig({ provider: "tavily", apiKeys: { exa: "exa-key" } });
+		vi.stubEnv("WEB_SEARCH_PROVIDER", "exa");
 
-		const result = await executeSearch(braveConfig, { query: "q", provider: "brave" }, undefined, { provider });
+		const result = await executeSearch(envConfig, { query: "q" }, undefined, { provider });
 
-		expect(result.details.provider).toBe("brave");
+		expect(result.details.provider).toBe("exa");
 	});
 
 	it("缺 key 时抛错并指明环境变量与配置键", async () => {
@@ -75,10 +80,11 @@ describe("executeSearch", () => {
 		expect(result.details.count).toBe(0);
 	});
 
-	it("工具名与 provider 枚举来自配置", () => {
+	it("工具名来自配置，参数 schema 只有 query 与 max_results", () => {
 		const tool = createSearchTool(makeConfig({ tools: { web_search: { enabled: true, name: "find_web" } } }));
 
 		expect(tool.name).toBe("find_web");
-		expect(JSON.stringify(tool.parameters)).toContain("brave");
+		expect(Object.keys(tool.parameters.properties).sort()).toEqual(["max_results", "query"]);
+		expect(JSON.stringify(tool.parameters)).not.toContain("anyOf");
 	});
 });

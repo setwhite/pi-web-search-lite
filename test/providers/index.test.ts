@@ -13,20 +13,19 @@ describe("createSearchProvider", () => {
 });
 
 describe("resolveProviderId", () => {
-	it("优先级：provider 参数 > WEB_SEARCH_PROVIDER > config.provider > tavily", () => {
-		expect(resolveProviderId("brave", "tavily", { WEB_SEARCH_PROVIDER: "exa" })).toBe("brave");
-		expect(resolveProviderId(undefined, "tavily", { WEB_SEARCH_PROVIDER: "exa" })).toBe("exa");
-		expect(resolveProviderId(undefined, "brave", {})).toBe("brave");
-		expect(resolveProviderId(undefined, undefined, {})).toBe("tavily");
+	it("优先级：WEB_SEARCH_PROVIDER > config.provider > tavily", () => {
+		expect(resolveProviderId("tavily", { WEB_SEARCH_PROVIDER: "exa" })).toBe("exa");
+		expect(resolveProviderId("brave", {})).toBe("brave");
+		expect(resolveProviderId(undefined, {})).toBe("tavily");
 	});
 
 	it("空串 / 纯空白视为未提供", () => {
-		expect(resolveProviderId("", "exa", { WEB_SEARCH_PROVIDER: "  " })).toBe("exa");
+		expect(resolveProviderId("exa", { WEB_SEARCH_PROVIDER: "  " })).toBe("exa");
 	});
 
-	it("未知名字抛 ProviderError 并列出三个合法值", () => {
+	it("未知名字抛 ProviderError 并列出全部合法值，不提工具参数", () => {
 		try {
-			resolveProviderId("google", undefined, {});
+			resolveProviderId(undefined, { WEB_SEARCH_PROVIDER: "google" });
 			throw new Error("预期抛错但放行");
 		} catch (error) {
 			expect(error).toBeInstanceOf(ProviderError);
@@ -34,11 +33,8 @@ describe("resolveProviderId", () => {
 			expect((error as ProviderError).message).toContain("tavily");
 			expect((error as ProviderError).message).toContain("brave");
 			expect((error as ProviderError).message).toContain("exa");
+			expect((error as ProviderError).message).not.toContain("argument");
 		}
-	});
-
-	it("环境变量里的未知名字同样抛错", () => {
-		expect(() => resolveProviderId(undefined, undefined, { WEB_SEARCH_PROVIDER: "serper" })).toThrowError(ProviderError);
 	});
 });
 

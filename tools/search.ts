@@ -1,7 +1,7 @@
-/** web_search 工具：provider 四层解析、max_results clamp、统一结果信封与截断。 */
+/** web_search 工具：provider 三层解析、max_results clamp、统一结果信封与截断。 */
 
 import { Type, type Static } from "typebox";
-import { PROVIDER_IDS, type ProviderId, type ResolvedConfig } from "../config/index.ts";
+import { type ProviderId, type ResolvedConfig } from "../config/index.ts";
 import { createHttpClient, type HttpClient } from "../http/index.ts";
 import { createSearchProvider, resolveApiKey, resolveProviderId, type SearchProvider, type SearchResult } from "../providers/index.ts";
 import { buildToolResult, finalizeContent, type AgentToolResult, type ToolDefinition } from "./result.ts";
@@ -10,7 +10,6 @@ import { renderSearchCall, renderSearchResult } from "./render.ts";
 export interface SearchParams {
 	query: string;
 	max_results?: number;
-	provider?: string;
 }
 
 export interface SearchOverrides {
@@ -40,7 +39,7 @@ export async function executeSearch(
 	signal: AbortSignal | undefined,
 	overrides: SearchOverrides = {},
 ): Promise<AgentToolResult<SearchDetails>> {
-	const providerId = resolveProviderId(params.provider, config.provider);
+	const providerId = resolveProviderId(config.provider);
 	const apiKey = resolveApiKey(providerId, config.apiKeys);
 	const http = overrides.http ?? createHttpClient({ proxy: config.proxy, timeoutMs: config.timeoutMs, userAgent: config.userAgent });
 	const provider = overrides.provider ?? createSearchProvider(providerId, { http, apiKey });
@@ -69,11 +68,6 @@ export async function executeSearch(
 	});
 }
 
-const PROVIDER_SCHEMA = Type.Union(
-	PROVIDER_IDS.map((id) => Type.Literal(id)),
-	{ description: `Provider override; valid values: ${PROVIDER_IDS.join(", ")}` },
-);
-
 /** 未配置 guidance.promptSnippet 时的默认一行短语（工具列表用）。 */
 const DEFAULT_PROMPT_SNIPPET = "Search the web";
 
@@ -86,7 +80,6 @@ function buildParameters(config: ResolvedConfig) {
 				description: `Number of results, clamped to 1-${config.search.maxResultsLimit}; default ${config.search.defaultMaxResults}`,
 			}),
 		),
-		provider: Type.Optional(PROVIDER_SCHEMA),
 	});
 }
 
