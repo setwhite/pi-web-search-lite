@@ -24,8 +24,6 @@ const FAILURE_FALLBACK = "Tool failed (no error message)";
 export function renderSearchCall(args: SearchParams, theme: RenderTheme): Text {
 	let text = theme.fg("toolTitle", theme.bold("Web Search "));
 	text += theme.fg("accent", `"${readString(args?.query)}"`);
-	const provider = readString(args?.provider);
-	if (provider) text += theme.fg("dim", ` via ${provider}`);
 	return createText(text);
 }
 
@@ -70,6 +68,7 @@ export function renderFetchResult(
 	if (typeof details?.url !== "string") return renderFailure(result, options, theme);
 
 	let text = theme.fg("success", "✓ Fetched: ") + theme.fg("muted", details.title || details.url);
+	text += theme.fg("muted", ` (${details.source})`);
 	if (details.truncated) text += theme.fg("warning", TRUNCATED_MARK);
 	if (options.expanded) text += renderContentPreview(result, theme);
 	return createText(text);

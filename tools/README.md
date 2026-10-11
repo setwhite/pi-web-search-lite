@@ -49,7 +49,7 @@ renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   //
 数据源只有 `args` 与 `details`：不读网络、不改 details、不进模型上下文；渲染抛错时宿主回退到默认样式。
 
 - 调用行：`Web Search "查询词"`、`Web Fetch <url>`。
-- 结果行折叠时只给一行摘要：搜索 `✓ N results (provider)`，fetch `✓ Fetched: 标题`；`truncated` 追加 ` (truncated)`。
+- 结果行折叠时只给一行摘要：搜索 `✓ N results (provider)`，fetch `✓ Fetched: 标题 (source)`；`truncated` 追加 ` (truncated)`。
 - `expanded` 才展开：搜索列前 5 条标题后给 `… N more`，fetch 列正文前 15 行后给 `… N more lines`（上限参考 rpiv 的 5 / 15）。
 - `isPartial` 显示 `Searching…` / `Fetching…`（本扩展不调 `onUpdate`，只有宿主流式更新才会出现）。
 - 失败：宿主对抛错的工具生成 `details = {}` 的结果，按形状判定后显示 `✗ + 错误首行`，展开给全文；绝不显示 ✓。

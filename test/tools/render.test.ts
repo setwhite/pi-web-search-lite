@@ -73,15 +73,12 @@ function failure(text: string): AgentToolResult<never> {
 }
 
 describe("renderSearchCall", () => {
-	it("显示加粗标题、查询词，显式 provider 才有 via", () => {
+	it("显示加粗标题与查询词", () => {
 		const { theme, calls } = makeTheme();
 
 		const plain = line(renderSearchCall({ query: "pi coding agent", max_results: 5 }, theme));
 		expect(plain).toBe('Web Search "pi coding agent"');
 		expect(calls[0]).toEqual({ color: "toolTitle", text: "Web Search " });
-
-		const withProvider = line(renderSearchCall({ query: "pi", provider: "exa" }, theme));
-		expect(withProvider).toBe('Web Search "pi" via exa');
 	});
 
 	it("流式参数（args 为空对象）不抛错", () => {
@@ -177,15 +174,30 @@ describe("renderFetchResult", () => {
 		};
 
 		const collapsed = line(renderFetchResult(result, { expanded: false, isPartial: false }, theme));
-		expect(collapsed).toBe("✓ Fetched: Example Domain");
+		expect(collapsed).toBe("✓ Fetched: Example Domain (html)");
 		expect(collapsed).not.toContain("第0行");
 		expect(calls[0]).toEqual({ color: "success", text: "✓ Fetched: " });
+		expect(calls).toContainEqual({ color: "muted", text: " (html)" });
 
 		const expanded = line(renderFetchResult(result, { expanded: true, isPartial: false }, theme));
 		expect(expanded).toContain("第0行");
 		expect(expanded).toContain("第14行");
 		expect(expanded).not.toContain("第15行");
 		expect(expanded).toContain("… 5 more lines");
+	});
+
+	it("折叠行标注提取来源：github / exa / raw", () => {
+		const { theme } = makeTheme();
+		const cases: Array<[FetchDetails["source"], string]> = [
+			["github", "✓ Fetched: Example Domain (github)"],
+			["exa", "✓ Fetched: Example Domain (exa)"],
+			["raw", "✓ Fetched: Example Domain (raw)"],
+		];
+
+		for (const [source, expected] of cases) {
+			const result: AgentToolResult<FetchDetails> = { content: [], details: fetchDetails({ source }) };
+			expect(line(renderFetchResult(result, { expanded: false, isPartial: false }, theme))).toBe(expected);
+		}
 	});
 
 	it("内容不超过预览上限时不显示省略行", () => {
@@ -200,7 +212,9 @@ describe("renderFetchResult", () => {
 		const { theme } = makeTheme();
 		const result: AgentToolResult<FetchDetails> = { content: [], details: fetchDetails({ truncated: true }) };
 
-		expect(line(renderFetchResult(result, { expanded: false, isPartial: false }, theme))).toContain(" (truncated)");
+		expect(line(renderFetchResult(result, { expanded: false, isPartial: false }, theme))).toBe(
+			"✓ Fetched: Example Domain (html) (truncated)",
+		);
 	});
 
 	it("执行中显示进行中状态", () => {
