@@ -1,6 +1,6 @@
 # handlers/ — 专用页面 handler 层
 
-`web_fetch` 的第 0 步：命中且成功 → 跳过整条提取器链；命中但跳过（未装 gh / 未登录 / 命令失败）→ 返回 `skipped` 加原因，由工具层在结果里注明后顺延（透明顺延，不是静默降级）。不 clone、不落盘、不发 HTTP。
+`web_fetch` 的第 0 步：命中且成功 → 跳过整条提取器链；命中但跳过（未装 gh / 未登录 / 命令失败）→ 返回 `skipped` 和原因，由工具层在结果里注明后顺延（透明顺延，不是静默降级）。不 clone、不落盘、不发 HTTP。
 
 ## 文件
 
@@ -34,7 +34,7 @@ checkGhAvailable(command, { exec, timeoutMs, env, signal }): Promise<{ ok, reaso
 | `/O/R/pull/N`（含 `/files`） | `gh pr view …`；`/files` 走 `gh pr diff` |
 | `/O/R/releases/tag/T` | `gh release view T --repo O/R --json …` |
 
-其余（gist / wiki / actions / discussions / settings / `/O/R/pull/N/commits` 等）返回 `null`，交给提取器链。query 与锚点忽略。
+其余（gist / wiki / actions / discussions / settings / `/O/R/pull/N/commits` 等）返回 `null`，交给提取器链。忽略 query 与锚点。
 
 ## 已知 URL 局限（MVP 有意不处理）
 

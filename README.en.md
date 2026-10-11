@@ -29,7 +29,7 @@ One JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.j
 
 Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY`, which win over the file); change `provider` to switch the default backend, or override it for one run with the `WEB_SEARCH_PROVIDER` env var.
 
-**Full example** — every option, commented; apart from the key values, userAgent, `proxy` and the guidance overrides, the values shown are the defaults:
+**Full example** — every option with a comment; apart from the key values, userAgent, `proxy` and the guidance overrides, the rest are the defaults:
 
 ```jsonc
 {
@@ -85,12 +85,13 @@ Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY
   },
   // Search results: how many by default, and the ceiling
   "search": { "defaultMaxResults": 5, "maxResultsLimit": 10 },
-  // Fetching: html and r.jina.ai by default (neither needs a key); add tavily / exa / firecrawl yourself; content shorter than minChars counts as unusable; the raw argument only exists when allowRaw is on (off by default)
+  // Fetching: extractors are a fallback chain — tried in order, the first usable body wins; a missing key, an error or a body under minChars falls through
+  // Recommended order html → your provider (tavily / exa / firecrawl) → jina; html and jina both work without a key
   "fetch": {
     "extractors": ["html", "jina"],
     "minChars": 200,
-    "allowRaw": false,
-    "maxCharsPerPage": 150000
+    "allowRaw": false,               // enables the raw argument (raw response, skipping the handler and the extractor chain)
+    "maxCharsPerPage": 150000        // per-page body cap, see "The three max gates" below
   },
   // GitHub pages go to the gh CLI first; missing / not logged in / command failure → transparent fallthrough to the extractor chain, reason recorded in details.handlerSkips
   "handlers": {
@@ -121,7 +122,7 @@ Both `context.*` caps are clamped with `Math.min` against the host caps, so larg
 ## Features
 
 - Search: pick one of tavily / brave / exa / firecrawl / perplexity — no silent switching; a missing key tells you exactly where to set it.
-- Fetch: extractors are tried in the order you configure until one produces usable content (`html` → `jina` by default, neither needs a key; add `tavily` / `exa` / `firecrawl` to `fetch.extractors` yourself); GitHub pages go through `gh` (see `handlers/README.md` for the supported shapes); turn on `fetch.allowRaw` to get the `raw` argument for raw response bodies.
+- Fetch: extractors are a fallback chain, tried in order until one works (default `html` → `jina`, neither needs a key; insert `tavily` / `exa` / `firecrawl` in the middle). GitHub pages go through `gh` (see `handlers/README.md`); `fetch.allowRaw` unlocks the `raw` argument, which skips the chain.
 - Safe by default: private and loopback addresses are rejected, and every redirect hop is re-checked; oversized results are truncated with the full text spilled to a temp file when `context.spillToFile` is on (the path is included in the result).
 - Controllable context: tools can be renamed, disabled or switched to on-demand discovery.
 - Lean prompts: built-in prompts are single-line English; how to continue after truncation, where to put the key or what the argument ranges are live in errors and results instead of the prompt, and renamed tools are reflected in the prompts automatically.

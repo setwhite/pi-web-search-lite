@@ -5,7 +5,7 @@
 ## 文件位置
 
 `<agent dir>/pi-web-search-lite/config.json`，其中 `<agent dir>` = `PI_CODING_AGENT_DIR` > `~/.pi/agent`。
-文件不存在按全默认值处理。
+文件不存在时按全默认值处理。
 
 ## API
 
