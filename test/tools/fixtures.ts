@@ -9,6 +9,7 @@ import {
 	type GitHubHandlerSettings,
 	type GuidanceFields,
 	type ProviderId,
+	type RedditHandlerSettings,
 	type ResolvedConfig,
 	type SearchSettings,
 	type ToolId,
@@ -28,7 +29,7 @@ export interface ConfigOverrides {
 	context?: Partial<ContextSettings>;
 	search?: Partial<SearchSettings>;
 	fetch?: Partial<FetchSettings>;
-	handlers?: { github?: Partial<GitHubHandlerSettings> };
+	handlers?: { github?: Partial<GitHubHandlerSettings>; reddit?: Partial<RedditHandlerSettings> };
 }
 
 /** 全默认配置 + 逐块合并覆盖；configPath 指向不存在的文件，env 为空。 */
@@ -43,7 +44,10 @@ export function makeConfig(overrides: ConfigOverrides = {}): ResolvedConfig {
 		context: { ...base.context, ...overrides.context },
 		search: { ...base.search, ...overrides.search },
 		fetch: { ...base.fetch, ...overrides.fetch },
-		handlers: { github: { ...base.handlers.github, ...overrides.handlers?.github } },
+		handlers: {
+			github: { ...base.handlers.github, ...overrides.handlers?.github },
+			reddit: { ...base.handlers.reddit, ...overrides.handlers?.reddit },
+		},
 	};
 }
 

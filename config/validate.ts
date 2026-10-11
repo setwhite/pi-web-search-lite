@@ -15,6 +15,7 @@ import {
 	DEFAULT_MAX_RESULTS_LIMIT,
 	DEFAULT_MIN_CHARS,
 	DEFAULT_PROVIDER,
+	DEFAULT_REDDIT_BASE_URL,
 	DEFAULT_TIMEOUT_MS,
 	DEFAULT_USER_AGENT,
 	EXTRACTOR_IDS,
@@ -33,6 +34,7 @@ import {
 	type GuidanceFields,
 	type GitHubHandlerSettings,
 	type Raw,
+	type RedditHandlerSettings,
 	type ResolvedConfig,
 	type SearchSettings,
 	type ToolId,
@@ -234,11 +236,13 @@ function readExtractors(value: unknown, errors: Errors): ExtractorId[] {
 	return extractors.length > 0 ? extractors : [...DEFAULT_EXTRACTORS];
 }
 
-function readHandlers(value: unknown, errors: Errors): { github: GitHubHandlerSettings } {
+function readHandlers(value: unknown, errors: Errors): { github: GitHubHandlerSettings; reddit: RedditHandlerSettings } {
 	const raw = asObject(value, "handlers", errors) ?? {};
-	checkUnknownKeys(raw, ["github"], "handlers", errors);
+	checkUnknownKeys(raw, ["github", "reddit"], "handlers", errors);
 	const github = asObject(raw.github, "handlers.github", errors) ?? {};
 	checkUnknownKeys(github, ["enabled", "command", "timeoutMs", "maxChars"], "handlers.github", errors);
+	const reddit = asObject(raw.reddit, "handlers.reddit", errors) ?? {};
+	checkUnknownKeys(reddit, ["enabled", "baseUrl"], "handlers.reddit", errors);
 	return {
 		github: {
 			enabled: readBoolean(github.enabled, true, "handlers.github.enabled", errors),
@@ -246,5 +250,24 @@ function readHandlers(value: unknown, errors: Errors): { github: GitHubHandlerSe
 			timeoutMs: readNumber(github.timeoutMs, DEFAULT_HANDLER_TIMEOUT_MS, "handlers.github.timeoutMs", errors, RANGES.handlerTimeoutMs),
 			maxChars: readNumber(github.maxChars, DEFAULT_HANDLER_MAX_CHARS, "handlers.github.maxChars", errors, RANGES.handlerMaxChars),
 		},
+		reddit: {
+			enabled: readBoolean(reddit.enabled, true, "handlers.reddit.enabled", errors),
+			baseUrl: readBaseUrl(reddit.baseUrl, errors),
+		},
 	};
+}
+
+/** 只接受 http(s) 绝对 URL；非法值记错并回退默认实例。 */
+function readBaseUrl(value: unknown, errors: Errors): string {
+	if (value === undefined) return DEFAULT_REDDIT_BASE_URL;
+	const text = optionalString(value, "handlers.reddit.baseUrl", errors);
+	if (text === undefined) return DEFAULT_REDDIT_BASE_URL;
+	try {
+		const url = new URL(text);
+		if (url.protocol === "http:" || url.protocol === "https:") return text;
+		errors.push(`handlers.reddit.baseUrl: only http/https URLs are supported, got ${url.protocol}//`);
+	} catch {
+		errors.push(`handlers.reddit.baseUrl: not a valid URL, got ${JSON.stringify(value)}`);
+	}
+	return DEFAULT_REDDIT_BASE_URL;
 }

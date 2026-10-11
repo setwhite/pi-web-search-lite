@@ -93,13 +93,17 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
     "allowRaw": false,               // 打开后 web_fetch 才会多出 raw 参数（返回原始响应，跳过 handler 与提取器链）
     "maxCharsPerPage": 150000        // 单页正文上限，见下方「三道 max 闸」
   },
-  // GitHub 页面优先交给 gh CLI；未装 / 未登录 / 命令失败 → 透明顺延到提取器链，原因记在 details.handlerSkips
+  // 专用页面优先交给对应 handler：github 直接用 gh 的输出，reddit 只换域名后交给提取器链；跳过（失败或关掉）→ 透明顺延，原因记在 details.handlerSkips
   "handlers": {
     "github": {
       "enabled": true,     // false = 完全不碰 gh，GitHub URL 走提取器链
       "command": "gh",     // execFile 直连、不经 shell：只能写可执行文件（PATH 名或绝对路径），不能带参数；Windows 上 .cmd/.bat 会失败
       "timeoutMs": 30000,  // 每个 gh 子进程的超时；可用性探测按 command 在进程内缓存，改完要 /reload
       "maxChars": 150000   // gh 输出渲染成 markdown 后的截断上限，见下方「三道 max 闸」
+    },
+    "reddit": {
+      "enabled": true,    // false = 不换域名，reddit URL 原样走提取器链（不想把链接交给第三方实例就关掉）
+      "baseUrl": "https://redlib.catsarch.com"  // reddit 只换域名（path 照抄）交给 redlib 实例，正文仍由提取器链抓；可填自建实例，带子路径也行
     }
   }
 }
@@ -122,7 +126,7 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 ## 功能
 
 - 搜网页：tavily / brave / exa / firecrawl / perplexity 任选一个，不会偷偷换源；缺 key 会直接告诉你配哪里。
-- 抓网页：提取器是 fallback 链，按顺序挨个试、第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key；`tavily` / `exa` / `firecrawl` 可以插到中间）。GitHub 页面优先用 `gh`（支持范围见 `handlers/README.md`）；`fetch.allowRaw` 打开后才有 `raw` 参数，raw 跳过整条链。
+- 抓网页：提取器是 fallback 链，按顺序挨个试、第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key；`tavily` / `exa` / `firecrawl` 可以插到中间）。GitHub 页面优先用 `gh`，reddit 默认把域名换成 redlib 实例（两者见 `handlers/README.md`）；`fetch.allowRaw` 打开后才有 `raw` 参数，raw 跳过整条链。
 - 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查；结果太长自动截断，`context.spillToFile` 为真时全文落到临时文件（路径写进结果）。
 - 上下文可控：工具可改名、可关闭、可改成按需发现，减少常驻提示词。
 - 提示词精简：内置提示词是英文单行；续读提示、key 位置、参数范围这些信息都由报错和结果给出，不占提示词；工具改名后提示词自动跟着变。

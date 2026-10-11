@@ -35,10 +35,11 @@ renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   //
 | | `web_search` | `web_fetch` |
 |---|---|---|
 | 参数 | `query` 必填；`max_results`（clamp 1–`search.maxResultsLimit`，缺省 `search.defaultMaxResults`）；`provider` 覆盖 | `url` 必填；`raw` **仅当 `fetch.allowRaw` 为真才进 schema** |
-| 顺序 | `resolveProviderId`（序号见 `providers/README.md`）→ `resolveApiKey` → provider | `assertPublicUrl` → handler → 提取器链；`raw: true` 跳过 handler 与链 |
-| details | `{ provider, query, count, results, truncated, fullOutputPath? }` | `{ url, title, source, mode, chars, visibleChars, truncated, fullOutputPath?, handlerSkips }` |
+| 顺序 | `resolveProviderId`（序号见 `providers/README.md`）→ `resolveApiKey` → provider | `assertPublicUrl` → handler → 提取器链；handler 只改写 URL 时，改写后的 URL 再跑一遍 `assertPublicUrl` 才进链；`raw: true` 跳过 handler 与链 |
+| details | `{ provider, query, count, results, truncated, fullOutputPath? }` | `{ url, title, source, mode, chars, visibleChars, truncated, fullOutputPath?, handlerSkips, rewrittenFrom? }` |
 
 - `source` 取 `"github"` / `ExtractorId` / `"raw"`；handler 命中但跳过时 `handlerSkips` 记录原因，`content` 用引用行注明「未接管」，再顺延到链（透明顺延）。
+- `rewrittenFrom` 只在 handler 只换上域名时出现（如 reddit → redlib），`content` 头部多一行 `Rewritten from: <原 URL>`。
 - `chars` 是提取正文的字符数（信封截断前；可能已被提取器或 handler 截断过），`visibleChars` 是模型实际收到的 `content` 长度（信封截断后，含头部与提示）；两者不等即说明发生过截断。
 - `raw` 与 handler 互斥：raw 分支根本不调用 `runPageHandlers`。
 - 空搜索结果仍返回成功信封（`content` 写明 `No results returned`）；缺 key / 内网 URL / 全部提取器失败都会 `throw`，错误文本给出环境变量、配置键或原因汇总。

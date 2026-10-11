@@ -88,6 +88,43 @@ describe("executeFetch：handler 与提取器链", () => {
 	});
 });
 
+describe("executeFetch：reddit URL 改写", () => {
+	const REDDIT_POST = "https://www.reddit.com/r/rust/comments/1abc/title/";
+
+	it("换域名后交给链，并注明原链接", async () => {
+		const http = fakeHttp(() => ({ text: `<html><head><title>redlib 页面</title></head><body><p>${"正文段落".repeat(60)}</p></body></html>` }));
+
+		const result = await executeFetch(makeConfig(), { url: REDDIT_POST }, undefined, { http });
+
+		expect(http.calls.map((call) => call.url)).toEqual(["https://redlib.catsarch.com/r/rust/comments/1abc/title/"]);
+		expect(result.details.url).toBe("https://redlib.catsarch.com/r/rust/comments/1abc/title/");
+		expect(result.details.rewrittenFrom).toBe(REDDIT_POST);
+		expect(firstText(result)).toContain(`Rewritten from: ${REDDIT_POST}`);
+	});
+
+	it("handlers.reddit.enabled 为 false 时抓原 URL，不注来路", async () => {
+		const http = fakeHttp(() => ({ text: `<html><head><title>reddit 页面</title></head><body><p>${"正文段落".repeat(60)}</p></body></html>` }));
+
+		const result = await executeFetch(makeConfig({ handlers: { reddit: { enabled: false } } }), { url: REDDIT_POST }, undefined, { http });
+
+		expect(http.calls.map((call) => call.url)).toEqual([REDDIT_POST]);
+		expect(result.details.rewrittenFrom).toBeUndefined();
+		expect(firstText(result)).not.toContain("Rewritten from:");
+		expect(result.details.handlerSkips?.[0]).toContain("handlers.reddit.enabled");
+	});
+
+	it("baseUrl 指向内网时拒绝，且不发请求", async () => {
+		const http = fakeHttp(() => ({ text: "不该被请求" }));
+
+		const error = await rejectionOf(
+			executeFetch(makeConfig({ handlers: { reddit: { baseUrl: "http://127.0.0.1:8080" } } }), { url: REDDIT_POST }, undefined, { http }),
+		);
+
+		expect(error.message).toMatch(/私有|回环|link-local/);
+		expect(http.calls).toEqual([]);
+	});
+});
+
 describe("executeFetch：raw 与安全", () => {
 	it("raw: true 时 handler 与提取器链都不被调用", async () => {
 		const counted = countingExtractors();

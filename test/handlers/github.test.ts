@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ghEnv, GH_MAX_BUFFER, resetGhProbeCache, execGh } from "../../handlers/github/gh.ts";
 import { githubHandler } from "../../handlers/github/index.ts";
-import type { GhExecResult, GhExecutor, HandlerContext, HandlerSkip, HandlerSuccess } from "../../handlers/types.ts";
+import type { GhExecResult, GhExecutor, HandlerContext, HandlerOutcome, HandlerSkip, HandlerSuccess } from "../../handlers/types.ts";
 import { baseContext, ISSUE } from "./fixtures.ts";
 
 beforeEach(() => resetGhProbeCache());
@@ -12,12 +12,12 @@ function ok(stdout: string): GhExecResult {
 	return { ok: true, stdout, stderr: "" };
 }
 
-function asSkip(outcome: HandlerSuccess | HandlerSkip | null): HandlerSkip {
+function asSkip(outcome: HandlerOutcome): HandlerSkip {
 	expect(outcome?.kind).toBe("skipped");
 	return outcome as HandlerSkip;
 }
 
-function asHandled(outcome: HandlerSuccess | HandlerSkip | null): HandlerSuccess {
+function asHandled(outcome: HandlerOutcome): HandlerSuccess {
 	expect(outcome?.kind).toBe("handled");
 	return outcome as HandlerSuccess;
 }

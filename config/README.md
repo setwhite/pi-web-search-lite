@@ -48,6 +48,8 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 | `handlers.github.command` | `"gh"` | 非空 |
 | `handlers.github.timeoutMs` | `30000` | `1000–120000` |
 | `handlers.github.maxChars` | `150000` | `1000–1000000` |
+| `handlers.reddit.enabled` | `true` | — |
+| `handlers.reddit.baseUrl` | `"https://redlib.catsarch.com"` | `http(s)` 绝对 URL，可带子路径 |
 
 三层截断（`fetch.maxCharsPerPage` → `handlers.github.maxChars` → `context.*`）的作用对象与顺序见根 `README.md`「三道 max 闸」。
 

@@ -63,6 +63,8 @@ export const DEFAULT_EXTRACTORS: ExtractorId[] = ["html", "jina"];
 export const DEFAULT_HANDLER_COMMAND = "gh";
 export const DEFAULT_HANDLER_TIMEOUT_MS = 30_000;
 export const DEFAULT_HANDLER_MAX_CHARS = 150_000;
+/** reddit 默认交给这个 redlib 实例（只换域名，路径照抄）；想换实例或关掉改写就改 handlers.reddit。 */
+export const DEFAULT_REDDIT_BASE_URL = "https://redlib.catsarch.com";
 
 /** 工具名：字母开头，只含字母数字下划线连字符。 */
 export const TOOL_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
@@ -115,6 +117,12 @@ export interface GitHubHandlerSettings {
 	maxChars: number;
 }
 
+export interface RedditHandlerSettings {
+	enabled: boolean;
+	/** 只换域名用的 redlib 实例，可带子路径。 */
+	baseUrl: string;
+}
+
 export type Raw = Record<string, unknown>;
 /** 校验错误文本列表，格式 `<field path>: <reason>`。 */
 export type Errors = string[];
@@ -132,7 +140,7 @@ export interface ResolvedConfig {
 	context: ContextSettings;
 	search: SearchSettings;
 	fetch: FetchSettings;
-	handlers: { github: GitHubHandlerSettings };
+	handlers: { github: GitHubHandlerSettings; reddit: RedditHandlerSettings };
 }
 
 function readPackageVersion(): string {

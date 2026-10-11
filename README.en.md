@@ -93,13 +93,17 @@ Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY
     "allowRaw": false,               // enables the raw argument (raw response, skipping the handler and the extractor chain)
     "maxCharsPerPage": 150000        // per-page body cap, see "The three max gates" below
   },
-  // GitHub pages go to the gh CLI first; missing / not logged in / command failure → transparent fallthrough to the extractor chain, reason recorded in details.handlerSkips
+  // Dedicated pages go to the matching handler first: github uses the gh output as is, reddit only swaps the host and hands off to the extractor chain; a skip (failure or disabled) → transparent fallthrough, reason recorded in details.handlerSkips
   "handlers": {
     "github": {
       "enabled": true,     // false = never touch gh, GitHub URLs take the extractor chain
       "command": "gh",     // executed via execFile, no shell: an executable only (PATH name or absolute path), no arguments; .cmd/.bat fails on Windows
       "timeoutMs": 30000,  // per gh subprocess; the availability probe is cached per command inside the process, so /reload after changing it
       "maxChars": 150000   // cap after gh output is rendered to markdown, see "The three max gates" below
+    },
+    "reddit": {
+      "enabled": true,    // false = no host substitution, reddit URLs take the extractor chain as-is (turn it off if you do not want links handed to a third-party instance)
+      "baseUrl": "https://redlib.catsarch.com"  // reddit only swaps the host (path is copied) for a redlib instance; the extractor chain still fetches the text; point it at your own instance, subpaths are fine
     }
   }
 }
@@ -122,7 +126,7 @@ Both `context.*` caps are clamped with `Math.min` against the host caps, so larg
 ## Features
 
 - Search: pick one of tavily / brave / exa / firecrawl / perplexity — no silent switching; a missing key tells you exactly where to set it.
-- Fetch: extractors are a fallback chain, tried in order until one works (default `html` → `jina`, neither needs a key; insert `tavily` / `exa` / `firecrawl` in the middle). GitHub pages go through `gh` (see `handlers/README.md`); `fetch.allowRaw` unlocks the `raw` argument, which skips the chain.
+- Fetch: extractors are a fallback chain, tried in order until one works (default `html` → `jina`, neither needs a key; insert `tavily` / `exa` / `firecrawl` in the middle). GitHub pages go through `gh`, reddit URLs are rewritten to a redlib instance by default (both in `handlers/README.md`); `fetch.allowRaw` unlocks the `raw` argument, which skips the chain.
 - Safe by default: private and loopback addresses are rejected, and every redirect hop is re-checked; oversized results are truncated with the full text spilled to a temp file when `context.spillToFile` is on (the path is included in the result).
 - Controllable context: tools can be renamed, disabled or switched to on-demand discovery.
 - Lean prompts: built-in prompts are single-line English; how to continue after truncation, where to put the key or what the argument ranges are live in errors and results instead of the prompt, and renamed tools are reflected in the prompts automatically.

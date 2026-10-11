@@ -37,6 +37,8 @@ export interface FetchDetails {
 	fullOutputPath?: string;
 	/** handler 命中但未接管时的原因（透明顺延，不是静默降级）。 */
 	handlerSkips: string[];
+	/** 命中的 handler 只改写了 URL 时的原 URL（如 reddit → redlib）。 */
+	rewrittenFrom?: string;
 }
 
 export async function executeFetch(
@@ -71,11 +73,15 @@ export async function executeFetch(
 
 	const handlerRun = await runPageHandlers(target, {
 		github: config.handlers.github,
+		reddit: config.handlers.reddit,
 		proxy: config.proxy,
 		signal,
 		execGh: overrides.execGh,
 	});
 	const handlerSkips = handlerRun.skips.map((skip) => `${skip.handler} handler skipped: ${skip.reason}`);
+	// 只改 URL 的 handler（reddit → redlib）交出目标地址；改写后的地址重跑一遍 SSRF 检查
+	const chainTarget = handlerRun.rewrite ? assertPublicUrl(handlerRun.rewrite.url) : target;
+	const rewrittenFrom = handlerRun.rewrite?.from;
 
 	let page: { url: string; title: string; content: string; source: FetchSource; truncated: boolean };
 	if (handlerRun.result) {
@@ -88,7 +94,7 @@ export async function executeFetch(
 		};
 	} else {
 		const extracted: ExtractedPage = await extractWithChain(
-			target.toString(),
+			chainTarget.toString(),
 			config.fetch.extractors,
 			{
 				http,
@@ -111,6 +117,7 @@ export async function executeFetch(
 	const header = [
 		`# ${page.title}`,
 		`Source: ${page.url}`,
+		...(rewrittenFrom ? [`Rewritten from: ${rewrittenFrom}`] : []),
 		`Extracted by: ${page.source === "github" ? "GitHub handler" : `extractor ${page.source}`}`,
 		...(handlerSkips.length > 0 ? ["", ...handlerSkips.map((line) => `> ${line}`)] : []),
 	].join("\n");
@@ -125,6 +132,7 @@ export async function executeFetch(
 		visibleChars: envelope.content.length,
 		truncated: page.truncated || envelope.truncated,
 		handlerSkips,
+		...(rewrittenFrom ? { rewrittenFrom } : {}),
 		...(envelope.fullOutputPath ? { fullOutputPath: envelope.fullOutputPath } : {}),
 	});
 }

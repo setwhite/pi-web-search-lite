@@ -62,7 +62,10 @@ describe("loadConfig", () => {
 				allowRaw: false,
 				maxCharsPerPage: 150_000,
 			},
-			handlers: { github: { enabled: true, command: "gh", timeoutMs: 30_000, maxChars: 150_000 } },
+			handlers: {
+				github: { enabled: true, command: "gh", timeoutMs: 30_000, maxChars: 150_000 },
+				reddit: { enabled: true, baseUrl: "https://redlib.catsarch.com" },
+			},
 		});
 		expect(config.userAgent).toBe(`pi-web-search-lite/${pkg.version}`);
 	});
@@ -88,6 +91,22 @@ describe("loadConfig", () => {
 
 		expect(message).toContain(path);
 		expect(message).toContain("tools.web_search.name");
+	});
+
+	it("handlers.reddit 可换实例，baseUrl 原样保留（含子路径）", () => {
+		const path = writeConfig(JSON.stringify({ handlers: { reddit: { baseUrl: "https://example.com/redlib/" } } }));
+
+		expect(loadConfig({ configPath: path, env: {} }).handlers.reddit).toEqual({ enabled: true, baseUrl: "https://example.com/redlib/" });
+	});
+
+	it("handlers.reddit 的非法 baseUrl 与未知键都报字段路径", () => {
+		const bad = writeConfig(JSON.stringify({ handlers: { reddit: { baseUrl: "ftp://x" } } }));
+		const badMessage = captureError(() => loadConfig({ configPath: bad, env: {} }));
+		const unknown = writeConfig(JSON.stringify({ handlers: { reddit: { fallback: ["jina"] } } }));
+		const unknownMessage = captureError(() => loadConfig({ configPath: unknown, env: {} }));
+
+		expect(badMessage).toContain("handlers.reddit.baseUrl");
+		expect(unknownMessage).toContain("handlers.reddit.fallback");
 	});
 
 	it("JSON 损坏时的错误包含配置文件绝对路径", () => {

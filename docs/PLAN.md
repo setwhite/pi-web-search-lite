@@ -28,6 +28,8 @@
 | 2.7 | 搜索与抓取统一截断 + 全文落临时文件续读；SSRF 只做发请求前的静态判定，不解析 DNS | 轻量目标优先；DNS 重绑定检测成本高、收益低，列入 §3 非目标 | `tools/README.md` §信封与截断、`ssrf/README.md` |
 | 2.8 | 错误一律 `throw`；模型可见文案英文单行，能在报错里现学的行为不写进 `description` | 宿主把 throw 标记为失败结果；提示词只留无法从报错现学的信息 | `tools/README.md` |
 
+| 2.9 | reddit 页面在 `web_fetch` 第 0 步把域名换成 redlib 实例（`handlers.reddit.baseUrl`，默认开启），正文仍由全局提取链抓；媒体域与相似域名不碰 | reddit 已封直抓（直连拿回的是 `Prove your humanity` 页面），而 redlib 路由与 reddit 帖子页 path 基本一一对应，换域名就够；不做 handler 专属链，配置面只多一个键 | `handlers/README.md` |
+
 ## 3. 不做什么
 
 | 不做 | 理由 |

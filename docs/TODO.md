@@ -97,6 +97,12 @@
   - 验收证据：`test/providers/{firecrawl,perplexity}.test.ts`、`test/extractors/{firecrawl,jina}.test.ts`、`test/config.test.ts`；commit `1f8d6d1`
   - 前置：T3、T5
 
+- [ ] T15 Reddit URL 改写 handler
+  - 交付物：`handlers/reddit/index.ts`、`handlers/README.md`、`config/{schema,validate}.ts`、`tools/fetch.ts`（结果头 `Rewritten from:`）
+  - 验收：`handlers.reddit` 默认 `enabled: true`、`baseUrl` 为 `https://redlib.catsarch.com`；命中的 reddit URL 只换域名，path 与 query 原样（支持 baseUrl 带子路径），结果头带 `Rewritten from:`；`redd.it` 短链同样处理，媒体域（`i.` / `v.` / `preview.redd.it`）与相似域名不改写；`enabled: false` 时只剩一条 skip 说明；改写后的 URL 仍过 SSRF 检查；`raw: true` 照旧跳过 handler；抓取仍走全局 `fetch.extractors`
+  - 验收证据：`test/handlers/reddit.test.ts`（17 例）、`test/tools/fetch.test.ts`（reddit URL 改写 3 例）、`test/config.test.ts`（handlers.reddit 2 例）；`pnpm vitest run` 28 文件 / 270 测试全绿、`pnpm typecheck` 通过
+  - 前置：T4
+
 ## 后续候选
 
 Phase 2 候选清单见 `docs/PLAN.md` §4；确认启动后再按同一格式追加任务卡。
