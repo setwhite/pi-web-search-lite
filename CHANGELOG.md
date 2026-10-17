@@ -4,7 +4,7 @@
 
 ## 0.6.1 — 2026-10-18
 
-- 无功能变更（npm 包内容同 0.6.0）：文档重构——模块文档移入 `docs/modules/`，决策拆成 `docs/adr/`，新增本文件与 `docs/GLOSSARY.md`
+- 无功能变更（运行时与 0.6.0 相同）：文档重构——模块文档移入 `docs/modules/`（npm 包内不再含这 7 份 README），决策拆成 `docs/adr/`，新增本文件与 `docs/GLOSSARY.md`
 
 ## 0.6.0 — 2026-10-11
 
