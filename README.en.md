@@ -6,6 +6,15 @@
 
 Adds two tools to pi: `web_search` for the web, `web_fetch` for page text; every outbound request goes through a single proxy setting.
 
+## Design goals
+
+- Two tools only — `web_search` + `web_fetch` — with every outbound request going through one proxy setting.
+- Add a search key and you are ready; the default fetch chain (`html` / `jina`) needs no key.
+- Every failure path names what to fix: which key, which field, the HTTP status or the timeout source.
+- Oversized results are truncated with the full text spilled to a temp file, whose path is returned for `read`.
+
+The full list of trade-offs and non-goals: `docs/adr/`.
+
 ## Install
 
 ```bash
@@ -17,7 +26,7 @@ Add a search key and you are ready — no build step.
 
 ## Configuration
 
-One JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.json`. If it does not exist, everything falls back to defaults. A wrong type, enum value or unknown key fails startup and names the field; out-of-range numbers are silently clamped to the range (see `config/README.md`). The example below uses `//` comments; the real file must be strict JSON, so strip them before copying.
+One JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.json`. If it does not exist, everything falls back to defaults. A wrong type, enum value or unknown key fails startup and names the field; out-of-range numbers are silently clamped to the range (see `docs/modules/config.md`). The example below uses `//` comments; the real file must be strict JSON, so strip them before copying.
 
 **Minimal config** — fill in your key and it works:
 
@@ -109,7 +118,7 @@ Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY
 }
 ```
 
-Every key is optional. Defaults and ranges: `config/README.md`; to override prompts, fill fields under `guidance.web_search` / `guidance.web_fetch`.
+Every key is optional. Defaults and ranges: `docs/modules/config.md`; to override prompts, fill fields under `guidance.web_search` / `guidance.web_fetch`.
 
 ### The three max gates
 
@@ -121,12 +130,12 @@ A fetch result passes three independent caps on its way to the model:
 | `handlers.github.maxChars` | gh output after it is rendered to markdown | same; GitHub handler only |
 | `context.maxInlineChars` / `maxInlineLines` | the envelope handed to the model (both tools) | sliced; with `spillToFile` the full text goes to a temp file and the path is included in the result |
 
-Both `context.*` caps are clamped with `Math.min` against the host caps, so larger values have no effect. GitHub pages pass gates 2 and 3; ordinary pages pass 1 and 3. Supported GitHub / Reddit URL shapes: `handlers/README.md`.
+Both `context.*` caps are clamped with `Math.min` against the host caps, so larger values have no effect. GitHub pages pass gates 2 and 3; ordinary pages pass 1 and 3. Supported GitHub / Reddit URL shapes: `docs/modules/handlers.md`.
 
 ## Features
 
 - Search: pick one of tavily / brave / exa / firecrawl / perplexity — no silent switching; a missing key tells you exactly where to set it.
-- Fetch: extractors are a fallback chain, tried in order until one works (default `html` → `jina`, neither needs a key; insert `tavily` / `exa` / `firecrawl` in the middle). GitHub pages go through `gh`, reddit URLs are rewritten to a redlib instance by default (both in `handlers/README.md`); `fetch.allowRaw` unlocks the `raw` argument, which skips the chain.
+- Fetch: extractors are a fallback chain, tried in order until one works (default `html` → `jina`, neither needs a key; insert `tavily` / `exa` / `firecrawl` in the middle). GitHub pages go through `gh`, reddit URLs are rewritten to a redlib instance by default (both in `docs/modules/handlers.md`); `fetch.allowRaw` unlocks the `raw` argument, which skips the chain.
 - Safe by default: private and loopback addresses are rejected, and every redirect hop is re-checked; oversized results are truncated with the full text spilled to a temp file when `context.spillToFile` is on (the path is included in the result).
 - Controllable context: tools can be renamed, disabled or switched to on-demand discovery.
 - Lean prompts: built-in prompts are single-line English; how to continue after truncation, where to put the key or what the argument ranges are live in errors and results instead of the prompt, and renamed tools are reflected in the prompts automatically.
@@ -145,10 +154,11 @@ Both are fully open-sourced; this project's trade-offs come from reading their c
 
 ## Documentation
 
-- Goals and trade-offs: `docs/PLAN.md`
+- Trade-offs and non-goals: `docs/adr/` (index: `docs/adr/README.md`)
 - Module layout and dependency direction: `docs/ARCHITECTURE.md`
-- Task ledger: `docs/TODO.md`
-- Per-module API and contracts: the `README.md` inside each directory (`config/`, `http/`, `ssrf/`, `providers/`, `handlers/`, `extractors/`, `tools/`)
+- Glossary: `docs/GLOSSARY.md`
+- Per-module API and contracts: `docs/modules/` (`config`, `http`, `ssrf`, `providers`, `handlers`, `extractors`, `tools`)
+- Release notes: `CHANGELOG.md`
 
 Docs are currently written in Chinese.
 

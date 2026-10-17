@@ -28,4 +28,4 @@ type SsrfErrorType = "invalid_url" | "blocked_protocol" | "blocked_host" | "bloc
 
 ## 明确不做
 
-DNS 解析、DNS rebinding 检测（PLAN §3 非目标）；主机名里 DNS 指向私网的场景本模块放行。
+DNS 解析、DNS rebinding 检测（ADR-0007）；主机名里 DNS 指向私网的场景本模块放行。

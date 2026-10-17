@@ -26,7 +26,7 @@ renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   //
 
 ## 信封与截断（`result.ts`）
 
-- 上限：`config.context.maxInlineChars` / `maxInlineLines`（null = 宿主 `DEFAULT_MAX_BYTES` / `DEFAULT_MAX_LINES`），并用 `Math.min` 夹到宿主上限；`maxInlineChars` 直接作为宿主的 `maxBytes` 传入（宿主按字节截断，字段名保留 PLAN 的 chars）。
+- 上限：`config.context.maxInlineChars` / `maxInlineLines`（null = 宿主 `DEFAULT_MAX_BYTES` / `DEFAULT_MAX_LINES`），并用 `Math.min` 夹到宿主上限；`maxInlineChars` 直接作为宿主的 `maxBytes` 传入（宿主按字节截断，字段名沿用 chars）。
 - 截断时 `content` 追加「已截断：共 N 行 / M 字节」说明；`spillToFile` 为真时写 `mkdtemp(tmpdir(), "pi-web-search-lite-")/<fileName>`（经 `withFileMutationQueue`），并把绝对路径同时放进 `content` 与 `details.fullOutputPath`，提示用 `read` 继续。
 - 未截断时原样返回、不落盘。错误一律 `throw`，不在 `content` 里伪装成功。
 
@@ -35,7 +35,7 @@ renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   //
 | | `web_search` | `web_fetch` |
 |---|---|---|
 | 参数 | `query` 必填；`max_results`（clamp 1–`search.maxResultsLimit`，缺省 `search.defaultMaxResults`） | `url` 必填；`raw` **仅当 `fetch.allowRaw` 为真才进 schema** |
-| 顺序 | `resolveProviderId`（序号见 `providers/README.md`）→ `resolveApiKey` → provider | `assertPublicUrl` → handler → 提取器链；handler 只改写 URL 时，改写后的 URL 再跑一遍 `assertPublicUrl` 才进链；`raw: true` 跳过 handler 与链 |
+| 顺序 | `resolveProviderId`（解析顺序见 `providers.md`）→ `resolveApiKey` → provider | `assertPublicUrl` → handler → 提取器链；handler 只改写 URL 时，改写后的 URL 再跑一遍 `assertPublicUrl` 才进链；`raw: true` 跳过 handler 与链 |
 | details | `{ provider, query, count, results, truncated, fullOutputPath? }` | `{ url, title, source, mode, chars, visibleChars, truncated, fullOutputPath?, handlerSkips, rewrittenFrom? }` |
 
 - `source` 取 `"github"` / `ExtractorId` / `"raw"`；handler 命中但跳过时 `handlerSkips` 记录原因，`content` 用引用行注明「未接管」，再顺延到链（透明顺延）。

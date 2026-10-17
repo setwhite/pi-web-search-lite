@@ -14,7 +14,7 @@ type HttpErrorType = "timeout" | "abort" | "http_status" | "parse" | "network" |
 
 ## 契约要点
 
-- **代理**：`proxy` 为 `undefined` / 空串时直连；非空时非本机目标经同一个 `ProxyAgent`。`localhost` / `127.0.0.0/8` / `::1`（含 `::ffff:` 映射）永远绕过代理。不读 `HTTP_PROXY` 等环境变量（PLAN §2.4）。
+- **代理**：`proxy` 为 `undefined` / 空串时直连；非空时非本机目标经同一个 `ProxyAgent`。`localhost` / `127.0.0.0/8` / `::1`（含 `::ffff:` 映射）永远绕过代理。不读 `HTTP_PROXY` 等环境变量（ADR-0004）。
 - **SSRF 边界**：入口 URL 不做校验——调用方必须在抓取前调用 `ssrf/assertPublicUrl`。本模块对重定向每一跳目标调用它，命中抛 `SsrfError`（非 http(s)、私有 / 回环地址均拒绝）。
 - **超时**：`AbortSignal.timeout(timeoutMs)` 覆盖含重定向的整条请求链；调用方 `signal` 中断优先判定为 `abort`。
 - **重定向**：上限 5 跳；跨 origin 丢弃 `authorization`；303 与 301/302 下的非 GET 请求改为 GET，307/308 保持 method / body。
