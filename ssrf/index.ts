@@ -42,7 +42,7 @@ export function assertPublicUrl(input: string): URL {
 	return url;
 }
 
-/** 回环主机名或字面量：代理对这类目标强制直连（PLAN §2.4）。 */
+/** 回环主机名或字面量：代理对这类目标强制直连（ADR-0004）。 */
 export function isLoopbackHost(hostname: string): boolean {
 	const host = normalizeHostname(hostname);
 	if (host === "localhost" || host.endsWith(".localhost")) return true;

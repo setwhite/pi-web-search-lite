@@ -43,7 +43,7 @@ export function resolveProviderId(
 	);
 }
 
-/** 取选中 provider 的 key；缺失时报错并写明两个配置位置。提取器不走这条路径（缺 key 在链里的语义是跳过，见 `extractors/README.md`）。 */
+/** 取选中 provider 的 key；缺失时报错并写明两个配置位置。提取器不走这条路径（缺 key 在链里的语义是跳过，见 `docs/modules/extractors.md`）。 */
 export function resolveApiKey(id: ProviderId, apiKeys: Partial<Record<ApiKeyId, string>>): string {
 	const apiKey = apiKeys[id]?.trim();
 	if (apiKey) return apiKey;
