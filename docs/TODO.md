@@ -25,7 +25,7 @@
   - 验收证据：`test/providers/{parallel,keenable,deepseek}.test.ts`、`test/extractors/{parallel,keenable,deepseek}.test.ts`、`test/config.test.ts`
   - 前置：无
 
-- [ ] T19 http 层：网络错误文案带病因 + 跨源重定向摘掉全部认证头
+- [x] T19 http 层：网络错误文案带病因 + 跨源重定向摘掉全部认证头
   - 交付物：`http/index.ts`（`describeCause` 展开 cause 链；`dropSensitiveHeaders` 按头名族判定）、`docs/modules/http.md`
   - 验收：
     - 连接被拒 / DNS 失败的 `network` 错误消息含底层 code（`ECONNREFUSED` / `ENOTFOUND`）与地址，不再是裸的 `fetch failed`
