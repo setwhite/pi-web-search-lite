@@ -65,12 +65,13 @@
   - 进度：已提交——工具与 9 处 lint 修复随 db73099；格式化重排随 3509915（71 个文件）与 911eb7f（`http/index.ts` 单独一枚，它带着待审的手改）；`biome.json` 随 160679f；两个工作流的 lint 步骤随 b64a87b；英文 README 与 `docs/ARCHITECTURE.md` 的口径随 708768e
   - 前置：T22 / T23 先提交——已完成（efeff50 / 20a51c1）
 
-- [ ] T25 桩 server 的临时端口绕开 undici 的 bad port 名单
+- [x] T25 桩 server 的临时端口绕开 undici 的 bad port 名单
   - 交付物：`test/stub.ts`（`listenEphemeral`）、`test/undici-internals.d.ts`、`test/stub.test.ts`，以及 `test/http.test.ts` / `test/ssrf.test.ts` / `test/regression/chain.test.ts` 的 6 个调用点
   - 验收：`listen(0)` 抽到名单内端口时关掉重抽，连续 10 次抽不到就明确报错而不是让用例超时；全套测试不再因 `bad port` 随机红
   - 验收证据：`test/stub.test.ts` 三例（直接返回 / 重抽一次 / 连续命中报错）；`pnpm test` 35 files / 303 tests
   - 前置：无
   - 来源：T24 验收首跑红——`test/extractors/firecrawl.test.ts:70` 收到 `network error: … fetch failed; bad port`；根因是本机动态端口段 1024–15000（`netsh int ipv4 show dynamicport tcp`）与 undici 的 82 个 bad port（全部 ≤ 10080）重叠，实测抽到 6566
+  - 进度：已随 a1503e5 提交（6 文件）；`pnpm test` 在本会话跑 6 次全绿（35 files / 303 tests，含一次 3 连跑）
 
 ## 待决（未成任务）
 
