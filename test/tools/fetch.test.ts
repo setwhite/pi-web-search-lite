@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { ExtractorId } from "../../config/index.ts";
+import { EXTRACTOR_IDS, type ExtractorId } from "../../config/index.ts";
 import type { ExtractedContent, Extractor } from "../../extractors/index.ts";
 import { resetGhProbeCache } from "../../handlers/github/gh.ts";
 import type { GhExecutor } from "../../handlers/index.ts";
@@ -40,10 +40,8 @@ function countingExtractors() {
 			return { url, title: `${id} 标题`, content: "提取正文".repeat(60) };
 		},
 	});
-	return {
-		extractors: { tavily: make("tavily"), exa: make("exa"), html: make("html"), firecrawl: make("firecrawl"), jina: make("jina") },
-		calls: () => calls,
-	};
+	const extractors = Object.fromEntries(EXTRACTOR_IDS.map((id) => [id, make(id)])) as Record<ExtractorId, Extractor>;
+	return { extractors, calls: () => calls };
 }
 
 describe("executeFetch：handler 与提取器链", () => {

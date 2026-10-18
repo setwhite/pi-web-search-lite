@@ -59,6 +59,9 @@ describe("resolveApiKey", () => {
 		for (const [id, envName] of [
 			["firecrawl", "FIRECRAWL_API_KEY"],
 			["perplexity", "PERPLEXITY_API_KEY"],
+			["parallel", "PARALLEL_API_KEY"],
+			["keenable", "KEENABLE_API_KEY"],
+			["deepseek", "DEEPSEEK_API_KEY"],
 		] as const) {
 			try {
 				resolveApiKey(id, {});

@@ -26,32 +26,36 @@ pi install git:github.com/setwhite/pi-web-search-lite    # 从 git 仓库安装
 
 ## 配置
 
-配置只有一个 JSON 文件：`<PI_CODING_AGENT_DIR 或 ~/.pi/agent>/pi-web-search-lite/config.json`，不存在时全用默认值。类型、枚举名或未知键写错，启动会失败并指出字段；数值越界不报错，静默 clamp 到区间（见 `docs/modules/config.md`）。示例里的 `//` 注释只为讲解，实际文件必须是严格 JSON，拷走前先删掉。
+配置只有一个 JSON 文件：`<PI_CODING_AGENT_DIR 或 ~/.pi/agent>/pi-web-search-lite/config.json`，不存在时全用默认值。类型、枚举名或未知键写错会启动失败并指出字段；数值越界不报错，静默 clamp 到区间（见 `docs/modules/config.md`）。示例里的 `//` 注释只为讲解，实际文件必须是严格 JSON，拷走前先删掉。
 
-**最小可用配置**——填上自己的 key 就能用：
+**最小可用配置**——挑一个搜索源、填上它的 key 就能用（默认源是 tavily）：
 
 ```json
 {
-  "apiKeys": { "tavily": "tvly-你的key" }
+  "provider": "exa",
+  "apiKeys": { "exa": "你的key" }
 }
 ```
 
-key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY`，优先于文件）；换默认搜索源改 `provider`，也可以用 `WEB_SEARCH_PROVIDER` 临时覆盖。
+key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `PARALLEL_API_KEY` / `KEENABLE_API_KEY` / `DEEPSEEK_API_KEY` / `JINA_API_KEY`，优先于文件）；`WEB_SEARCH_PROVIDER` 可临时覆盖 `provider`。
 
 **完整示例**——列全所有配置项，每个键都有注释；除 key、userAgent、`proxy` 和 guidance 是示例值外，其余就是默认值：
 
 ```jsonc
 {
-  // 搜索源：tavily | brave | exa | firecrawl | perplexity；可用 WEB_SEARCH_PROVIDER 环境变量覆盖
+  // 搜索源：tavily | brave | exa | firecrawl | perplexity | parallel | keenable | deepseek；可用 WEB_SEARCH_PROVIDER 环境变量覆盖
   "provider": "tavily",
   // API key：需要哪个源就填哪个键，也可以改用环境变量（环境变量优先）
-  // 环境变量名：TAVILY_API_KEY / BRAVE_API_KEY / EXA_API_KEY / FIRECRAWL_API_KEY / PERPLEXITY_API_KEY / JINA_API_KEY
+  // 环境变量名：TAVILY_API_KEY / BRAVE_API_KEY / EXA_API_KEY / FIRECRAWL_API_KEY / PERPLEXITY_API_KEY / PARALLEL_API_KEY / KEENABLE_API_KEY / DEEPSEEK_API_KEY / JINA_API_KEY
   "apiKeys": {
     "tavily": "tvly-你的key",
     "brave": "你的key",
     "exa": "你的key",
     "firecrawl": "fc-你的key",
     "perplexity": "pplx-你的key",
+    "parallel": "你的key",
+    "keenable": "keen_你的key",
+    "deepseek": "sk-你的key",
     "jina": "jina-你的key"
   },
 
@@ -95,7 +99,7 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
   // 搜索条数：不传时给多少、最多允许多少
   "search": { "defaultMaxResults": 5, "maxResultsLimit": 10 },
   // 抓取：extractors 是 fallback 链，按顺序挨个试，第一个能用的胜出；缺 key、报错、正文太短都顺延下一个
-  // 推荐顺序 html → 你的 provider（tavily / exa / firecrawl）→ jina；html 和 jina 都不需要 key
+  // 推荐顺序 html → 你的 provider → jina：html 与 jina 不需要 key；tavily / exa / firecrawl / parallel / keenable / deepseek 六家既是搜索源也是提取器
   "fetch": {
     "extractors": ["html", "jina"],
     "minChars": 200,
@@ -134,8 +138,8 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 
 ## 功能
 
-- 搜网页：tavily / brave / exa / firecrawl / perplexity 任选一个，不会偷偷换源；缺 key 会直接告诉你配哪里。
-- 抓网页：提取器是 fallback 链，按顺序挨个试、第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key；`tavily` / `exa` / `firecrawl` 可以插到中间）。GitHub 页面优先用 `gh`，reddit 默认把域名换成 redlib 实例（两者见 `docs/modules/handlers.md`）；`fetch.allowRaw` 打开后才有 `raw` 参数，raw 跳过整条链。
+- 搜网页：tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek 任选一个，不会偷偷换源；缺 key 会直接告诉你配哪里。
+- 抓网页：提取器是 fallback 链，按顺序挨个试、第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key；`tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` 可以插到中间）。GitHub 页面优先用 `gh`，reddit 默认把域名换成 redlib 实例（两者见 `docs/modules/handlers.md`）；`fetch.allowRaw` 打开后才有 `raw` 参数，raw 跳过整条链。
 - 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查；结果太长自动截断，`context.spillToFile` 为真时全文落到临时文件（路径写进结果）。
 - 上下文可控：工具可改名、可关闭、可改成按需发现，减少常驻提示词。
 - 提示词精简：内置提示词是英文单行；续读提示、key 位置、参数范围这些信息都由报错和结果给出，不占提示词；工具改名后提示词自动跟着变。

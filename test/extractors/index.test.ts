@@ -53,8 +53,8 @@ async function failureOf(promise: Promise<unknown>): Promise<ExtractError> {
 }
 
 describe("extractWithChain", () => {
-	it("内置五家齐全", () => {
-		expect(Object.keys(EXTRACTORS).sort()).toEqual(["exa", "firecrawl", "html", "jina", "tavily"]);
+	it("内置八家齐全", () => {
+		expect(Object.keys(EXTRACTORS).sort()).toEqual(["deepseek", "exa", "firecrawl", "html", "jina", "keenable", "parallel", "tavily"]);
 	});
 
 	it("未配 key 的提取器跳过且不发任何请求", async () => {

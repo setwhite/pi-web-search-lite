@@ -5,11 +5,11 @@
 ## 搜索与抓取
 
 **provider**:
-搜索源：把一次查询翻译成某家搜索 API 请求的模块，可选 tavily / brave / exa / firecrawl / perplexity。
+搜索源：把一次查询翻译成某家搜索 API 请求的模块，可选 tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek。
 _Avoid_: backend、搜索后端、搜索引擎
 
 **提取器（extractor）**:
-抓取链里一个「URL → 正文」的实现，可选 tavily / exa / firecrawl / jina / html。
+抓取链里一个「URL → 正文」的实现，可选 tavily / exa / firecrawl / jina / html / parallel / keenable / deepseek。
 _Avoid_: 抽取器、parser、抓取器
 
 **提取器链**:

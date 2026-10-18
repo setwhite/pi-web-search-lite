@@ -10,9 +10,9 @@
 | `config/` | 加载、校验、clamp 配置文件；校验 provider 取值、合并 key 来源（env 优先） | `ResolvedConfig` 类型 + 解析函数 + 配置路径；不碰网络 | [config.md](modules/config.md) |
 | `http/` | 出站 HTTP 唯一出口：代理、超时、UA、`AbortSignal`、错误归一化 | `fetchText` / `fetchJson` 一族；不认 provider 语义 | [http.md](modules/http.md) |
 | `ssrf/` | 抓取前的静态 URL 判定（协议、主机名、字面量 IP；不做端口白名单） | 单一断言函数；不解析 DNS、不发请求 | [ssrf.md](modules/ssrf.md) |
-| `providers/{types,index,tavily,brave,exa,firecrawl,perplexity}.ts` | 把一次查询翻译成某搜索 API 的请求与统一结果形状 | `SearchProvider` 接口 + 注册表 + 工厂；不认识提取器与工具层 | [providers.md](modules/providers.md) |
+| `providers/{types,index,tavily,brave,exa,firecrawl,perplexity,parallel,keenable,deepseek}.ts` | 把一次查询翻译成某搜索 API 的请求与统一结果形状 | `SearchProvider` 接口 + 注册表 + 工厂；不认识提取器与工具层 | [providers.md](modules/providers.md) |
 | `handlers/{types,index}.ts`、`handlers/github/{index,gh,render}.ts`、`handlers/reddit/index.ts` | 识别专用页面 URL：github 产出已清洗正文，reddit 只换域名后交给链；不命中返回 `null`，跳过返回 `skipped` | `PageHandler` 接口 + 注册表；github 子目录自管 `gh` 子进程 | [handlers.md](modules/handlers.md) |
-| `extractors/{types,index,tavily,exa,firecrawl,jina,html}.ts` | 按配置顺序尝试多个正文提取器，失败时汇总原因 | `Extractor` 接口 + 链式执行器；不关心 URL 是普通页还是专用页 | [extractors.md](modules/extractors.md) |
+| `extractors/{types,index,tavily,exa,firecrawl,jina,html,parallel,keenable,deepseek}.ts` | 按配置顺序尝试多个正文提取器，失败时汇总原因 | `Extractor` 接口 + 链式执行器；不关心 URL 是普通页还是专用页 | [extractors.md](modules/extractors.md) |
 | `tools/{search,fetch,result,render}.ts` | 编排以上模块，产出模型可读的 `content` 与渲染用 `details`；`render.ts` 负责 TUI 调用行/结果行 | 两个工具定义对象；模型文案在 `search`/`fetch`，界面文案在 `render`；`result.ts` 是宿主能力的唯一 import 点 | [tools.md](modules/tools.md) |
 
 ## 2. 依赖方向

@@ -26,32 +26,36 @@ Add a search key and you are ready — no build step.
 
 ## Configuration
 
-One JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.json`. If it does not exist, everything falls back to defaults. A wrong type, enum value or unknown key fails startup and names the field; out-of-range numbers are silently clamped to the range (see `docs/modules/config.md`). The example below uses `//` comments; the real file must be strict JSON, so strip them before copying.
+One JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.json`. If it does not exist, everything falls back to defaults. A wrong type, enum value or unknown key fails startup and names the field; out-of-range numbers are silently clamped (see `docs/modules/config.md`). The example below uses `//` comments; the real file must be strict JSON, so strip them before copying.
 
-**Minimal config** — fill in your key and it works:
+**Minimal config** — pick a search backend, fill in its key, done (the default is tavily):
 
 ```json
 {
-  "apiKeys": { "tavily": "tvly-your-key" }
+  "provider": "exa",
+  "apiKeys": { "exa": "your-key" }
 }
 ```
 
-Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `JINA_API_KEY`, which win over the file); change `provider` to switch the default backend, or override it for one run with the `WEB_SEARCH_PROVIDER` env var.
+Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `PARALLEL_API_KEY` / `KEENABLE_API_KEY` / `DEEPSEEK_API_KEY` / `JINA_API_KEY`, which win over the file); the `WEB_SEARCH_PROVIDER` env var overrides `provider` for one run.
 
 **Full example** — every option with a comment; apart from the key values, userAgent, `proxy` and the guidance overrides, the rest are the defaults:
 
 ```jsonc
 {
-  // Search backend: tavily | brave | exa | firecrawl | perplexity; override with the WEB_SEARCH_PROVIDER env var
+  // Search backend: tavily | brave | exa | firecrawl | perplexity | parallel | keenable | deepseek; override with the WEB_SEARCH_PROVIDER env var
   "provider": "tavily",
   // API keys: fill in the ones you need, or use environment variables (they win over the file)
-  // Env vars: TAVILY_API_KEY / BRAVE_API_KEY / EXA_API_KEY / FIRECRAWL_API_KEY / PERPLEXITY_API_KEY / JINA_API_KEY
+  // Env vars: TAVILY_API_KEY / BRAVE_API_KEY / EXA_API_KEY / FIRECRAWL_API_KEY / PERPLEXITY_API_KEY / PARALLEL_API_KEY / KEENABLE_API_KEY / DEEPSEEK_API_KEY / JINA_API_KEY
   "apiKeys": {
     "tavily": "tvly-your-key",
     "brave": "your-key",
     "exa": "your-key",
     "firecrawl": "fc-your-key",
     "perplexity": "pplx-your-key",
+    "parallel": "your-key",
+    "keenable": "keen_your-key",
+    "deepseek": "sk-your-key",
     "jina": "jina-your-key"
   },
 
@@ -95,7 +99,7 @@ Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY
   // Search results: how many by default, and the ceiling
   "search": { "defaultMaxResults": 5, "maxResultsLimit": 10 },
   // Fetching: extractors are a fallback chain — tried in order, the first usable body wins; a missing key, an error or a body under minChars falls through
-  // Recommended order html → your provider (tavily / exa / firecrawl) → jina; html and jina both work without a key
+  // Recommended order html → your provider → jina: html and jina need no key; tavily / exa / firecrawl / parallel / keenable / deepseek are both search backends and extractors
   "fetch": {
     "extractors": ["html", "jina"],
     "minChars": 200,
@@ -134,8 +138,8 @@ Both `context.*` caps are clamped with `Math.min` against the host caps, so larg
 
 ## Features
 
-- Search: pick one of tavily / brave / exa / firecrawl / perplexity — no silent switching; a missing key tells you exactly where to set it.
-- Fetch: extractors are a fallback chain, tried in order until one works (default `html` → `jina`, neither needs a key; insert `tavily` / `exa` / `firecrawl` in the middle). GitHub pages go through `gh`, reddit URLs are rewritten to a redlib instance by default (both in `docs/modules/handlers.md`); `fetch.allowRaw` unlocks the `raw` argument, which skips the chain.
+- Search: pick one of tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek — no silent switching; a missing key tells you exactly where to set it.
+- Fetch: extractors are a fallback chain, tried in order until one works (default `html` → `jina`, neither needs a key; insert `tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` in the middle). GitHub pages go through `gh`, reddit URLs are rewritten to a redlib instance by default (both in `docs/modules/handlers.md`); `fetch.allowRaw` unlocks the `raw` argument, which skips the chain.
 - Safe by default: private and loopback addresses are rejected, and every redirect hop is re-checked; oversized results are truncated with the full text spilled to a temp file when `context.spillToFile` is on (the path is included in the result).
 - Controllable context: tools can be renamed, disabled or switched to on-demand discovery.
 - Lean prompts: built-in prompts are single-line English; how to continue after truncation, where to put the key or what the argument ranges are live in errors and results instead of the prompt, and renamed tools are reflected in the prompts automatically.

@@ -6,8 +6,11 @@
 
 import { API_KEY_ENV_KEYS, PROVIDER_IDS, type ApiKeyId, type ProviderId } from "../config/index.ts";
 import { createBraveProvider } from "./brave.ts";
+import { createDeepSeekProvider } from "./deepseek.ts";
 import { createExaProvider } from "./exa.ts";
 import { createFirecrawlProvider } from "./firecrawl.ts";
+import { createKeenableProvider } from "./keenable.ts";
+import { createParallelProvider } from "./parallel.ts";
 import { createPerplexityProvider } from "./perplexity.ts";
 import { createTavilyProvider } from "./tavily.ts";
 import type { ProviderRuntime, SearchProvider } from "./types.ts";
@@ -65,5 +68,11 @@ export function createSearchProvider(id: ProviderId, runtime: ProviderRuntime): 
 			return createFirecrawlProvider(runtime);
 		case "perplexity":
 			return createPerplexityProvider(runtime);
+		case "parallel":
+			return createParallelProvider(runtime);
+		case "keenable":
+			return createKeenableProvider(runtime);
+		case "deepseek":
+			return createDeepSeekProvider(runtime);
 	}
 }

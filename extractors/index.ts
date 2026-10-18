@@ -1,10 +1,13 @@
 /** 提取器注册表与链式编排：按配置顺序逐个尝试，第一个产出合格内容的赢。 */
 
 import type { ExtractorId } from "../config/index.ts";
+import { deepseekExtractor } from "./deepseek.ts";
 import { exaExtractor } from "./exa.ts";
 import { firecrawlExtractor } from "./firecrawl.ts";
 import { htmlExtractor } from "./html.ts";
 import { jinaExtractor } from "./jina.ts";
+import { keenableExtractor } from "./keenable.ts";
+import { parallelExtractor } from "./parallel.ts";
 import { tavilyExtractor } from "./tavily.ts";
 import { ExtractError, type ExtractAttempt, type ExtractedPage, type Extractor, type ExtractorContext } from "./types.ts";
 
@@ -16,6 +19,9 @@ export const EXTRACTORS: Record<ExtractorId, Extractor> = {
 	html: htmlExtractor,
 	firecrawl: firecrawlExtractor,
 	jina: jinaExtractor,
+	parallel: parallelExtractor,
+	keenable: keenableExtractor,
+	deepseek: deepseekExtractor,
 };
 
 /**

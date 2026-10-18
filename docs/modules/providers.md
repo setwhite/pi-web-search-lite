@@ -8,7 +8,7 @@
 |---|---|
 | `types.ts` | `SearchResult` / `SearchOptions` / `ProviderRuntime` / `SearchProvider` 契约；`toSearchResult` 统一映射 |
 | `index.ts` | 注册表与工厂 `createSearchProvider`；`resolveProviderId` / `resolveApiKey`；`ProviderError` |
-| `tavily.ts` / `brave.ts` / `exa.ts` / `firecrawl.ts` / `perplexity.ts` | 五个 provider 的请求构造与响应映射 |
+| `tavily.ts` / `brave.ts` / `exa.ts` / `firecrawl.ts` / `perplexity.ts` / `parallel.ts` / `keenable.ts` / `deepseek.ts` | 八个 provider 的请求构造与响应映射 |
 
 ## API
 
@@ -33,5 +33,14 @@ class ProviderError extends Error  // { type: "unknown_provider" | "missing_api_
 | exa | `POST https://api.exa.ai/search`，body `{ query, numResults, contents.text.maxCharacters }` | `x-api-key` | `results[].title/url/text` |
 | firecrawl | `POST https://api.firecrawl.dev/v2/search`，body `{ query, limit, sources: ["web"] }` | `Authorization: Bearer` | `data.web[].title/url/description` |
 | perplexity | `POST https://api.perplexity.ai/search`，body `{ query, max_results }` | `Authorization: Bearer` | `results[].title/url/snippet` |
+| parallel | `POST https://api.parallel.ai/v1/search`，body `{ mode: "fast", search_queries: [query], advanced_settings: { max_results } }` | `x-api-key` | `results[].title/url/excerpts[]`（拼成 snippet） |
+| keenable | `POST https://api.keenable.ai/v1/search`，body `{ query, max_results }` | `X-API-Key` | `results[].title/url/snippet`，缺则取 `description` |
+| deepseek | `POST https://api.deepseek.com/v1/tools/search`，body `{ query, count }` | `Authorization: Bearer` | `results[].title/url/summary`，缺则取 `snippet` |
 
 统一映射：缺 `title` 用 `url` 顶替，snippet 折叠空白，缺 `url` 的条目丢弃。非 2xx / 超时由 `http/` 抛 `HttpError`，本层不吞错。
+
+## 三处取舍
+
+- parallel 固定 `mode: "fast"`（`PARALLEL_SEARCH_MODE`）：官方把这一档列为 agent 工具调用的推荐值，约 700ms；默认档 `advanced` 约 3s，档位与计价见官方 Search Modes。
+- parallel 只发 `search_queries: [query]`，不发 `objective`：工具层的 `query` 是检索式，而 `objective` 要自包含的自然语言目标，同一串塞两处只会污染结果。
+- deepseek 的 `summary`（600–800 字符，官方标注给模型读）优先于 `snippet`（UI 用短摘要）；keenable 反向，`snippet`（正文摘录）优先于 `description`（短语摘要）。

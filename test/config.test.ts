@@ -178,14 +178,15 @@ describe("loadConfig", () => {
 		expect(message).toContain("exa");
 		expect(message).toContain("firecrawl");
 		expect(message).toContain("perplexity");
+		expect(message).toContain("parallel");
+		expect(message).toContain("keenable");
+		expect(message).toContain("deepseek");
 	});
 
-	it("provider 接受 firecrawl 与 perplexity", () => {
-		const firecrawl = loadConfig({ configPath: writeConfig(JSON.stringify({ provider: "firecrawl" })), env: {} });
-		const perplexity = loadConfig({ configPath: writeConfig(JSON.stringify({ provider: "perplexity" })), env: {} });
-
-		expect(firecrawl.provider).toBe("firecrawl");
-		expect(perplexity.provider).toBe("perplexity");
+	it("provider 接受 firecrawl / perplexity / parallel / keenable / deepseek", () => {
+		for (const id of ["firecrawl", "perplexity", "parallel", "keenable", "deepseek"] as const) {
+			expect(loadConfig({ configPath: writeConfig(JSON.stringify({ provider: id })), env: {} }).provider).toBe(id);
+		}
 	});
 
 	it("fetch.extractors 接受 firecrawl 与 jina，且不动默认链", () => {
@@ -197,6 +198,15 @@ describe("loadConfig", () => {
 		expect(config.fetch.extractors).toEqual(["jina", "firecrawl"]);
 	});
 
+	it("fetch.extractors 接受 parallel / keenable / deepseek", () => {
+		const config = loadConfig({
+			configPath: writeConfig(JSON.stringify({ fetch: { extractors: ["keenable", "deepseek", "parallel"] } })),
+			env: {},
+		});
+
+		expect(config.fetch.extractors).toEqual(["keenable", "deepseek", "parallel"]);
+	});
+
 	it("新增 key 支持环境变量与配置文件，环境变量优先", () => {
 		const path = writeConfig(JSON.stringify({ apiKeys: { jina: "file-jina", firecrawl: "file-fc" } }));
 		const config = loadConfig({
@@ -205,6 +215,16 @@ describe("loadConfig", () => {
 		});
 
 		expect(config.apiKeys).toEqual({ firecrawl: "env-fc", perplexity: "env-pplx", jina: "env-jina" });
+	});
+
+	it("新增三家的 key 支持环境变量与配置文件，环境变量优先", () => {
+		const path = writeConfig(JSON.stringify({ apiKeys: { parallel: "file-parallel", keenable: "file-keen", deepseek: "file-ds" } }));
+		const config = loadConfig({
+			configPath: path,
+			env: { PARALLEL_API_KEY: "env-parallel", KEENABLE_API_KEY: "env-keen", DEEPSEEK_API_KEY: "env-ds" },
+		});
+
+		expect(config.apiKeys).toEqual({ parallel: "env-parallel", keenable: "env-keen", deepseek: "env-ds" });
 	});
 
 	it("未知 apiKeys 键仍然报错", () => {
