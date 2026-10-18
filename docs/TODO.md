@@ -34,7 +34,7 @@
   - 验收证据：`test/http.test.ts` 的「http：网络错误文案」「http：跨源重定向的认证头」两组
   - 前置：无
 
-- [ ] T20 handlers/github：release tag 加参数分界
+- [x] T20 handlers/github：release tag 加参数分界
   - 交付物：`handlers/github/index.ts`（`release view` 的 tag 校验或 `--` 分界）
   - 验收：`/o/r/releases/tag/--repo` 这类以 `-` 开头的 tag 不会被 gh 当开关解析（落到提取器链或作为位置参数）
   - 验收证据：`test/handlers/github.test.ts` 的「release：tag 走 -- 分界」（`test/handlers/github-url.test.ts` 的两条只钉住解析层选择——`-` 开头的 tag 仍解析为 release，改动前就绿，不算 AC 证据）
