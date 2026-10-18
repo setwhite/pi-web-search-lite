@@ -13,7 +13,7 @@
 
 ## 任务
 
-- [~] T18 新增 Parallel / Keenable / DeepSeek 三家搜索源与提取器（待审）
+- [x] T18 新增 Parallel / Keenable / DeepSeek 三家搜索源与提取器
   - 交付物：`providers/{parallel,keenable,deepseek}.ts`、`extractors/{parallel,keenable,deepseek}.ts`、`config/schema.ts` 的枚举与 key 环境变量、根 README 两版（最小配置与 provider 清单）
   - 验收：
     - `provider` 与 `fetch.extractors` 都接受 `parallel` / `keenable` / `deepseek`；默认值不变（`tavily` / `html,jina`）
