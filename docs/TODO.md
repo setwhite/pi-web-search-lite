@@ -40,7 +40,7 @@
   - 验收证据：`test/handlers/github.test.ts` 的「release：tag 走 -- 分界」（`test/handlers/github-url.test.ts` 的两条只钉住解析层选择——`-` 开头的 tag 仍解析为 release，改动前就绿，不算 AC 证据）
   - 前置：T19
 
-- [ ] T21 providers：`DEFAULT_PROVIDER` 收成单源
+- [x] T21 providers：`DEFAULT_PROVIDER` 收成单源
   - 交付物：`providers/index.ts`（删本地常量与第三层回落、参数去掉 `| undefined`、头注释同步）、`test/providers/index.test.ts`
   - 验收：`DEFAULT_PROVIDER` 只在 `config/schema.ts` 定义一处；`resolveProviderId` 只做 env > config 两层
   - 验收证据：`test/providers/index.test.ts`
