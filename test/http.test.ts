@@ -1,8 +1,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import { createHttpClient, HttpError } from "../http/index.ts";
 import { SsrfError } from "../ssrf/index.ts";
+import { listenEphemeral } from "./stub.ts";
 
 const UA = "pi-web-search-lite/test";
 
@@ -21,9 +21,9 @@ async function startStub(
 		requests.push(req);
 		handler(req, res);
 	});
-	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+	const port = await listenEphemeral(server);
 	return {
-		base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+		base: `http://127.0.0.1:${port}`,
 		requests,
 		get hits() {
 			return requests.length;
@@ -193,9 +193,9 @@ describe("http：代理", () => {
 			res.writeHead(200, { "content-type": "text/plain" });
 			res.end("via-proxy");
 		});
-		await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+		const port = await listenEphemeral(server);
 		return {
-			base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+			base: `http://127.0.0.1:${port}`,
 			forwarded,
 			get hits() {
 				return forwarded.length;
@@ -268,11 +268,10 @@ describe("http：重定向守卫", () => {
 	});
 });
 
-/** 先 bind 再 close：拿到一个确定没有监听者的端口（走内核临时端口，顺带避开 undici 的 bad port 名单）。 */
+/** 先 bind 再 close：拿到一个确定没有监听者的端口（listenEphemeral 保证它不在 undici 的 bad port 名单里）。 */
 async function reserveClosedPort(): Promise<number> {
 	const server = createServer();
-	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-	const { port } = server.address() as AddressInfo;
+	const port = await listenEphemeral(server);
 	await new Promise<void>((resolve) => server.close(() => resolve()));
 	return port;
 }
@@ -312,9 +311,9 @@ describe("http：跨源重定向的认证头", () => {
 			});
 			res.end(redirect ? "" : "ok");
 		});
-		await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+		const port = await listenEphemeral(server);
 		return {
-			base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+			base: `http://127.0.0.1:${port}`,
 			seen,
 			close: () =>
 				new Promise<void>((resolve) => {

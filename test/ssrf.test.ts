@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { assertPublicUrl, isLoopbackHost, SsrfError, type SsrfErrorType } from "../ssrf/index.ts";
+import { listenEphemeral } from "./stub.ts";
 
 /** 断言 input 被拒绝且错误类型匹配。 */
 function expectBlocked(input: string, type: SsrfErrorType): void {
@@ -90,8 +90,8 @@ describe("assertPublicUrl：零网络请求", () => {
 			hits += 1;
 			res.end("ok");
 		});
-		await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-		base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
+		const port = await listenEphemeral(server);
+		base = `http://127.0.0.1:${port}/`;
 	});
 
 	afterAll(async () => {

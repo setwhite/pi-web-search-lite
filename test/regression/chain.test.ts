@@ -5,14 +5,13 @@
 
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
 import { dirname } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createHttpClient } from "../../http/index.ts";
 import { createSearchProvider } from "../../providers/index.ts";
 import { executeFetch } from "../../tools/fetch.ts";
 import { executeSearch } from "../../tools/search.ts";
-import { startTrackedStubServer } from "../stub.ts";
+import { listenEphemeral, startTrackedStubServer } from "../stub.ts";
 import { firstText, makeConfig } from "../tools/fixtures.ts";
 
 const UA = "pi-web-search-lite/regression";
@@ -46,7 +45,7 @@ async function startProxyStub(page: string): Promise<{ base: string; forwarded: 
 			socket.end(reply());
 		});
 	});
-	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+	const port = await listenEphemeral(server);
 	closers.push(
 		() =>
 			new Promise<void>((resolve) => {
@@ -54,7 +53,7 @@ async function startProxyStub(page: string): Promise<{ base: string; forwarded: 
 				server.close(() => resolve());
 			}),
 	);
-	return { base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, forwarded };
+	return { base: `http://127.0.0.1:${port}`, forwarded };
 }
 
 describe("回归：web_search 全链路", () => {
