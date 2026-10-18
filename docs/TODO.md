@@ -46,9 +46,25 @@
   - 验收证据：`test/providers/index.test.ts`
   - 前置：T19
 
+- [x] T22 handlers/github：release tag 过 `safeRef`
+  - 交付物：`handlers/github/index.ts`（`releases/tag` 的 tag 复用 `safeRef`）、`docs/modules/handlers.md`
+  - 验收：`/O/R/releases/tag/a%00b` 这类含控制字符（以及空、超 1024 字符）的 tag 不命中 handler，落到提取器链，不再把 Node 的 `must be a string without null bytes` 文案透给模型
+  - 验收证据：`test/handlers/github-url.test.ts` 的「不命中」清单
+  - 前置：T20（已完成）
+
+- [x] T23 测试：gh 探测样板收进 `ghStub`
+  - 交付物：`test/handlers/fixtures.ts`（`ghStub`）、`test/handlers/github.test.ts`、`test/tools/fetch.test.ts`、`test/regression/messages.test.ts`
+  - 验收：手写的 `--version` / `auth status` 探测桩只剩「探测期间被中断」一条（它断言探测内部行为，不是样板），其余调用点统一走 `ghStub`；断言语义不变
+  - 验收证据：`rg -c 'args\[0\] === "--version"' test/` 只剩 `fixtures.ts` 与该条用例；`pnpm test` 34 files / 300 tests
+  - 前置：无
+
+- [ ] T24 引入 biome 做 lint + 格式闸
+  - 交付物：`biome.json`、`package.json`（`lint` 脚本）、`README.md` 开发段、CI 与 `devDependencies` 各一行
+  - 验收：`pnpm lint`（= `biome check .`）零诊断；`lineWidth` 100（现状源码 p90 ≈ 88，避免首次格式化 diff 过大）；CI 与本地同一条命令
+  - 验收证据：`pnpm exec biome check . --reporter=summary` 只输出 `Checked N files`；`pnpm test` 34 files / 300 tests
+  - 进度：工具与 9 处 lint 修复已随 db73099 落地（`pnpm lint` 的 lint 部分零诊断）；剩 70 个文件的格式化重排与 `ci.yml` 的 `pnpm lint` 步骤
+  - 前置：T22 / T23 先提交——已完成（efeff50 / 20a51c1）
+
 ## 待决（未成任务）
 
-- biome 风格闸（审查 #4）：需先批准 devDependency + CI 改动；`lineWidth` 按现状（源码 p90 ≈ 88）定 100/120，否则首次格式化 diff 过大。
-- release tag 未过 `safeRef`（T20 只做 `--` 分界，tag 是唯一没做边界校验的 ref 类取值）：`/releases/tag/a%00b` 会让 execFile 抛 `The argument 'args[7]' must be a string without null bytes`，被 `handlers/github/gh.ts` 的 catch 吞成 `skipped`，模型看到的是 Node 内部文案；`%0Ab` 这类控制字符则原样进 argv（execFile 无 shell，gh 只会 404）。修法是复用 `safeRef`（与 blob/tree 对齐，非法即返回 null 落到提取器链），1 行 + 1 条用例。
-- `test/handlers/github.test.ts` 的 gh 探测样板（`--version` / `auth status` 两连成功）复制到第 4 份（T20 审计提出，已足 Rule of Three）：抽一个测试内 executor 就能收掉，属测试重构，按 `_shared/testing.md`「重构不在 TDD 循环里」当独立任务做。
-- 16 张 provider / extractor 表是否抽象（审查 #5）：当前决定**不动**（认证头名、请求体字段、响应路径、错误约定各不相同），等第 9 家再加入口。
+- 16 张 provider / extractor 表是否抽象（审查 #5）：决定**不动**——认证头名、请求体字段、响应路径、错误约定各不相同，等第 9 家再加入口（用户已确认）。
