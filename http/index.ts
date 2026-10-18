@@ -61,6 +61,8 @@ export interface HttpClient {
 
 const MAX_REDIRECTS = 5;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+/** cause 链展开深度上限：undici 的套娃一般 2–3 层（TypeError → AggregateError → Error）。 */
+const MAX_CAUSE_DEPTH = 4;
 
 interface RequestState {
 	method: string;
@@ -156,7 +158,7 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 
 			await response.body?.cancel().catch(() => undefined); // 尽力释放连接，失败不影响重定向
 			const next = redirectTarget(current, location);
-			if (next.origin !== current.origin) dropHeader(headers, "authorization");
+			if (next.origin !== current.origin) dropSensitiveHeaders(headers);
 			if (response.status === 303 || ((response.status === 301 || response.status === 302) && method !== "GET" && method !== "HEAD")) {
 				method = "GET";
 				body = undefined;
@@ -184,12 +186,56 @@ function toHttpError(cause: unknown, url: string, state: RequestState): HttpErro
 	if (cause instanceof HttpError || cause instanceof SsrfError) return cause;
 	if (state.userSignal?.aborted === true) return new HttpError("abort", url, `request aborted: ${state.method} ${url}`);
 	if (state.timeout.aborted) return new HttpError("timeout", url, `request timed out: ${state.method} ${url}`);
-	const detail = cause instanceof Error ? cause.message : String(cause);
+	const detail = describeCause(cause);
 	return new HttpError("network", url, `network error: ${state.method} ${url}: ${detail}`);
 }
 
-function dropHeader(headers: Record<string, string>, name: string): void {
+/**
+ * 展开 cause 链拼出网络错误的原因。
+ * undici 外层固定是 "fetch failed"（零信息量），真正的病名在里层：bad port / ECONNREFUSED / ENOTFOUND；
+ * 多地址场景里再套一层 AggregateError（自身 message 可能是空串），所以逐层收 code 与 message 并按序去重。
+ */
+function describeCause(cause: unknown): string {
+	const details = new Set<string>();
+	const walk = (node: unknown, depth: number): void => {
+		if (depth > MAX_CAUSE_DEPTH || node === undefined || node === null) return;
+		if (typeof node !== "object") {
+			details.add(String(node));
+			return;
+		}
+		const { name, message, code, errors, cause: nested } = node as {
+			name?: unknown;
+			message?: unknown;
+			code?: unknown;
+			errors?: unknown;
+			cause?: unknown;
+		};
+		const text = typeof message === "string" ? message.trim() : "";
+		const tag = typeof code === "string" ? code : "";
+		if (text !== "" && tag !== "") details.add(text.includes(tag) ? text : `${tag}: ${text}`);
+		else if (text !== "") details.add(text);
+		else if (tag !== "") details.add(tag);
+		else if (typeof name === "string" && name !== "Error") details.add(name);
+		if (Array.isArray(errors)) for (const inner of errors) walk(inner, depth + 1);
+		walk(nested, depth + 1);
+	};
+	walk(cause, 0);
+	return details.size === 0 ? String(cause) : [...details].join("; ");
+}
+
+/**
+ * 认证头按名字族判定：枚举具体头名会在下一家 provider 再漏（brave 用的是 `x-subscription-token`）；
+ * 跨 origin 时多摘一个非认证头无害，漏摘 key 才是事故，所以宁可放宽。
+ * 只收本仓库真的会发出去的凭据头——cookie / proxy-authorization 没有调用点，不进表。
+ */
+function isSensitiveHeader(name: string): boolean {
+	const lower = name.toLowerCase();
+	return lower === "authorization" || lower.endsWith("token") || lower.endsWith("api-key") || lower.endsWith("api_key") || lower.endsWith("apikey");
+}
+
+/** 跨 origin 重定向前摘认证头：目标域不该拿到只该发给来源域的凭据。 */
+function dropSensitiveHeaders(headers: Record<string, string>): void {
 	for (const key of Object.keys(headers)) {
-		if (key.toLowerCase() === name) delete headers[key];
+		if (isSensitiveHeader(key)) delete headers[key];
 	}
 }

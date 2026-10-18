@@ -162,7 +162,7 @@ describe("http：超时与中断", () => {
 
 describe("http：代理", () => {
 	/** 桩代理：同时兼容 CONNECT 隧道与绝对形式请求两种转发形态。 */
-	async function startProxyStub(): Promise<Stub & { forwarded: string[] }> {
+	async function startProxyStub(): Promise<{ base: string; forwarded: string[]; hits: number; close: () => Promise<void> }> {
 		const forwarded: string[] = [];
 		const server = createServer((req, res) => {
 			forwarded.push(`request ${req.method} ${req.url}`);
@@ -180,7 +180,6 @@ describe("http：代理", () => {
 		await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 		return {
 			base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
-			requests: [],
 			forwarded,
 			get hits() {
 				return forwarded.length;
@@ -250,5 +249,84 @@ describe("http：重定向守卫", () => {
 
 		expect(error).toBeInstanceOf(SsrfError);
 		expect((error as SsrfError).type).toBe("blocked_ip");
+	});
+});
+
+/** 先 bind 再 close：拿到一个确定没有监听者的端口（走内核临时端口，顺带避开 undici 的 bad port 名单）。 */
+async function reserveClosedPort(): Promise<number> {
+	const server = createServer();
+	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+	const { port } = server.address() as AddressInfo;
+	await new Promise<void>((resolve) => server.close(() => resolve()));
+	return port;
+}
+
+describe("http：网络错误文案", () => {
+	it("连接被拒时消息带底层 code 与地址，而不是只抄 undici 的 fetch failed", async () => {
+		const port = await reserveClosedPort();
+
+		const error = await makeClient({ timeoutMs: 2_000 })
+			.fetchText(`http://127.0.0.1:${port}/dead`)
+			.catch((caught: unknown) => caught);
+
+		expect(error).toBeInstanceOf(HttpError);
+		expect((error as HttpError).type).toBe("network");
+		expect((error as HttpError).message).toContain("ECONNREFUSED");
+		expect((error as HttpError).message).toContain(`127.0.0.1:${port}`);
+	});
+});
+
+describe("http：跨源重定向的认证头", () => {
+	/**
+	 * 桩代理：http 目标走 undici 的 absolute-form 转发（不建 CONNECT 隧道，见 `proxy-agent.js` 的 `shouldProxy`），
+	 * 因此按 Host 头分派即可 —— 首跳 302 到 second.test，其余 200 回 "ok"；两个主机名都无需可解析。
+	 */
+	async function startRoutingProxyStub(): Promise<{
+		base: string;
+		seen: Array<{ host: string; headers: Record<string, string> }>;
+		close: () => Promise<void>;
+	}> {
+		const seen: Array<{ host: string; headers: Record<string, string> }> = [];
+		const server = createServer((req, res) => {
+			const redirect = String(req.headers.host).startsWith("first.test");
+			seen.push({ host: String(req.headers.host), headers: req.headers as Record<string, string> });
+			res.writeHead(redirect ? 302 : 200, {
+				...(redirect ? { location: "http://second.test/next" } : { "content-type": "text/plain" }),
+				connection: "close",
+			});
+			res.end(redirect ? "" : "ok");
+		});
+		await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+		return {
+			base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+			seen,
+			close: () =>
+				new Promise<void>((resolve) => {
+					server.closeAllConnections();
+					server.close(() => resolve());
+				}),
+		};
+	}
+
+	it("跨源跳转摘掉认证头，非认证头保留，首跳（同源）照常带", async () => {
+		const proxy = track(await startRoutingProxyStub());
+
+		const result = await makeClient({ proxy: proxy.base }).fetchText("http://first.test/start", {
+			headers: {
+				authorization: "Bearer secret",
+				"x-api-key": "exa-secret",
+				"x-subscription-token": "brave-secret",
+				accept: "text/plain",
+			},
+		});
+
+		expect(result.text).toBe("ok");
+		const first = proxy.seen.find((entry) => entry.host.startsWith("first.test"));
+		const second = proxy.seen.find((entry) => entry.host.startsWith("second.test"));
+		expect(first?.headers.authorization).toBe("Bearer secret");
+		expect(second?.headers.authorization).toBeUndefined();
+		expect(second?.headers["x-api-key"]).toBeUndefined();
+		expect(second?.headers["x-subscription-token"]).toBeUndefined();
+		expect(second?.headers.accept).toBe("text/plain");
 	});
 });
