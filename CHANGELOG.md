@@ -2,6 +2,11 @@
 
 已发布版本的用户可见变更；更细的过程见 git log。0.x 期间破坏性变更走 minor 号，条目里标注 **BREAKING**。
 
+## 0.7.0 — 2026-10-18
+
+- 新增 parallel / keenable / deepseek 三家：既是搜索源（`provider`）也是提取器（`fetch.extractors`），key 走 `PARALLEL_API_KEY` / `KEENABLE_API_KEY` / `DEEPSEEK_API_KEY` 或 `config.apiKeys.*`
+- README 的最小可用配置补上 `provider`：此前只演示 tavily 的 key，换源时看不出来要改哪里
+
 ## 0.6.1 — 2026-10-18
 
 - 无功能变更（运行时与 0.6.0 相同）：文档重构——模块文档移入 `docs/modules/`（npm 包内不再含这 7 份 README），决策拆成 `docs/adr/`，新增本文件与 `docs/GLOSSARY.md`
