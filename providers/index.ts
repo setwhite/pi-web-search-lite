@@ -1,6 +1,6 @@
 /**
  * provider 注册表、解析与工厂。
- * - 解析优先级（first wins）：`WEB_SEARCH_PROVIDER` 环境变量 > `config.provider` > `"tavily"`。
+ * - 解析优先级（first wins）：`WEB_SEARCH_PROVIDER` 环境变量 > `config.provider`；`"tavily"` 默认值只在配置层给（`config/schema.ts`），本层不回落。
  * - key 已由配置层把 `API_KEY_ENV_KEYS` 环境变量合并进 `config.apiKeys`，这里只做存在性检查。
  */
 
@@ -30,15 +30,11 @@ export class ProviderError extends Error {
 	}
 }
 
-export const DEFAULT_PROVIDER: ProviderId = "tavily";
 export const SEARCH_PROVIDER_ENV_KEY = "WEB_SEARCH_PROVIDER";
 
-/** 三层解析；未知名字直接抛错，不静默回落。 */
-export function resolveProviderId(
-	configProvider: ProviderId | undefined,
-	env: NodeJS.ProcessEnv = process.env,
-): ProviderId {
-	const candidate = env[SEARCH_PROVIDER_ENV_KEY]?.trim() || configProvider || DEFAULT_PROVIDER;
+/** 两层解析：env 覆盖 config；默认值由配置层填好（`config.provider` 必填），这里不回落。未知名字直接抛错，不静默回落。 */
+export function resolveProviderId(configProvider: ProviderId, env: NodeJS.ProcessEnv = process.env): ProviderId {
+	const candidate = env[SEARCH_PROVIDER_ENV_KEY]?.trim() || configProvider;
 	if ((PROVIDER_IDS as readonly string[]).includes(candidate)) return candidate as ProviderId;
 	throw new ProviderError(
 		"unknown_provider",

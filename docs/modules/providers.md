@@ -13,7 +13,7 @@
 ## API
 
 ```ts
-resolveProviderId(configProvider, env = process.env): ProviderId
+resolveProviderId(configProvider: ProviderId, env = process.env): ProviderId
 resolveApiKey(id, apiKeys): string
 createSearchProvider(id, { http, apiKey, baseUrl? }): SearchProvider   // baseUrl 覆盖根地址，供测试桩
 class ProviderError extends Error  // { type: "unknown_provider" | "missing_api_key" }
@@ -21,7 +21,7 @@ class ProviderError extends Error  // { type: "unknown_provider" | "missing_api_
 
 ## provider 解析与 key
 
-- 解析优先级（first wins）：`WEB_SEARCH_PROVIDER` 环境变量 > `config.provider` > `"tavily"`；空串、纯空白视为未提供；未知名字**直接抛错并列出全部合法值**，不会静默回退。
+- 解析优先级（first wins）：`WEB_SEARCH_PROVIDER` 环境变量 > `config.provider`，只有两层：默认值 `"tavily"` 的唯一来源是 `config/schema.ts` 的 `DEFAULT_PROVIDER`，配置校验时填进必填的 `config.provider`，本层不回落。空串、纯空白视为未提供；未知名字**直接抛错并列出全部合法值**，不会静默回退。
 - key：配置层已把 `API_KEY_ENV_KEYS` 里的环境变量合并进 `config.apiKeys`（env 优先）。缺 key 时抛错，文本同时给出环境变量名与 `config.apiKeys.<id>` 字段。
 
 ## 请求形状（真实端点写在各自模块的常量里）

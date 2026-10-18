@@ -8,7 +8,7 @@
 |---|---|
 | `result.ts` | `finalizeContent`（宿主截断 + spill）、`buildToolResult`（信封组装）、宿主类型的单一 import 点 |
 | `render.ts` | `renderCall` / `renderResult`：调用行与结果行、折叠/展开、partial、失败回退（pi-tui 唯一 import 点） |
-| `search.ts` | `executeSearch` 与 `createSearchTool`：provider 三层解析、key 检查、`max_results` clamp、结果信封 |
+| `search.ts` | `executeSearch` 与 `createSearchTool`：provider 两层解析（env > config）、key 检查、`max_results` clamp、结果信封 |
 | `fetch.ts` | `executeFetch` 与 `createFetchTool`：SSRF 检查 → handler 层（github 直取 / reddit 改写）→ 提取器链（或 raw）、来源标注 |
 
 ## API

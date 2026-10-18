@@ -1,4 +1,4 @@
-/** web_search 工具：provider 三层解析、max_results clamp、统一结果信封与截断。 */
+/** web_search 工具：provider 两层解析（env > config）、max_results clamp、统一结果信封与截断。 */
 
 import { Type, type Static } from "typebox";
 import { type ProviderId, type ResolvedConfig } from "../config/index.ts";

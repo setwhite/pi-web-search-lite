@@ -1,7 +1,24 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PROVIDER_IDS } from "../../config/index.ts";
 import { createHttpClient } from "../../http/index.ts";
 import { createSearchProvider, ProviderError, resolveApiKey, resolveProviderId } from "../../providers/index.ts";
+
+/** 只认声明语句：import 与「从 config 重导出」都不算重复定义。 */
+const DECLARES_DEFAULT_PROVIDER = /\b(?:const|let|var)\s+DEFAULT_PROVIDER\b/;
+const REPO_ROOT = join(import.meta.dirname, "..", "..");
+
+/** 包内源码文本（跳过 node_modules、点目录与 test/）：静态断言默认值只有一处定义，路径用 / 分隔。 */
+function packageSourceFiles(): Array<{ path: string; text: string }> {
+	const walk = (dir: string): string[] =>
+		readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+			if (entry.name === "node_modules" || entry.name.startsWith(".")) return [];
+			if (entry.isDirectory()) return entry.name === "test" ? [] : walk(join(dir, entry.name));
+			return entry.name.endsWith(".ts") ? [join(dir, entry.name)] : [];
+		});
+	return walk(REPO_ROOT).map((path) => ({ path: relative(REPO_ROOT, path).split(sep).join("/"), text: readFileSync(path, "utf-8") }));
+}
 
 describe("createSearchProvider", () => {
 	it("按 id 分发到对应 provider", () => {
@@ -13,10 +30,9 @@ describe("createSearchProvider", () => {
 });
 
 describe("resolveProviderId", () => {
-	it("优先级：WEB_SEARCH_PROVIDER > config.provider > tavily", () => {
+	it("优先级：WEB_SEARCH_PROVIDER > config.provider（默认值在配置层，本层不回落）", () => {
 		expect(resolveProviderId("tavily", { WEB_SEARCH_PROVIDER: "exa" })).toBe("exa");
 		expect(resolveProviderId("brave", {})).toBe("brave");
-		expect(resolveProviderId(undefined, {})).toBe("tavily");
 	});
 
 	it("空串 / 纯空白视为未提供", () => {
@@ -25,7 +41,7 @@ describe("resolveProviderId", () => {
 
 	it("未知名字抛 ProviderError 并列出全部合法值，不提工具参数", () => {
 		try {
-			resolveProviderId(undefined, { WEB_SEARCH_PROVIDER: "google" });
+			resolveProviderId("exa", { WEB_SEARCH_PROVIDER: "google" });
 			throw new Error("预期抛错但放行");
 		} catch (error) {
 			expect(error).toBeInstanceOf(ProviderError);
@@ -35,6 +51,16 @@ describe("resolveProviderId", () => {
 			expect((error as ProviderError).message).toContain("exa");
 			expect((error as ProviderError).message).not.toContain("argument");
 		}
+	});
+});
+
+describe("默认值单源", () => {
+	it("包内源码只在 config/schema.ts 声明一处", () => {
+		const declaring = packageSourceFiles()
+			.filter((file) => DECLARES_DEFAULT_PROVIDER.test(file.text))
+			.map((file) => file.path);
+
+		expect(declaring).toEqual(["config/schema.ts"]);
 	});
 });
 
