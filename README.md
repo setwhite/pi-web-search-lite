@@ -173,4 +173,4 @@ pnpm test        # 单元测试，不打真实网络
 pnpm typecheck
 ```
 
-CI 在 Linux 与 Windows 上跑这三条命令；pnpm 版本由 `packageManager` 字段锁定。格式与 lint 规则见 `biome.json`（`lineWidth` 100）。
+CI 在 Linux 上跑这三条命令（Node 22 与 24）；pnpm 版本由 `packageManager` 字段锁定。格式与 lint 规则见 `biome.json`（`lineWidth` 100）。

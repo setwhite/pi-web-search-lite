@@ -175,4 +175,4 @@ pnpm test        # unit tests, no real network
 pnpm typecheck
 ```
 
-CI runs the same three commands on Linux and Windows; the pnpm version is pinned via `packageManager`. Lint and format rules live in `biome.json` (`lineWidth` 100).
+CI runs the same three commands on Linux, on Node 22 and 24; the pnpm version is pinned via `packageManager`. Lint and format rules live in `biome.json` (`lineWidth` 100).
