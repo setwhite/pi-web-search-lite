@@ -73,6 +73,7 @@ describe("parseGitHubUrl 不命中", () => {
 		"https://github.com/o/r/issues/7/comment",
 		"https://github.com/o/r/pull/12/commits",
 		"https://github.com/o/r/releases/latest",
+		"https://github.com/o/r/releases/tag/a%00b",
 		"https://github.com/orgs/foo",
 		"https://github.com/-bad/r",
 		"https://github.com/o/.r",

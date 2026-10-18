@@ -133,8 +133,9 @@ export function parseGitHubUrl(url: URL): GitHubTarget | null {
 		}
 		case "releases": {
 			if (segments.length < 5 || segments[3].toLowerCase() !== "tag") return null;
-			const tag = segments.slice(4).join("/");
-			return tag === "" ? null : { kind: "release", ...slug, tag };
+			// tag 与 blob/tree 的 ref 同过 safeRef：控制字符（如 %00）进了 gh 参数会被 execFile 拒，报错文案来自 Node 而非本层
+			const tag = safeRef(segments.slice(4).join("/"));
+			return tag === null ? null : { kind: "release", ...slug, tag };
 		}
 		default:
 			return null;

@@ -37,7 +37,7 @@ checkGhAvailable(command, { exec, timeoutMs, env, signal }): Promise<{ ok, reaso
 | `/O/R/pull/N`（含 `/files`） | `gh pr view …`；`/files` 走 `gh pr diff` |
 | `/O/R/releases/tag/T` | `gh release view --repo O/R --json … -- T`（tag 取自 URL，可能以 `-` 开头，所以 flag 全排在 `--` 之前；gh 用 pflag，`--` 之后只当位置参数） |
 
-其余（gist / wiki / actions / discussions / settings / `/O/R/pull/N/commits` 等）返回 `null`，交给提取器链。忽略 query 与锚点。
+其余（gist / wiki / actions / discussions / settings / `/O/R/pull/N/commits` 等）返回 `null`，交给提取器链。忽略 query 与锚点。`blob` / `tree` 的 ref 与 `releases/tag` 的 tag 同过 `safeRef`：空、超 1024 字符、含控制字符（含 `%00`）一律不命中——这些字符进 `gh` 参数会被 `execFile` 拒绝（`must be a string without null bytes`），报错文案来自 Node 而非本层。
 
 ## 已知 URL 局限（MVP 有意不处理）
 
