@@ -37,7 +37,7 @@
 - [ ] T20 handlers/github：release tag 加参数分界
   - 交付物：`handlers/github/index.ts`（`release view` 的 tag 校验或 `--` 分界）
   - 验收：`/o/r/releases/tag/--repo` 这类以 `-` 开头的 tag 不会被 gh 当开关解析（落到提取器链或作为位置参数）
-  - 验收证据：`test/handlers/github-url.test.ts` 新增边界用例
+  - 验收证据：`test/handlers/github.test.ts` 的「release：tag 走 -- 分界」（`test/handlers/github-url.test.ts` 的两条只钉住解析层选择——`-` 开头的 tag 仍解析为 release，改动前就绿，不算 AC 证据）
   - 前置：T19
 
 - [ ] T21 providers：`DEFAULT_PROVIDER` 收成单源
@@ -49,5 +49,6 @@
 ## 待决（未成任务）
 
 - biome 风格闸（审查 #4）：需先批准 devDependency + CI 改动；`lineWidth` 按现状（源码 p90 ≈ 88）定 100/120，否则首次格式化 diff 过大。
-- release tag 未过 `safeRef`（T20 只做 `--` 分界，tag 是唯一没做边界校验的 ref 类取值）：`/releases/tag/a%00b` 会让 execFile 抛 `The argument 'args[7]' must be a string without null bytes`，被 `handlers/github/gh.ts` 的 catch 吞成 `skipped`，模型看到的是 Node 内部文案。修法是复用 `safeRef`（与 blob/tree 对齐，非法即返回 null 落到提取器链），1 行 + 1 条用例。
+- release tag 未过 `safeRef`（T20 只做 `--` 分界，tag 是唯一没做边界校验的 ref 类取值）：`/releases/tag/a%00b` 会让 execFile 抛 `The argument 'args[7]' must be a string without null bytes`，被 `handlers/github/gh.ts` 的 catch 吞成 `skipped`，模型看到的是 Node 内部文案；`%0Ab` 这类控制字符则原样进 argv（execFile 无 shell，gh 只会 404）。修法是复用 `safeRef`（与 blob/tree 对齐，非法即返回 null 落到提取器链），1 行 + 1 条用例。
+- `test/handlers/github.test.ts` 的 gh 探测样板（`--version` / `auth status` 两连成功）复制到第 4 份（T20 审计提出，已足 Rule of Three）：抽一个测试内 executor 就能收掉，属测试重构，按 `_shared/testing.md`「重构不在 TDD 循环里」当独立任务做。
 - 16 张 provider / extractor 表是否抽象（审查 #5）：当前决定**不动**（认证头名、请求体字段、响应路径、错误约定各不相同），等第 9 家再加入口。
