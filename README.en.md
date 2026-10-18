@@ -176,3 +176,5 @@ pnpm typecheck
 ```
 
 CI runs the same three commands on Linux, on Node 22 and 24; the pnpm version is pinned via `packageManager`. Lint and format rules live in `biome.json` (`lineWidth` 100).
+
+Releasing: bump `version` in `package.json`, add a `CHANGELOG.md` entry, and push to `main` — `.github/workflows/npm-publish.yml` publishes it (the whole run is skipped when the version is already on the registry).

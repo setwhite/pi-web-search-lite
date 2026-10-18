@@ -174,3 +174,5 @@ pnpm typecheck
 ```
 
 CI 在 Linux 上跑这三条命令（Node 22 与 24）；pnpm 版本由 `packageManager` 字段锁定。格式与 lint 规则见 `biome.json`（`lineWidth` 100）。
+
+发版：改 `package.json` 的 `version` 与 `CHANGELOG.md`，推送 `main` 即由 `.github/workflows/npm-publish.yml` 发布（registry 上已有该版本则整条跳过）。
