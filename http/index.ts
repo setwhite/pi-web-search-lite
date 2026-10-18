@@ -25,6 +25,7 @@ export type HttpErrorType =
 export class HttpError extends Error {
 	readonly type: HttpErrorType;
 	readonly url: string;
+	// status / body 只为诊断与测试保留：模型可见文案由上层从 message 组装，不读这两个字段，别在它们上面加依赖
 	readonly status: number | undefined;
 	readonly body: string | undefined;
 

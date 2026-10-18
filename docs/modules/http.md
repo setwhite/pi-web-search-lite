@@ -19,7 +19,7 @@ type HttpErrorType = "timeout" | "abort" | "http_status" | "parse" | "network" |
 - **超时**：`AbortSignal.timeout(timeoutMs)` 覆盖含重定向的整条请求链；调用方 `signal` 中断优先判定为 `abort`。
 - **重定向**：上限 5 跳；跨 origin 摘掉认证头——`authorization`，以及任何以 `token` / `api-key` / `api_key` / `apikey` 结尾的头名（覆盖 provider 的 `x-api-key`、`x-subscription-token`），其余请求头保留；303 与 301/302 下的非 GET 请求改为 GET，307/308 保持 method / body。
 - **userAgent**：强制使用配置值，请求头里的同名值会被覆盖；调用方无法绕过。
-- **错误**：非 2xx 抛 `http_status`（`status` + `body` 供上层拼装信息）；200 但 body 非 JSON 抛 `parse`；DNS / 连接失败抛 `network`，消息里按序带上 cause 链各层的 `code` 与原因（如 `ECONNREFUSED` / `ENOTFOUND` / `bad port`），不止 undici 外层的 `fetch failed`；多地址场景的 `AggregateError` 会展开（深度上限 4 层）。
+- **错误**：非 2xx 抛 `http_status`（`status` + `body` 只为诊断与测试保留，上层只用 `message` 组装模型可见文案）；200 但 body 非 JSON 抛 `parse`；DNS / 连接失败抛 `network`，消息里按序带上 cause 链各层的 `code` 与原因（如 `ECONNREFUSED` / `ENOTFOUND` / `bad port`），不止 undici 外层的 `fetch failed`；多地址场景的 `AggregateError` 会展开（深度上限 4 层）。
 
 ## 验证局限
 
