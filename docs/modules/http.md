@@ -23,4 +23,4 @@ type HttpErrorType = "timeout" | "abort" | "http_status" | "parse" | "network" |
 
 ## 验证局限
 
-代理只在 Clash 混合端口的 CONNECT 隧道上实测过；换代理软件或转发方式需重跑。
+代理只在 Clash 混合端口上实测过，两种目标的转发形态不同：`http:` 目标走 absolute-form，不建隧道（undici 的 `ProxyAgent` 默认 `proxyTunnel: false`，见其 `shouldProxyTunnel`）；`https:` 目标才建 CONNECT 隧道。仓库里的代理桩只覆盖前者（`test/http.test.ts` 的「http：代理」组）。换代理软件或转发方式需重跑。
