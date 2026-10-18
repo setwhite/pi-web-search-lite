@@ -7,7 +7,13 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { CONFIG_FILE_NAME, CONFIG_SUBPATH, ENV_AGENT_DIR, type Raw, type ResolvedConfig } from "./schema.ts";
+import {
+	CONFIG_FILE_NAME,
+	CONFIG_SUBPATH,
+	ENV_AGENT_DIR,
+	type Raw,
+	type ResolvedConfig,
+} from "./schema.ts";
 import { buildConfig } from "./validate.ts";
 
 export * from "./schema.ts";

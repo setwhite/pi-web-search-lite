@@ -16,7 +16,9 @@ export function createFirecrawlExtractor(baseUrl = FIRECRAWL_API_BASE): Extracto
 	return {
 		id: "firecrawl",
 		unavailableReason: (ctx) =>
-			ctx.apiKeys.firecrawl?.trim() ? null : `not configured (${API_KEY_ENV_KEYS.firecrawl} env var or config.apiKeys.firecrawl)`,
+			ctx.apiKeys.firecrawl?.trim()
+				? null
+				: `not configured (${API_KEY_ENV_KEYS.firecrawl} env var or config.apiKeys.firecrawl)`,
 		async extract(url, ctx: ExtractorContext): Promise<ExtractedContent> {
 			const apiKey = ctx.apiKeys.firecrawl?.trim() ?? "";
 			const { data } = await ctx.http.fetchJson<FirecrawlScrapeResponse>(endpoint, {
@@ -26,10 +28,15 @@ export function createFirecrawlExtractor(baseUrl = FIRECRAWL_API_BASE): Extracto
 				signal: ctx.signal,
 			});
 
-			if (data.success === false) throw new Error(`scrape failed: ${data.error ?? "unknown error"}`);
+			if (data.success === false)
+				throw new Error(`scrape failed: ${data.error ?? "unknown error"}`);
 			const markdown = data.data?.markdown;
 			if (!markdown) throw new Error("response has no markdown");
-			return { url: data.data?.metadata?.sourceURL ?? url, title: data.data?.metadata?.title, content: markdown };
+			return {
+				url: data.data?.metadata?.sourceURL ?? url,
+				title: data.data?.metadata?.title,
+				content: markdown,
+			};
 		},
 	};
 }

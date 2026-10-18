@@ -23,7 +23,11 @@ export function truncateText(content: string, maxChars: number): TruncatedText {
 	};
 }
 
-export function renderTarget(target: GitHubTarget, outputs: string[], maxChars: number): RenderedPage {
+export function renderTarget(
+	target: GitHubTarget,
+	outputs: string[],
+	maxChars: number,
+): RenderedPage {
 	const first = outputs[0] ?? "";
 	let page: { title: string; content: string };
 	switch (target.kind) {
@@ -31,7 +35,10 @@ export function renderTarget(target: GitHubTarget, outputs: string[], maxChars: 
 			page = renderRepo(target, first, outputs[1]);
 			break;
 		case "blob":
-			page = { title: `${target.owner}/${target.repo}/${target.path}`, content: renderBlob(target.path, first) };
+			page = {
+				title: `${target.owner}/${target.repo}/${target.path}`,
+				content: renderBlob(target.path, first),
+			};
 			break;
 		case "tree":
 			page = { title: `${target.owner}/${target.repo}@${target.ref}`, content: renderTree(first) };
@@ -41,7 +48,10 @@ export function renderTarget(target: GitHubTarget, outputs: string[], maxChars: 
 			break;
 		case "pull":
 			page = target.files
-				? { title: `${target.owner}/${target.repo}#${target.number} changes`, content: renderDiff(first) }
+				? {
+						title: `${target.owner}/${target.repo}#${target.number} changes`,
+						content: renderDiff(first),
+					}
 				: renderPull(target, first);
 			break;
 		case "release":
@@ -59,7 +69,12 @@ function renderRepo(
 	const data = parseJson(json);
 	const stars = num(data.stargazerCount);
 	const forks = num(data.forkCount);
-	const stats = stars === undefined ? undefined : forks === undefined ? String(stars) : `${stars} · Fork: ${forks}`;
+	const stats =
+		stars === undefined
+			? undefined
+			: forks === undefined
+				? String(stars)
+				: `${stars} · Fork: ${forks}`;
 	const lines = [`# ${target.owner}/${target.repo}`];
 	const description = str(data.description);
 	if (description) lines.push("", description);
@@ -171,7 +186,8 @@ function renderRelease(
 	const data = parseJson(json);
 	const tag = str(data.tagName) ?? target.tag;
 	const name = str(data.name);
-	const state = data.isDraft === true ? "draft" : data.isPrerelease === true ? "pre-release" : "published";
+	const state =
+		data.isDraft === true ? "draft" : data.isPrerelease === true ? "pre-release" : "published";
 	const lines = [
 		name && name !== tag ? `# ${tag} (${name})` : `# ${tag}`,
 		"",
@@ -206,7 +222,9 @@ function commentsSection(value: unknown): string[] {
 }
 
 function meta(entries: Array<[string, string | undefined]>): string[] {
-	return entries.filter((entry): entry is [string, string] => entry[1] !== undefined).map(([label, value]) => `- ${label}: ${value}`);
+	return entries
+		.filter((entry): entry is [string, string] => entry[1] !== undefined)
+		.map(([label, value]) => `- ${label}: ${value}`);
 }
 
 function authorLine(value: unknown): string | undefined {
@@ -223,7 +241,9 @@ function branchLine(head: unknown, base: unknown): string | undefined {
 
 function names(value: unknown, key: "name" | "login"): string | undefined {
 	const items = Array.isArray(value) ? value : [];
-	const result = items.map((item) => str(record(item)?.[key])).filter((item): item is string => item !== undefined);
+	const result = items
+		.map((item) => str(record(item)?.[key]))
+		.filter((item): item is string => item !== undefined);
 	return result.length === 0 ? undefined : result.join(", ");
 }
 
@@ -247,7 +267,9 @@ function parseJson(text: string): Record<string, unknown> {
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
-	return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined;
+	return typeof value === "object" && value !== null && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: undefined;
 }
 
 function str(value: unknown): string | undefined {

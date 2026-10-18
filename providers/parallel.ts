@@ -3,7 +3,12 @@
  * 官方把 `mode: "fast"` 列为 agent 工具调用的推荐档（约 700ms）；默认档 advanced 约 3s，故显式指定。
  */
 
-import { type ProviderRuntime, type SearchProvider, type SearchResult, toSearchResult } from "./types.ts";
+import {
+	type ProviderRuntime,
+	type SearchProvider,
+	type SearchResult,
+	toSearchResult,
+} from "./types.ts";
 
 export const PARALLEL_BASE_URL = "https://api.parallel.ai";
 /** 检索档位：turbo / fast / basic / advanced，见 https://docs.parallel.ai/search/modes。 */
@@ -32,7 +37,11 @@ export function createParallelProvider(runtime: ProviderRuntime): SearchProvider
 
 			const results: SearchResult[] = [];
 			for (const item of data.results ?? []) {
-				const mapped = toSearchResult({ title: item.title, url: item.url, snippet: item.excerpts?.join(" ") });
+				const mapped = toSearchResult({
+					title: item.title,
+					url: item.url,
+					snippet: item.excerpts?.join(" "),
+				});
 				if (mapped) results.push(mapped);
 			}
 			return results;

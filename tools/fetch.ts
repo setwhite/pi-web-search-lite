@@ -1,13 +1,18 @@
 /** web_fetch 工具：SSRF 检查 → GitHub handler → 提取器链（或 raw 直取），统一来源标注与截断。 */
 
-import { Type, type TSchema } from "typebox";
+import { type TSchema, Type } from "typebox";
 import type { ExtractorId, ResolvedConfig } from "../config/index.ts";
-import { extractWithChain, type Extractor, type ExtractedPage } from "../extractors/index.ts";
-import { runPageHandlers, type GhExecutor } from "../handlers/index.ts";
+import { type ExtractedPage, type Extractor, extractWithChain } from "../extractors/index.ts";
+import { type GhExecutor, runPageHandlers } from "../handlers/index.ts";
 import { createHttpClient, type HttpClient } from "../http/index.ts";
 import { assertPublicUrl } from "../ssrf/index.ts";
-import { buildToolResult, finalizeContent, type AgentToolResult, type ToolDefinition } from "./result.ts";
 import { renderFetchCall, renderFetchResult } from "./render.ts";
+import {
+	type AgentToolResult,
+	buildToolResult,
+	finalizeContent,
+	type ToolDefinition,
+} from "./result.ts";
 
 export interface FetchParams {
 	url: string;
@@ -48,12 +53,20 @@ export async function executeFetch(
 	overrides: FetchOverrides = {},
 ): Promise<AgentToolResult<FetchDetails>> {
 	const target = assertPublicUrl(params.url);
-	const http = overrides.http ?? createHttpClient({ proxy: config.proxy, timeoutMs: config.timeoutMs, userAgent: config.userAgent });
+	const http =
+		overrides.http ??
+		createHttpClient({
+			proxy: config.proxy,
+			timeoutMs: config.timeoutMs,
+			userAgent: config.userAgent,
+		});
 	const maxCharsPerPage = config.fetch.maxCharsPerPage;
 
 	if (params.raw === true) {
 		if (!config.fetch.allowRaw) {
-			throw new Error("raw mode is disabled: set fetch.allowRaw to true in the config file, or omit the raw argument.");
+			throw new Error(
+				"raw mode is disabled: set fetch.allowRaw to true in the config file, or omit the raw argument.",
+			);
 		}
 		const response = await http.fetchText(target.toString(), { signal });
 		const text = `Raw content (${response.contentType ?? "unknown type"}, ${response.text.length} chars)\nSource: ${response.url}\n\n${response.text}`;
@@ -78,12 +91,20 @@ export async function executeFetch(
 		signal,
 		execGh: overrides.execGh,
 	});
-	const handlerSkips = handlerRun.skips.map((skip) => `${skip.handler} handler skipped: ${skip.reason}`);
+	const handlerSkips = handlerRun.skips.map(
+		(skip) => `${skip.handler} handler skipped: ${skip.reason}`,
+	);
 	// 只改 URL 的 handler（reddit → redlib）交出目标地址；改写后的地址重跑一遍 SSRF 检查
 	const chainTarget = handlerRun.rewrite ? assertPublicUrl(handlerRun.rewrite.url) : target;
 	const rewrittenFrom = handlerRun.rewrite?.from;
 
-	let page: { url: string; title: string; content: string; source: FetchSource; truncated: boolean };
+	let page: {
+		url: string;
+		title: string;
+		content: string;
+		source: FetchSource;
+		truncated: boolean;
+	};
 	if (handlerRun.result) {
 		page = {
 			url: handlerRun.result.url,
@@ -122,7 +143,10 @@ export async function executeFetch(
 		...(handlerSkips.length > 0 ? ["", ...handlerSkips.map((line) => `> ${line}`)] : []),
 	].join("\n");
 
-	const envelope = await finalizeContent(`${header}\n\n${page.content}`, { ...config.context, fileName: "web-fetch.md" });
+	const envelope = await finalizeContent(`${header}\n\n${page.content}`, {
+		...config.context,
+		fileName: "web-fetch.md",
+	});
 	return buildToolResult(envelope.content, {
 		url: page.url,
 		title: page.title,
@@ -140,12 +164,20 @@ export async function executeFetch(
 /** 未配置 guidance.promptSnippet 时的默认一行短语（工具列表用）。 */
 const DEFAULT_PROMPT_SNIPPET = "Extract URL text";
 
-export function createFetchTool(config: ResolvedConfig, overrides: FetchOverrides = {}): ToolDefinition<TSchema, FetchDetails> {
+export function createFetchTool(
+	config: ResolvedConfig,
+	overrides: FetchOverrides = {},
+): ToolDefinition<TSchema, FetchDetails> {
 	const properties: Record<string, TSchema> = {
-		url: Type.String({ description: "http(s) URL to fetch; private and loopback addresses are rejected" }),
+		url: Type.String({
+			description: "http(s) URL to fetch; private and loopback addresses are rejected",
+		}),
 	};
 	if (config.fetch.allowRaw) {
-		properties.raw = Type.Boolean({ description: "true = return the raw response body, skipping the GitHub handler and the extractor chain" });
+		properties.raw = Type.Boolean({
+			description:
+				"true = return the raw response body, skipping the GitHub handler and the extractor chain",
+		});
 	}
 	const guidance = config.guidance.web_fetch ?? {};
 	// 默认 guidelines 前缀与跨工具引用都取配置的工具名，改名后不失效；description 保持英文

@@ -4,13 +4,19 @@ import { createFirecrawlProvider } from "../../providers/firecrawl.ts";
 import { startTrackedStubServer } from "../stub.ts";
 
 function makeProvider(baseUrl: string) {
-	const http = createHttpClient({ proxy: undefined, timeoutMs: 5_000, userAgent: "pi-web-search-lite/test" });
+	const http = createHttpClient({
+		proxy: undefined,
+		timeoutMs: 5_000,
+		userAgent: "pi-web-search-lite/test",
+	});
 	return createFirecrawlProvider({ http, apiKey: "fc-test-key", baseUrl });
 }
 
 describe("firecrawl provider", () => {
 	it("请求形状：POST /v2/search，Bearer 认证，body 只挑 web 源", async () => {
-		const stub = await startTrackedStubServer(() => ({ body: JSON.stringify({ success: true, data: { web: [] } }) }));
+		const stub = await startTrackedStubServer(() => ({
+			body: JSON.stringify({ success: true, data: { web: [] } }),
+		}));
 
 		await makeProvider(stub.base).search({ query: "pi agent", maxResults: 4 });
 
@@ -47,7 +53,9 @@ describe("firecrawl provider", () => {
 	it("data 缺失或为空时返回空数组", async () => {
 		const stub = await startTrackedStubServer(() => ({ body: JSON.stringify({ success: true }) }));
 
-		await expect(makeProvider(stub.base).search({ query: "q", maxResults: 5 })).resolves.toEqual([]);
+		await expect(makeProvider(stub.base).search({ query: "q", maxResults: 5 })).resolves.toEqual(
+			[],
+		);
 	});
 
 	it("HTTP 200 但 success 为 false 时抛错，带服务端 error 文本", async () => {
@@ -56,6 +64,8 @@ describe("firecrawl provider", () => {
 			body: JSON.stringify({ success: false, error: "invalid api key" }),
 		}));
 
-		await expect(makeProvider(stub.base).search({ query: "q", maxResults: 5 })).rejects.toThrow(/invalid api key/);
+		await expect(makeProvider(stub.base).search({ query: "q", maxResults: 5 })).rejects.toThrow(
+			/invalid api key/,
+		);
 	});
 });

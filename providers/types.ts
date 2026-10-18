@@ -34,7 +34,11 @@ export interface SearchProvider {
 }
 
 /** 统一映射：缺 title 用 url 顶替，snippet 折叠空白；缺 url 返回 undefined 由调用方丢弃。 */
-export function toSearchResult(raw: { title?: string; url?: string; snippet?: string }): SearchResult | undefined {
+export function toSearchResult(raw: {
+	title?: string;
+	url?: string;
+	snippet?: string;
+}): SearchResult | undefined {
 	const url = raw.url?.trim();
 	if (!url) return undefined;
 	return {

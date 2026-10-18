@@ -2,12 +2,12 @@
 
 import { join } from "node:path";
 import {
-	loadConfig,
 	type ApiKeyId,
 	type ContextSettings,
 	type FetchSettings,
 	type GitHubHandlerSettings,
 	type GuidanceFields,
+	loadConfig,
 	type ProviderId,
 	type RedditHandlerSettings,
 	type ResolvedConfig,
@@ -34,7 +34,10 @@ export interface ConfigOverrides {
 
 /** 全默认配置 + 逐块合并覆盖；configPath 指向不存在的文件，env 为空。 */
 export function makeConfig(overrides: ConfigOverrides = {}): ResolvedConfig {
-	const base = loadConfig({ configPath: join(process.cwd(), "test", ".no-such-config.json"), env: {} });
+	const base = loadConfig({
+		configPath: join(process.cwd(), "test", ".no-such-config.json"),
+		env: {},
+	});
 	return {
 		...base,
 		...overrides,
@@ -74,7 +77,12 @@ export function fakeHttp(handler: (url: string, body: string | undefined) => Stu
 		async fetchText(url: string, request?: HttpRequest): Promise<HttpTextResult> {
 			calls.push({ method: "text", url, body: request?.body });
 			const reply = handler(url, request?.body);
-			return { status: reply.status ?? 200, url, contentType: reply.contentType ?? "text/html", text: reply.text };
+			return {
+				status: reply.status ?? 200,
+				url,
+				contentType: reply.contentType ?? "text/html",
+				text: reply.text,
+			};
 		},
 		async fetchJson<T>(url: string, request?: HttpRequest): Promise<HttpJsonResult<T>> {
 			calls.push({ method: "json", url, body: request?.body });

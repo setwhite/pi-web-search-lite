@@ -15,7 +15,9 @@ export function createDeepSeekExtractor(baseUrl = DEEPSEEK_API_BASE): Extractor 
 	return {
 		id: "deepseek",
 		unavailableReason: (ctx) =>
-			ctx.apiKeys.deepseek?.trim() ? null : `not configured (${API_KEY_ENV_KEYS.deepseek} env var or config.apiKeys.deepseek)`,
+			ctx.apiKeys.deepseek?.trim()
+				? null
+				: `not configured (${API_KEY_ENV_KEYS.deepseek} env var or config.apiKeys.deepseek)`,
 		async extract(url, ctx: ExtractorContext): Promise<ExtractedContent> {
 			const apiKey = ctx.apiKeys.deepseek?.trim() ?? "";
 			const { data } = await ctx.http.fetchJson<DeepSeekFetchResponse>(endpoint, {

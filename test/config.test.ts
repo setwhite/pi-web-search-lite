@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { defaultConfigPath, loadConfig } from "../config/index.ts";
 
-const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as { version: string };
+const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
+	version: string;
+};
 
 const createdDirs: string[] = [];
 
@@ -71,7 +73,9 @@ describe("loadConfig", () => {
 	});
 
 	it("环境变量 API key 优先于配置文件，未覆盖的沿用文件值", () => {
-		const path = writeConfig(JSON.stringify({ apiKeys: { tavily: "file-tavily", brave: "file-brave" } }));
+		const path = writeConfig(
+			JSON.stringify({ apiKeys: { tavily: "file-tavily", brave: "file-brave" } }),
+		);
 		const config = loadConfig({ configPath: path, env: { TAVILY_API_KEY: "env-tavily" } });
 
 		expect(config.apiKeys).toEqual({ tavily: "env-tavily", brave: "file-brave" });
@@ -94,9 +98,14 @@ describe("loadConfig", () => {
 	});
 
 	it("handlers.reddit 可换实例，baseUrl 原样保留（含子路径）", () => {
-		const path = writeConfig(JSON.stringify({ handlers: { reddit: { baseUrl: "https://example.com/redlib/" } } }));
+		const path = writeConfig(
+			JSON.stringify({ handlers: { reddit: { baseUrl: "https://example.com/redlib/" } } }),
+		);
 
-		expect(loadConfig({ configPath: path, env: {} }).handlers.reddit).toEqual({ enabled: true, baseUrl: "https://example.com/redlib/" });
+		expect(loadConfig({ configPath: path, env: {} }).handlers.reddit).toEqual({
+			enabled: true,
+			baseUrl: "https://example.com/redlib/",
+		});
 	});
 
 	it("handlers.reddit 的非法 baseUrl 与未知键都报字段路径", () => {
@@ -118,25 +127,42 @@ describe("loadConfig", () => {
 
 	it("timeoutMs 越界被 clamp 到 1_000–120_000", () => {
 		const low = loadConfig({ configPath: writeConfig(JSON.stringify({ timeoutMs: 10 })), env: {} });
-		const high = loadConfig({ configPath: writeConfig(JSON.stringify({ timeoutMs: 999_999 })), env: {} });
+		const high = loadConfig({
+			configPath: writeConfig(JSON.stringify({ timeoutMs: 999_999 })),
+			env: {},
+		});
 
 		expect(low.timeoutMs).toBe(1_000);
 		expect(high.timeoutMs).toBe(120_000);
 	});
 
 	it("fetch.minChars 越界被 clamp 到 0–100_000", () => {
-		const low = loadConfig({ configPath: writeConfig(JSON.stringify({ fetch: { minChars: -5 } })), env: {} });
-		const high = loadConfig({ configPath: writeConfig(JSON.stringify({ fetch: { minChars: 10_000_000 } })), env: {} });
+		const low = loadConfig({
+			configPath: writeConfig(JSON.stringify({ fetch: { minChars: -5 } })),
+			env: {},
+		});
+		const high = loadConfig({
+			configPath: writeConfig(JSON.stringify({ fetch: { minChars: 10_000_000 } })),
+			env: {},
+		});
 
 		expect(low.fetch.minChars).toBe(0);
 		expect(high.fetch.minChars).toBe(100_000);
 	});
 
 	it("search.maxResultsLimit 越界被 clamp 到 1–20，defaultMaxResults 不超过 limit", () => {
-		const low = loadConfig({ configPath: writeConfig(JSON.stringify({ search: { maxResultsLimit: 0 } })), env: {} });
-		const high = loadConfig({ configPath: writeConfig(JSON.stringify({ search: { maxResultsLimit: 99 } })), env: {} });
+		const low = loadConfig({
+			configPath: writeConfig(JSON.stringify({ search: { maxResultsLimit: 0 } })),
+			env: {},
+		});
+		const high = loadConfig({
+			configPath: writeConfig(JSON.stringify({ search: { maxResultsLimit: 99 } })),
+			env: {},
+		});
 		const capped = loadConfig({
-			configPath: writeConfig(JSON.stringify({ search: { maxResultsLimit: 3, defaultMaxResults: 50 } })),
+			configPath: writeConfig(
+				JSON.stringify({ search: { maxResultsLimit: 3, defaultMaxResults: 50 } }),
+			),
 			env: {},
 		});
 
@@ -146,7 +172,9 @@ describe("loadConfig", () => {
 	});
 
 	it("两个工具同时 enabled: false 时报错", () => {
-		const path = writeConfig(JSON.stringify({ tools: { web_search: { enabled: false }, web_fetch: { enabled: false } } }));
+		const path = writeConfig(
+			JSON.stringify({ tools: { web_search: { enabled: false }, web_fetch: { enabled: false } } }),
+		);
 		const message = captureError(() => loadConfig({ configPath: path, env: {} }));
 
 		expect(message).toContain("web_search");
@@ -155,13 +183,22 @@ describe("loadConfig", () => {
 
 	it("工具名不合法、占用宿主保留名或重复时报错", () => {
 		const badSyntax = captureError(() =>
-			loadConfig({ configPath: writeConfig(JSON.stringify({ tools: { web_search: { name: "1bad" } } })), env: {} }),
+			loadConfig({
+				configPath: writeConfig(JSON.stringify({ tools: { web_search: { name: "1bad" } } })),
+				env: {},
+			}),
 		);
 		const reserved = captureError(() =>
-			loadConfig({ configPath: writeConfig(JSON.stringify({ tools: { web_search: { name: "read" } } })), env: {} }),
+			loadConfig({
+				configPath: writeConfig(JSON.stringify({ tools: { web_search: { name: "read" } } })),
+				env: {},
+			}),
 		);
 		const duplicated = captureError(() =>
-			loadConfig({ configPath: writeConfig(JSON.stringify({ tools: { web_fetch: { name: "web_search" } } })), env: {} }),
+			loadConfig({
+				configPath: writeConfig(JSON.stringify({ tools: { web_fetch: { name: "web_search" } } })),
+				env: {},
+			}),
 		);
 
 		expect(badSyntax).toContain("tools.web_search.name");
@@ -185,7 +222,9 @@ describe("loadConfig", () => {
 
 	it("provider 接受 firecrawl / perplexity / parallel / keenable / deepseek", () => {
 		for (const id of ["firecrawl", "perplexity", "parallel", "keenable", "deepseek"] as const) {
-			expect(loadConfig({ configPath: writeConfig(JSON.stringify({ provider: id })), env: {} }).provider).toBe(id);
+			expect(
+				loadConfig({ configPath: writeConfig(JSON.stringify({ provider: id })), env: {} }).provider,
+			).toBe(id);
 		}
 	});
 
@@ -200,7 +239,9 @@ describe("loadConfig", () => {
 
 	it("fetch.extractors 接受 parallel / keenable / deepseek", () => {
 		const config = loadConfig({
-			configPath: writeConfig(JSON.stringify({ fetch: { extractors: ["keenable", "deepseek", "parallel"] } })),
+			configPath: writeConfig(
+				JSON.stringify({ fetch: { extractors: ["keenable", "deepseek", "parallel"] } }),
+			),
 			env: {},
 		});
 
@@ -208,23 +249,45 @@ describe("loadConfig", () => {
 	});
 
 	it("新增 key 支持环境变量与配置文件，环境变量优先", () => {
-		const path = writeConfig(JSON.stringify({ apiKeys: { jina: "file-jina", firecrawl: "file-fc" } }));
+		const path = writeConfig(
+			JSON.stringify({ apiKeys: { jina: "file-jina", firecrawl: "file-fc" } }),
+		);
 		const config = loadConfig({
 			configPath: path,
-			env: { FIRECRAWL_API_KEY: "env-fc", PERPLEXITY_API_KEY: "env-pplx", JINA_API_KEY: "env-jina" },
+			env: {
+				FIRECRAWL_API_KEY: "env-fc",
+				PERPLEXITY_API_KEY: "env-pplx",
+				JINA_API_KEY: "env-jina",
+			},
 		});
 
-		expect(config.apiKeys).toEqual({ firecrawl: "env-fc", perplexity: "env-pplx", jina: "env-jina" });
+		expect(config.apiKeys).toEqual({
+			firecrawl: "env-fc",
+			perplexity: "env-pplx",
+			jina: "env-jina",
+		});
 	});
 
 	it("新增三家的 key 支持环境变量与配置文件，环境变量优先", () => {
-		const path = writeConfig(JSON.stringify({ apiKeys: { parallel: "file-parallel", keenable: "file-keen", deepseek: "file-ds" } }));
+		const path = writeConfig(
+			JSON.stringify({
+				apiKeys: { parallel: "file-parallel", keenable: "file-keen", deepseek: "file-ds" },
+			}),
+		);
 		const config = loadConfig({
 			configPath: path,
-			env: { PARALLEL_API_KEY: "env-parallel", KEENABLE_API_KEY: "env-keen", DEEPSEEK_API_KEY: "env-ds" },
+			env: {
+				PARALLEL_API_KEY: "env-parallel",
+				KEENABLE_API_KEY: "env-keen",
+				DEEPSEEK_API_KEY: "env-ds",
+			},
 		});
 
-		expect(config.apiKeys).toEqual({ parallel: "env-parallel", keenable: "env-keen", deepseek: "env-ds" });
+		expect(config.apiKeys).toEqual({
+			parallel: "env-parallel",
+			keenable: "env-keen",
+			deepseek: "env-ds",
+		});
 	});
 
 	it("未知 apiKeys 键仍然报错", () => {

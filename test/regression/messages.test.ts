@@ -61,11 +61,17 @@ describe("回归：错误文案", () => {
 			Promise.resolve().then(() => loadConfig({ configPath: path, env: {} })),
 		);
 
-		expect(error.message.replace(path, "<config>")).toContain("config file <config> is not valid JSON:");
+		expect(error.message.replace(path, "<config>")).toContain(
+			"config file <config> is not valid JSON:",
+		);
 	});
 
 	it("gh 未安装时给出安装提示与配置键", async () => {
-		const availability = await checkGhAvailable("gh-missing-xyz", { exec: execGh, timeoutMs: 5_000, env: process.env });
+		const availability = await checkGhAvailable("gh-missing-xyz", {
+			exec: execGh,
+			timeoutMs: 5_000,
+			env: process.env,
+		});
 
 		expect(availability.ok).toBe(false);
 		expect(availability.reason).toContain("gh command not found (gh-missing-xyz)");
@@ -73,11 +79,19 @@ describe("回归：错误文案", () => {
 	});
 
 	it("gh 未登录时提示先登录", async () => {
-		const stub = ghStub({ auth: { ok: false, stdout: "", stderr: "HTTP 401: Bad credentials", error: "" } });
+		const stub = ghStub({
+			auth: { ok: false, stdout: "", stderr: "HTTP 401: Bad credentials", error: "" },
+		});
 
-		const availability = await checkGhAvailable("gh-probe-fake", { exec: stub.exec, timeoutMs: 5_000, env: {} });
+		const availability = await checkGhAvailable("gh-probe-fake", {
+			exec: stub.exec,
+			timeoutMs: 5_000,
+			env: {},
+		});
 
-		expect(availability.reason).toBe("gh is not authenticated: HTTP 401: Bad credentials. Run gh auth login first.");
+		expect(availability.reason).toBe(
+			"gh is not authenticated: HTTP 401: Bad credentials. Run gh auth login first.",
+		);
 	});
 
 	it("提取器全败时逐行聚合每个提取器的原因", async () => {

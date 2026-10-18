@@ -39,9 +39,13 @@ describe("回归：web_fetch 入口的 SSRF 黑名单", () => {
 	});
 
 	it("公网域名放行（证明未过度拦截）", async () => {
-		const http = fakeHttp(() => ({ text: `<html><title>ok</title><body>${"内容".repeat(150)}</body></html>` }));
+		const http = fakeHttp(() => ({
+			text: `<html><title>ok</title><body>${"内容".repeat(150)}</body></html>`,
+		}));
 
-		const result = await executeFetch(config, { url: "http://example.test/ok" }, undefined, { http });
+		const result = await executeFetch(config, { url: "http://example.test/ok" }, undefined, {
+			http,
+		});
 
 		expect(http.calls[0]?.url).toBe("http://example.test/ok");
 		expect(result.details.source).toBe("html");

@@ -1,5 +1,5 @@
-import type { AddressInfo } from "node:net";
 import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { assertPublicUrl, isLoopbackHost, SsrfError, type SsrfErrorType } from "../ssrf/index.ts";
 

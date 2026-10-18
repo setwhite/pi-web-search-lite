@@ -30,12 +30,20 @@ export const execGh: GhExecutor = (command, args, options) =>
 			);
 		} catch (error) {
 			// Windows 上 execFile 遇到 .cmd/.bat 会同步抛 EINVAL
-			resolve({ ok: false, stdout: "", stderr: "", error: error instanceof Error ? error.message : String(error) });
+			resolve({
+				ok: false,
+				stdout: "",
+				stderr: "",
+				error: error instanceof Error ? error.message : String(error),
+			});
 		}
 	});
 
 /** gh 认这两个变量；github.com 不适用 localhost 绕过规则。 */
-export function ghEnv(proxy: string | undefined, base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+export function ghEnv(
+	proxy: string | undefined,
+	base: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
 	const env: NodeJS.ProcessEnv = { ...base, GH_PROMPT_DISABLED: "1", GIT_TERMINAL_PROMPT: "0" };
 	if (proxy) {
 		env.HTTPS_PROXY = proxy;
@@ -93,13 +101,21 @@ async function runProbe(command: string, options: ProbeOptions): Promise<GhAvail
 	}
 	const auth = await options.exec(command, ["auth", "status"], runOptions(options));
 	if (!auth.ok) {
-		return { ok: false, reason: `gh is not authenticated: ${shortDetail(auth)}. Run gh auth login first.` };
+		return {
+			ok: false,
+			reason: `gh is not authenticated: ${shortDetail(auth)}. Run gh auth login first.`,
+		};
 	}
 	return { ok: true, reason: "" };
 }
 
 function runOptions(options: ProbeOptions): GhRunOptions {
-	return { timeoutMs: options.timeoutMs, maxBuffer: GH_MAX_BUFFER, env: options.env, signal: options.signal };
+	return {
+		timeoutMs: options.timeoutMs,
+		maxBuffer: GH_MAX_BUFFER,
+		env: options.env,
+		signal: options.signal,
+	};
 }
 
 /** 取错误输出首行并限长，用于原因文本。 */

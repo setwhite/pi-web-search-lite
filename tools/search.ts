@@ -1,11 +1,22 @@
 /** web_search 工具：provider 两层解析（env > config）、max_results clamp、统一结果信封与截断。 */
 
-import { Type, type Static } from "typebox";
+import { type Static, Type } from "typebox";
 import type { ProviderId, ResolvedConfig } from "../config/index.ts";
 import { createHttpClient, type HttpClient } from "../http/index.ts";
-import { createSearchProvider, resolveApiKey, resolveProviderId, type SearchProvider, type SearchResult } from "../providers/index.ts";
-import { buildToolResult, finalizeContent, type AgentToolResult, type ToolDefinition } from "./result.ts";
+import {
+	createSearchProvider,
+	resolveApiKey,
+	resolveProviderId,
+	type SearchProvider,
+	type SearchResult,
+} from "../providers/index.ts";
 import { renderSearchCall, renderSearchResult } from "./render.ts";
+import {
+	type AgentToolResult,
+	buildToolResult,
+	finalizeContent,
+	type ToolDefinition,
+} from "./result.ts";
 
 export interface SearchParams {
 	query: string;
@@ -29,7 +40,9 @@ export interface SearchDetails {
 
 /** clamp 到 1–search.maxResultsLimit；缺省或非法值退回 search.defaultMaxResults。 */
 export function clampMaxResults(requested: number | undefined, config: ResolvedConfig): number {
-	const value = Number.isFinite(requested) ? Math.trunc(requested as number) : config.search.defaultMaxResults;
+	const value = Number.isFinite(requested)
+		? Math.trunc(requested as number)
+		: config.search.defaultMaxResults;
 	return Math.min(Math.max(1, value), config.search.maxResultsLimit);
 }
 
@@ -41,7 +54,13 @@ export async function executeSearch(
 ): Promise<AgentToolResult<SearchDetails>> {
 	const providerId = resolveProviderId(config.provider);
 	const apiKey = resolveApiKey(providerId, config.apiKeys);
-	const http = overrides.http ?? createHttpClient({ proxy: config.proxy, timeoutMs: config.timeoutMs, userAgent: config.userAgent });
+	const http =
+		overrides.http ??
+		createHttpClient({
+			proxy: config.proxy,
+			timeoutMs: config.timeoutMs,
+			userAgent: config.userAgent,
+		});
 	const provider = overrides.provider ?? createSearchProvider(providerId, { http, apiKey });
 	const maxResults = clampMaxResults(params.max_results, config);
 
@@ -53,11 +72,18 @@ export async function executeSearch(
 			? "No results returned."
 			: results
 					.map((item, index) =>
-						[`${index + 1}. ${item.title}`, `   ${item.url}`, ...(item.snippet ? [`   ${item.snippet}`] : [])].join("\n"),
+						[
+							`${index + 1}. ${item.title}`,
+							`   ${item.url}`,
+							...(item.snippet ? [`   ${item.snippet}`] : []),
+						].join("\n"),
 					)
 					.join("\n\n");
 
-	const envelope = await finalizeContent(`${header}\n\n${body}`, { ...config.context, fileName: "web-search.md" });
+	const envelope = await finalizeContent(`${header}\n\n${body}`, {
+		...config.context,
+		fileName: "web-search.md",
+	});
 	return buildToolResult(envelope.content, {
 		provider: providerId,
 		query: params.query,

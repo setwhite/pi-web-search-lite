@@ -4,7 +4,11 @@ import { createKeenableProvider } from "../../providers/keenable.ts";
 import { startTrackedStubServer } from "../stub.ts";
 
 function makeProvider(baseUrl: string) {
-	const http = createHttpClient({ proxy: undefined, timeoutMs: 5_000, userAgent: "pi-web-search-lite/test" });
+	const http = createHttpClient({
+		proxy: undefined,
+		timeoutMs: 5_000,
+		userAgent: "pi-web-search-lite/test",
+	});
 	return createKeenableProvider({ http, apiKey: "keen-test-key", baseUrl });
 }
 
@@ -26,7 +30,12 @@ describe("keenable provider", () => {
 		const stub = await startTrackedStubServer(() => ({
 			body: JSON.stringify({
 				results: [
-					{ title: "  First  ", url: "https://a.test/1", snippet: "  long\n\n excerpt ", description: "short" },
+					{
+						title: "  First  ",
+						url: "https://a.test/1",
+						snippet: "  long\n\n excerpt ",
+						description: "short",
+					},
 					{ title: "Second", url: "https://b.test/2", description: "only description" },
 					{ title: "no url", snippet: "dropped" },
 				],
@@ -44,6 +53,8 @@ describe("keenable provider", () => {
 	it("results 缺失时返回空数组", async () => {
 		const stub = await startTrackedStubServer(() => ({ body: JSON.stringify({}) }));
 
-		await expect(makeProvider(stub.base).search({ query: "q", maxResults: 5 })).resolves.toEqual([]);
+		await expect(makeProvider(stub.base).search({ query: "q", maxResults: 5 })).resolves.toEqual(
+			[],
+		);
 	});
 });

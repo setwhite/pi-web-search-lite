@@ -1,12 +1,17 @@
 /** tools/render.ts：两个工具的调用行 / 结果行渲染（折叠、展开、partial、失败回退）。只影响 TUI，不改模型上下文。 */
 
-import { describe, expect, it } from "vitest";
 import type { ThemeColor } from "@earendil-works/pi-coding-agent";
+import { describe, expect, it } from "vitest";
+import type { FetchDetails } from "../../tools/fetch.ts";
+import { createFetchTool } from "../../tools/fetch.ts";
+import {
+	renderFetchCall,
+	renderFetchResult,
+	renderSearchCall,
+	renderSearchResult,
+} from "../../tools/render.ts";
 import type { AgentToolResult, Theme } from "../../tools/result.ts";
 import type { SearchDetails } from "../../tools/search.ts";
-import type { FetchDetails } from "../../tools/fetch.ts";
-import { renderFetchCall, renderFetchResult, renderSearchCall, renderSearchResult } from "../../tools/render.ts";
-import { createFetchTool } from "../../tools/fetch.ts";
 import { createSearchTool } from "../../tools/search.ts";
 import { makeConfig } from "./fixtures.ts";
 
@@ -92,7 +97,9 @@ describe("renderSearchResult", () => {
 		const { theme, calls } = makeTheme();
 		const result: AgentToolResult<SearchDetails> = { content: [], details: searchDetails() };
 
-		const collapsed = line(renderSearchResult(result, { expanded: false, isPartial: false }, theme));
+		const collapsed = line(
+			renderSearchResult(result, { expanded: false, isPartial: false }, theme),
+		);
 		expect(collapsed).toBe("✓ 2 results (tavily)");
 		expect(collapsed).not.toContain("结果甲");
 		expect(calls[0]).toEqual({ color: "success", text: "✓ 2 results" });
@@ -109,7 +116,10 @@ describe("renderSearchResult", () => {
 			url: `https://example.com/${index}`,
 			snippet: "",
 		}));
-		const result: AgentToolResult<SearchDetails> = { content: [], details: searchDetails({ results, count: 7 }) };
+		const result: AgentToolResult<SearchDetails> = {
+			content: [],
+			details: searchDetails({ results, count: 7 }),
+		};
 
 		const text = line(renderSearchResult(result, { expanded: true, isPartial: false }, theme));
 		expect(text).toContain("• t4");
@@ -119,14 +129,25 @@ describe("renderSearchResult", () => {
 
 	it("截断时给标记", () => {
 		const { theme } = makeTheme();
-		const result: AgentToolResult<SearchDetails> = { content: [], details: searchDetails({ truncated: true }) };
+		const result: AgentToolResult<SearchDetails> = {
+			content: [],
+			details: searchDetails({ truncated: true }),
+		};
 
-		expect(line(renderSearchResult(result, { expanded: false, isPartial: false }, theme))).toContain(" (truncated)");
+		expect(
+			line(renderSearchResult(result, { expanded: false, isPartial: false }, theme)),
+		).toContain(" (truncated)");
 	});
 
 	it("执行中显示进行中状态", () => {
 		const { theme, calls } = makeTheme();
-		const text = line(renderSearchResult({ content: [], details: searchDetails() }, { expanded: false, isPartial: true }, theme));
+		const text = line(
+			renderSearchResult(
+				{ content: [], details: searchDetails() },
+				{ expanded: false, isPartial: true },
+				theme,
+			),
+		);
 
 		expect(text).toBe("Searching…");
 		expect(calls[0]?.color).toBe("warning");
@@ -134,15 +155,22 @@ describe("renderSearchResult", () => {
 
 	it("失败：details 为空对象时显示 ✗ 与错误首行，展开补全，绝不出现 ✓", () => {
 		const { theme, calls } = makeTheme();
-		const message = 'provider "tavily" is missing an API key: set the TAVILY_API_KEY env var.\nSecond line detail';
+		const message =
+			'provider "tavily" is missing an API key: set the TAVILY_API_KEY env var.\nSecond line detail';
 
-		const collapsed = line(renderSearchResult(failure(message), { expanded: false, isPartial: false }, theme));
-		expect(collapsed).toContain('✗ provider "tavily" is missing an API key: set the TAVILY_API_KEY env var.');
+		const collapsed = line(
+			renderSearchResult(failure(message), { expanded: false, isPartial: false }, theme),
+		);
+		expect(collapsed).toContain(
+			'✗ provider "tavily" is missing an API key: set the TAVILY_API_KEY env var.',
+		);
 		expect(collapsed).not.toContain("✓");
 		expect(collapsed).not.toContain("Second line detail");
 		expect(calls[0]?.color).toBe("error");
 
-		const expanded = line(renderSearchResult(failure(message), { expanded: true, isPartial: false }, theme));
+		const expanded = line(
+			renderSearchResult(failure(message), { expanded: true, isPartial: false }, theme),
+		);
 		expect(expanded).toContain("Second line detail");
 	});
 
@@ -151,7 +179,15 @@ describe("renderSearchResult", () => {
 		// 非宿主形状的防御用例：details 缺失（宿主抛错时给 {}，不会给 undefined）
 		const empty: AgentToolResult<unknown> = { content: [], details: undefined };
 
-		expect(line(renderSearchResult(empty as AgentToolResult<SearchDetails>, { expanded: false, isPartial: false }, theme))).toContain("✗");
+		expect(
+			line(
+				renderSearchResult(
+					empty as AgentToolResult<SearchDetails>,
+					{ expanded: false, isPartial: false },
+					theme,
+				),
+			),
+		).toContain("✗");
 	});
 });
 
@@ -159,7 +195,9 @@ describe("renderFetchCall", () => {
 	it("显示 URL，空参数不抛错", () => {
 		const { theme } = makeTheme();
 
-		expect(line(renderFetchCall({ url: "https://example.com/" }, theme))).toBe("Web Fetch https://example.com/");
+		expect(line(renderFetchCall({ url: "https://example.com/" }, theme))).toBe(
+			"Web Fetch https://example.com/",
+		);
 		expect(() => line(renderFetchCall({} as never, theme))).not.toThrow();
 	});
 });
@@ -195,14 +233,22 @@ describe("renderFetchResult", () => {
 		];
 
 		for (const [source, expected] of cases) {
-			const result: AgentToolResult<FetchDetails> = { content: [], details: fetchDetails({ source }) };
-			expect(line(renderFetchResult(result, { expanded: false, isPartial: false }, theme))).toBe(expected);
+			const result: AgentToolResult<FetchDetails> = {
+				content: [],
+				details: fetchDetails({ source }),
+			};
+			expect(line(renderFetchResult(result, { expanded: false, isPartial: false }, theme))).toBe(
+				expected,
+			);
 		}
 	});
 
 	it("内容不超过预览上限时不显示省略行", () => {
 		const { theme } = makeTheme();
-		const result: AgentToolResult<FetchDetails> = { content: [{ type: "text", text: "一行" }], details: fetchDetails() };
+		const result: AgentToolResult<FetchDetails> = {
+			content: [{ type: "text", text: "一行" }],
+			details: fetchDetails(),
+		};
 
 		const text = line(renderFetchResult(result, { expanded: true, isPartial: false }, theme));
 		expect(text).not.toContain("more lines");
@@ -210,7 +256,10 @@ describe("renderFetchResult", () => {
 
 	it("截断时给标记", () => {
 		const { theme } = makeTheme();
-		const result: AgentToolResult<FetchDetails> = { content: [], details: fetchDetails({ truncated: true }) };
+		const result: AgentToolResult<FetchDetails> = {
+			content: [],
+			details: fetchDetails({ truncated: true }),
+		};
 
 		expect(line(renderFetchResult(result, { expanded: false, isPartial: false }, theme))).toBe(
 			"✓ Fetched: Example Domain (html) (truncated)",
@@ -219,7 +268,13 @@ describe("renderFetchResult", () => {
 
 	it("执行中显示进行中状态", () => {
 		const { theme, calls } = makeTheme();
-		const text = line(renderFetchResult({ content: [], details: fetchDetails() }, { expanded: false, isPartial: true }, theme));
+		const text = line(
+			renderFetchResult(
+				{ content: [], details: fetchDetails() },
+				{ expanded: false, isPartial: true },
+				theme,
+			),
+		);
 
 		expect(text).toBe("Fetching…");
 		expect(calls[0]?.color).toBe("warning");
@@ -227,8 +282,11 @@ describe("renderFetchResult", () => {
 
 	it("失败：显示 ✗ 与错误首行，绝不出现 ✓", () => {
 		const { theme } = makeTheme();
-		const message = "all extractors failed to produce usable content (3 tried):\n- html: failed (network error)";
-		const text = line(renderFetchResult(failure(message), { expanded: false, isPartial: false }, theme));
+		const message =
+			"all extractors failed to produce usable content (3 tried):\n- html: failed (network error)";
+		const text = line(
+			renderFetchResult(failure(message), { expanded: false, isPartial: false }, theme),
+		);
 
 		expect(text).toContain("✗ all extractors failed to produce usable content (3 tried):");
 		expect(text).not.toContain("✓");
@@ -242,8 +300,20 @@ describe("失败判定：宿主真实形状", () => {
 		// 宿主 createErrorToolResult 产出的形状：details 为空对象，错误全文在 content
 		const result = { content: [{ type: "text" as const, text: "boom" }], details: {} };
 
-		const search = line(renderSearchResult(result as AgentToolResult<SearchDetails>, { expanded: false, isPartial: false }, theme));
-		const fetchResult = line(renderFetchResult(result as AgentToolResult<FetchDetails>, { expanded: false, isPartial: false }, theme));
+		const search = line(
+			renderSearchResult(
+				result as AgentToolResult<SearchDetails>,
+				{ expanded: false, isPartial: false },
+				theme,
+			),
+		);
+		const fetchResult = line(
+			renderFetchResult(
+				result as AgentToolResult<FetchDetails>,
+				{ expanded: false, isPartial: false },
+				theme,
+			),
+		);
 
 		expect(search).toBe("✗ boom");
 		expect(fetchResult).toBe("✗ boom");

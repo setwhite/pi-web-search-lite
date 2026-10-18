@@ -4,7 +4,11 @@ import { createPerplexityProvider } from "../../providers/perplexity.ts";
 import { startTrackedStubServer } from "../stub.ts";
 
 function makeProvider(baseUrl: string) {
-	const http = createHttpClient({ proxy: undefined, timeoutMs: 5_000, userAgent: "pi-web-search-lite/test" });
+	const http = createHttpClient({
+		proxy: undefined,
+		timeoutMs: 5_000,
+		userAgent: "pi-web-search-lite/test",
+	});
 	return createPerplexityProvider({ http, apiKey: "pplx-test-key", baseUrl });
 }
 
@@ -44,6 +48,8 @@ describe("perplexity provider", () => {
 	it("results 缺失时返回空数组", async () => {
 		const stub = await startTrackedStubServer(() => ({ body: JSON.stringify({}) }));
 
-		await expect(makeProvider(stub.base).search({ query: "q", maxResults: 5 })).resolves.toEqual([]);
+		await expect(makeProvider(stub.base).search({ query: "q", maxResults: 5 })).resolves.toEqual(
+			[],
+		);
 	});
 });

@@ -31,13 +31,23 @@ export function assertPublicUrl(input: string): URL {
 	}
 
 	if (url.protocol !== "http:" && url.protocol !== "https:") {
-		throw new SsrfError("blocked_protocol", input, `only http/https is allowed, got ${url.protocol}`);
+		throw new SsrfError(
+			"blocked_protocol",
+			input,
+			`only http/https is allowed, got ${url.protocol}`,
+		);
 	}
 
 	const host = normalizeHostname(url.hostname);
 	if (host === "") throw new SsrfError("invalid_url", input, "missing host name");
-	if (isLocalName(host)) throw new SsrfError("blocked_host", input, `blocked host (localhost or .local): ${host}`);
-	if (isBlockedIp(host)) throw new SsrfError("blocked_ip", input, `blocked private, loopback or link-local address: ${host}`);
+	if (isLocalName(host))
+		throw new SsrfError("blocked_host", input, `blocked host (localhost or .local): ${host}`);
+	if (isBlockedIp(host))
+		throw new SsrfError(
+			"blocked_ip",
+			input,
+			`blocked private, loopback or link-local address: ${host}`,
+		);
 
 	return url;
 }
@@ -60,7 +70,10 @@ export function isLoopbackHost(hostname: string): boolean {
 // --- 主机名与 IP 判定 -------------------------------------------------------
 
 function normalizeHostname(hostname: string): string {
-	return hostname.replace(/^\[|\]$/g, "").toLowerCase().replace(/\.$/, "");
+	return hostname
+		.replace(/^\[|\]$/g, "")
+		.toLowerCase()
+		.replace(/\.$/, "");
 }
 
 function isLocalName(host: string): boolean {
@@ -110,7 +123,12 @@ function parseIpv4(host: string): number[] | undefined {
 function parseIpv6(host: string): number[] | undefined {
 	if (!host.includes(":")) return undefined;
 	const [head, tail] = host.split("::");
-	const headParts = tail === undefined ? expandTrailing(head === "" ? [] : head.split(":")) : head === "" ? [] : head.split(":");
+	const headParts =
+		tail === undefined
+			? expandTrailing(head === "" ? [] : head.split(":"))
+			: head === ""
+				? []
+				: head.split(":");
 	const tailParts = tail === undefined || tail === "" ? [] : expandTrailing(tail.split(":"));
 	const missing = 8 - headParts.length - tailParts.length;
 	if (tail === undefined ? missing !== 0 : missing < 1) return undefined;
@@ -131,7 +149,11 @@ function expandTrailing(parts: string[]): string[] {
 	if (last === undefined || !last.includes(".")) return parts;
 	const v4 = parseIpv4(last);
 	if (!v4) return parts; // 交给后续正则报非法
-	return [...parts.slice(0, -1), ((v4[0] << 8) | v4[1]).toString(16), ((v4[2] << 8) | v4[3]).toString(16)];
+	return [
+		...parts.slice(0, -1),
+		((v4[0] << 8) | v4[1]).toString(16),
+		((v4[2] << 8) | v4[3]).toString(16),
+	];
 }
 
 function isMappedIpv4(v6: number[]): boolean {

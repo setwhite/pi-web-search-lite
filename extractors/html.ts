@@ -3,7 +3,12 @@
 import type { ExtractedContent, Extractor } from "./types.ts";
 
 /** 这些内容类型不押注在 HTML 提取上，直接抛错顺延。 */
-const BINARY_CONTENT_TYPES = [/^image\//, /^audio\//, /^video\//, /^application\/(?:pdf|zip|octet-stream|x-7z-compressed)/];
+const BINARY_CONTENT_TYPES = [
+	/^image\//,
+	/^audio\//,
+	/^video\//,
+	/^application\/(?:pdf|zip|octet-stream|x-7z-compressed)/,
+];
 
 const BLOCK_TAGS =
 	/<\/?(?:br|p|div|section|article|header|footer|main|aside|nav|figure|figcaption|dl|dt|dd|form|fieldset|li|ul|ol|tr|td|th|table|caption|h[1-6]|blockquote|pre|hr)\b[^>]*\/?>/gi;
@@ -17,7 +22,11 @@ export const htmlExtractor: Extractor = {
 		if (BINARY_CONTENT_TYPES.some((pattern) => pattern.test(contentType))) {
 			throw new Error(`unsupported content type: ${contentType || "unknown"}`);
 		}
-		return { url: response.url, title: extractTitle(response.text), content: htmlToText(response.text) };
+		return {
+			url: response.url,
+			title: extractTitle(response.text),
+			content: htmlToText(response.text),
+		};
 	},
 };
 

@@ -1,6 +1,11 @@
 /** Tavily：POST /search，Bearer 认证，body `{ query, max_results }`。 */
 
-import { type ProviderRuntime, type SearchProvider, type SearchResult, toSearchResult } from "./types.ts";
+import {
+	type ProviderRuntime,
+	type SearchProvider,
+	type SearchResult,
+	toSearchResult,
+} from "./types.ts";
 
 export const TAVILY_BASE_URL = "https://api.tavily.com";
 

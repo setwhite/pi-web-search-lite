@@ -13,7 +13,9 @@ type Stub = {
 	close: () => Promise<void>;
 };
 
-async function startStub(handler: (req: IncomingMessage, res: ServerResponse) => void): Promise<Stub> {
+async function startStub(
+	handler: (req: IncomingMessage, res: ServerResponse) => void,
+): Promise<Stub> {
 	const requests: IncomingMessage[] = [];
 	const server = createServer((req, res) => {
 		requests.push(req);
@@ -42,7 +44,11 @@ async function startHangingStub(): Promise<Stub> {
 }
 
 function makeClient(options: { proxy?: string; timeoutMs?: number } = {}) {
-	return createHttpClient({ proxy: options.proxy, timeoutMs: options.timeoutMs ?? 5_000, userAgent: UA });
+	return createHttpClient({
+		proxy: options.proxy,
+		timeoutMs: options.timeoutMs ?? 5_000,
+		userAgent: UA,
+	});
 }
 
 const cleanups: Array<() => Promise<void>> = [];
@@ -82,18 +88,28 @@ describe("http：请求形状与响应", () => {
 				});
 				req.on("end", () => {
 					res.writeHead(200, { "content-type": "application/json" });
-					res.end(JSON.stringify({ method: req.method, contentType: req.headers["content-type"], body }));
+					res.end(
+						JSON.stringify({ method: req.method, contentType: req.headers["content-type"], body }),
+					);
 				});
 			}),
 		);
 
-		const result = await makeClient().fetchJson<{ method: string; contentType: string; body: string }>(`${stub.base}/echo`, {
+		const result = await makeClient().fetchJson<{
+			method: string;
+			contentType: string;
+			body: string;
+		}>(`${stub.base}/echo`, {
 			method: "POST",
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify({ q: "hi" }),
 		});
 
-		expect(result.data).toEqual({ method: "POST", contentType: "application/json", body: '{"q":"hi"}' });
+		expect(result.data).toEqual({
+			method: "POST",
+			contentType: "application/json",
+			body: '{"q":"hi"}',
+		});
 	});
 
 	it("非 2xx 抛 http_status，错误含状态码、URL 与响应体", async () => {
@@ -165,7 +181,12 @@ describe("http：代理", () => {
 	 * 桩代理：只认 absolute-form 转发 —— undici 的 ProxyAgent 默认 `proxyTunnel: false`，只对 https 目标建 CONNECT 隧道，
 	 * 本组用例全是 http 目标，所以这里没有 `connect` 分支（写了也走不到）。
 	 */
-	async function startProxyStub(): Promise<{ base: string; forwarded: string[]; hits: number; close: () => Promise<void> }> {
+	async function startProxyStub(): Promise<{
+		base: string;
+		forwarded: string[];
+		hits: number;
+		close: () => Promise<void>;
+	}> {
 		const forwarded: string[] = [];
 		const server = createServer((req, res) => {
 			forwarded.push(`request ${req.method} ${req.url}`);

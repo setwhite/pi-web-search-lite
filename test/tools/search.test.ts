@@ -21,7 +21,10 @@ function fakeProvider(id: ProviderId, results: SearchResult[] = []) {
 	return { provider, seen };
 }
 
-const config = makeConfig({ apiKeys: { tavily: "tvly-key" }, search: { defaultMaxResults: 5, maxResultsLimit: 10 } });
+const config = makeConfig({
+	apiKeys: { tavily: "tvly-key" },
+	search: { defaultMaxResults: 5, maxResultsLimit: 10 },
+});
 
 afterEach(() => {
 	vi.unstubAllEnvs();
@@ -30,7 +33,9 @@ afterEach(() => {
 describe("executeSearch", () => {
 	it("max_results 超上限时 clamp 到 maxResultsLimit，未传时用 defaultMaxResults", async () => {
 		const capped = fakeProvider("tavily");
-		await executeSearch(config, { query: "q", max_results: 999 }, undefined, { provider: capped.provider });
+		await executeSearch(config, { query: "q", max_results: 999 }, undefined, {
+			provider: capped.provider,
+		});
 
 		const fallback = fakeProvider("tavily");
 		await executeSearch(config, { query: "q" }, undefined, { provider: fallback.provider });
@@ -49,7 +54,12 @@ describe("executeSearch", () => {
 		expect(text).toContain("示例结果");
 		expect(text).toContain("https://example.com/a");
 		expect(text).toContain("这是摘要");
-		expect(result.details).toMatchObject({ provider: "tavily", query: "pi", count: 2, truncated: false });
+		expect(result.details).toMatchObject({
+			provider: "tavily",
+			query: "pi",
+			count: 2,
+			truncated: false,
+		});
 	});
 
 	it("WEB_SEARCH_PROVIDER 覆盖 config.provider", async () => {
@@ -65,7 +75,9 @@ describe("executeSearch", () => {
 	it("缺 key 时抛错并指明环境变量与配置键", async () => {
 		const { provider } = fakeProvider("tavily", RESULTS);
 
-		const error = await rejectionOf(executeSearch(makeConfig({ apiKeys: {} }), { query: "q" }, undefined, { provider }));
+		const error = await rejectionOf(
+			executeSearch(makeConfig({ apiKeys: {} }), { query: "q" }, undefined, { provider }),
+		);
 
 		expect(error.message).toContain("TAVILY_API_KEY");
 		expect(error.message).toContain("config.apiKeys.tavily");
@@ -81,7 +93,9 @@ describe("executeSearch", () => {
 	});
 
 	it("工具名来自配置，参数 schema 只有 query 与 max_results", () => {
-		const tool = createSearchTool(makeConfig({ tools: { web_search: { enabled: true, name: "find_web" } } }));
+		const tool = createSearchTool(
+			makeConfig({ tools: { web_search: { enabled: true, name: "find_web" } } }),
+		);
 
 		expect(tool.name).toBe("find_web");
 		expect(Object.keys(tool.parameters.properties).sort()).toEqual(["max_results", "query"]);

@@ -27,15 +27,25 @@ function countingExtractors() {
 			return { url, title: `${id} 标题`, content: "提取正文".repeat(60) };
 		},
 	});
-	const extractors = Object.fromEntries(EXTRACTOR_IDS.map((id) => [id, make(id)])) as Record<ExtractorId, Extractor>;
+	const extractors = Object.fromEntries(EXTRACTOR_IDS.map((id) => [id, make(id)])) as Record<
+		ExtractorId,
+		Extractor
+	>;
 	return { extractors, calls: () => calls };
 }
 
 describe("executeFetch：handler 与提取器链", () => {
 	it("按提取器链抓取正文并标注来源", async () => {
-		const http = fakeHttp(() => ({ text: `<html><head><title>页面标题</title></head><body><p>${"正文段落内容".repeat(40)}</p></body></html>` }));
+		const http = fakeHttp(() => ({
+			text: `<html><head><title>页面标题</title></head><body><p>${"正文段落内容".repeat(40)}</p></body></html>`,
+		}));
 
-		const result = await executeFetch(makeConfig(), { url: "https://example.com/page" }, undefined, { http });
+		const result = await executeFetch(
+			makeConfig(),
+			{ url: "https://example.com/page" },
+			undefined,
+			{ http },
+		);
 
 		expect(result.details.source).toBe("html");
 		expect(result.details.mode).toBe("extract");
@@ -49,11 +59,16 @@ describe("executeFetch：handler 与提取器链", () => {
 		const http = fakeHttp(() => ({ text: "不该被请求" }));
 		const stub = ghStub({ reply: () => ({ ok: true, stdout: JSON.stringify(ISSUE), stderr: "" }) });
 
-		const result = await executeFetch(makeConfig(), { url: "https://github.com/o/r/issues/7" }, undefined, {
-			http,
-			execGh: stub.exec,
-			extractors: counted.extractors,
-		});
+		const result = await executeFetch(
+			makeConfig(),
+			{ url: "https://github.com/o/r/issues/7" },
+			undefined,
+			{
+				http,
+				execGh: stub.exec,
+				extractors: counted.extractors,
+			},
+		);
 
 		expect(result.details.source).toBe("github");
 		expect(result.details.handlerSkips).toEqual([]);
@@ -62,10 +77,19 @@ describe("executeFetch：handler 与提取器链", () => {
 	});
 
 	it("handler 跳过时注明原因并顺延到链", async () => {
-		const http = fakeHttp(() => ({ text: `<html><title>GH 页面</title><body>${"回退正文".repeat(60)}</body></html>` }));
+		const http = fakeHttp(() => ({
+			text: `<html><title>GH 页面</title><body>${"回退正文".repeat(60)}</body></html>`,
+		}));
 
-		const stub = ghStub({ version: { ok: false, stdout: "", stderr: "", error: "spawn gh ENOENT" } });
-		const result = await executeFetch(makeConfig(), { url: "https://github.com/o/r/issues/7" }, undefined, { http, execGh: stub.exec });
+		const stub = ghStub({
+			version: { ok: false, stdout: "", stderr: "", error: "spawn gh ENOENT" },
+		});
+		const result = await executeFetch(
+			makeConfig(),
+			{ url: "https://github.com/o/r/issues/7" },
+			undefined,
+			{ http, execGh: stub.exec },
+		);
 
 		expect(result.details.source).toBe("html");
 		expect(result.details.handlerSkips?.[0]).toContain("gh command not found");
@@ -79,20 +103,31 @@ describe("executeFetch：reddit URL 改写", () => {
 	const REDDIT_POST = "https://www.reddit.com/r/rust/comments/1abc/title/";
 
 	it("换域名后交给链，并注明原链接", async () => {
-		const http = fakeHttp(() => ({ text: `<html><head><title>redlib 页面</title></head><body><p>${"正文段落".repeat(60)}</p></body></html>` }));
+		const http = fakeHttp(() => ({
+			text: `<html><head><title>redlib 页面</title></head><body><p>${"正文段落".repeat(60)}</p></body></html>`,
+		}));
 
 		const result = await executeFetch(makeConfig(), { url: REDDIT_POST }, undefined, { http });
 
-		expect(http.calls.map((call) => call.url)).toEqual(["https://redlib.catsarch.com/r/rust/comments/1abc/title/"]);
+		expect(http.calls.map((call) => call.url)).toEqual([
+			"https://redlib.catsarch.com/r/rust/comments/1abc/title/",
+		]);
 		expect(result.details.url).toBe("https://redlib.catsarch.com/r/rust/comments/1abc/title/");
 		expect(result.details.rewrittenFrom).toBe(REDDIT_POST);
 		expect(firstText(result)).toContain(`Rewritten from: ${REDDIT_POST}`);
 	});
 
 	it("handlers.reddit.enabled 为 false 时抓原 URL，不注来路", async () => {
-		const http = fakeHttp(() => ({ text: `<html><head><title>reddit 页面</title></head><body><p>${"正文段落".repeat(60)}</p></body></html>` }));
+		const http = fakeHttp(() => ({
+			text: `<html><head><title>reddit 页面</title></head><body><p>${"正文段落".repeat(60)}</p></body></html>`,
+		}));
 
-		const result = await executeFetch(makeConfig({ handlers: { reddit: { enabled: false } } }), { url: REDDIT_POST }, undefined, { http });
+		const result = await executeFetch(
+			makeConfig({ handlers: { reddit: { enabled: false } } }),
+			{ url: REDDIT_POST },
+			undefined,
+			{ http },
+		);
 
 		expect(http.calls.map((call) => call.url)).toEqual([REDDIT_POST]);
 		expect(result.details.rewrittenFrom).toBeUndefined();
@@ -104,7 +139,12 @@ describe("executeFetch：reddit URL 改写", () => {
 		const http = fakeHttp(() => ({ text: "不该被请求" }));
 
 		const error = await rejectionOf(
-			executeFetch(makeConfig({ handlers: { reddit: { baseUrl: "http://127.0.0.1:8080" } } }), { url: REDDIT_POST }, undefined, { http }),
+			executeFetch(
+				makeConfig({ handlers: { reddit: { baseUrl: "http://127.0.0.1:8080" } } }),
+				{ url: REDDIT_POST },
+				undefined,
+				{ http },
+			),
 		);
 
 		expect(error.message).toMatch(/私有|回环|link-local/);
@@ -122,11 +162,16 @@ describe("executeFetch：raw 与安全", () => {
 		};
 		const http = fakeHttp(() => ({ text: "RAW <b>BODY</b>", contentType: "text/plain" }));
 
-		const result = await executeFetch(makeConfig({ fetch: { allowRaw: true } }), { url: "https://example.com/raw", raw: true }, undefined, {
-			http,
-			execGh,
-			extractors: counted.extractors,
-		});
+		const result = await executeFetch(
+			makeConfig({ fetch: { allowRaw: true } }),
+			{ url: "https://example.com/raw", raw: true },
+			undefined,
+			{
+				http,
+				execGh,
+				extractors: counted.extractors,
+			},
+		);
 
 		expect(firstText(result)).toContain("RAW <b>BODY</b>");
 		expect(result.details.mode).toBe("raw");
@@ -140,7 +185,12 @@ describe("executeFetch：raw 与安全", () => {
 		const http = fakeHttp(() => ({ text: "raw" }));
 
 		const error = await rejectionOf(
-			executeFetch(makeConfig({ fetch: { allowRaw: false } }), { url: "https://example.com/x", raw: true }, undefined, { http }),
+			executeFetch(
+				makeConfig({ fetch: { allowRaw: false } }),
+				{ url: "https://example.com/x", raw: true },
+				undefined,
+				{ http },
+			),
 		);
 
 		expect(error.message).toContain("fetch.allowRaw");
@@ -150,21 +200,28 @@ describe("executeFetch：raw 与安全", () => {
 	it("内网 URL 被拒且不发请求", async () => {
 		const http = fakeHttp(() => ({ text: "不该被请求" }));
 
-		const error = await rejectionOf(executeFetch(makeConfig(), { url: "http://127.0.0.1:8080/x" }, undefined, { http }));
+		const error = await rejectionOf(
+			executeFetch(makeConfig(), { url: "http://127.0.0.1:8080/x" }, undefined, { http }),
+		);
 
 		expect(error.message).toMatch(/私有|回环|link-local/);
 		expect(http.calls).toEqual([]);
 	});
 
 	it("raw 是否进 schema 由 fetch.allowRaw 决定", () => {
-		const properties = (tool: { parameters: unknown }) => Object.keys((tool.parameters as { properties: object }).properties);
+		const properties = (tool: { parameters: unknown }) =>
+			Object.keys((tool.parameters as { properties: object }).properties);
 
 		expect(properties(createFetchTool(makeConfig({ fetch: { allowRaw: true } })))).toContain("raw");
-		expect(properties(createFetchTool(makeConfig({ fetch: { allowRaw: false } })))).not.toContain("raw");
+		expect(properties(createFetchTool(makeConfig({ fetch: { allowRaw: false } })))).not.toContain(
+			"raw",
+		);
 	});
 
 	it("工具名取 config.tools.web_fetch.name", () => {
-		const tool = createFetchTool(makeConfig({ tools: { web_fetch: { enabled: true, name: "fetch_page" } } }));
+		const tool = createFetchTool(
+			makeConfig({ tools: { web_fetch: { enabled: true, name: "fetch_page" } } }),
+		);
 
 		expect(tool.name).toBe("fetch_page");
 	});
@@ -172,11 +229,18 @@ describe("executeFetch：raw 与安全", () => {
 
 describe("executeFetch：截断与失败", () => {
 	it("超 context 上限时截断并写临时文件", async () => {
-		const http = fakeHttp(() => ({ text: `<html><title>长页</title><body>${"长正文".repeat(3_000)}</body></html>` }));
+		const http = fakeHttp(() => ({
+			text: `<html><title>长页</title><body>${"长正文".repeat(3_000)}</body></html>`,
+		}));
 
-		const result = await executeFetch(makeConfig({ context: { maxInlineChars: 4_000, maxInlineLines: 100, spillToFile: true } }), {
-			url: "https://example.com/long",
-		}, undefined, { http });
+		const result = await executeFetch(
+			makeConfig({ context: { maxInlineChars: 4_000, maxInlineLines: 100, spillToFile: true } }),
+			{
+				url: "https://example.com/long",
+			},
+			undefined,
+			{ http },
+		);
 		const path = result.details.fullOutputPath;
 		if (path) spilled.push(path);
 
@@ -195,7 +259,9 @@ describe("executeFetch：截断与失败", () => {
 
 		// 显式带上 provider 提取器，才能同时覆盖「无 key 跳过」与「失败顺延」两种原因汇总。
 		const config = makeConfig({ fetch: { extractors: ["html", "tavily", "exa"] } });
-		const error = await rejectionOf(executeFetch(config, { url: "https://example.com/short" }, undefined, { http }));
+		const error = await rejectionOf(
+			executeFetch(config, { url: "https://example.com/short" }, undefined, { http }),
+		);
 
 		expect(error.message).toContain("all extractors failed");
 		expect(error.message).toContain("tavily");

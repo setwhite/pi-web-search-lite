@@ -24,9 +24,18 @@ export const redditHandler: PageHandler = {
 	async run(url, ctx): Promise<HandlerRewrite | HandlerSkip | null> {
 		if (!REDDIT_HOSTS.has(url.hostname.toLowerCase())) return null;
 		if (!ctx.reddit.enabled) {
-			return { kind: "skipped", handler: "reddit", reason: "handlers.reddit.enabled is false; Reddit host substitution skipped" };
+			return {
+				kind: "skipped",
+				handler: "reddit",
+				reason: "handlers.reddit.enabled is false; Reddit host substitution skipped",
+			};
 		}
-		return { kind: "rewrite", handler: "reddit", from: url.toString(), url: substituteHost(url, ctx.reddit.baseUrl) };
+		return {
+			kind: "rewrite",
+			handler: "reddit",
+			from: url.toString(),
+			url: substituteHost(url, ctx.reddit.baseUrl),
+		};
 	},
 };
 

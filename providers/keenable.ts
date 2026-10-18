@@ -1,6 +1,11 @@
 /** Keenable：POST /v1/search，`X-API-Key` 认证，body `{ query, max_results }`。 */
 
-import { type ProviderRuntime, type SearchProvider, type SearchResult, toSearchResult } from "./types.ts";
+import {
+	type ProviderRuntime,
+	type SearchProvider,
+	type SearchResult,
+	toSearchResult,
+} from "./types.ts";
 
 export const KEENABLE_BASE_URL = "https://api.keenable.ai";
 
@@ -23,7 +28,11 @@ export function createKeenableProvider(runtime: ProviderRuntime): SearchProvider
 			const results: SearchResult[] = [];
 			for (const item of data.results ?? []) {
 				// snippet 是正文摘录、description 是短语摘要：模型读前者更有用
-				const mapped = toSearchResult({ title: item.title, url: item.url, snippet: item.snippet ?? item.description });
+				const mapped = toSearchResult({
+					title: item.title,
+					url: item.url,
+					snippet: item.snippet ?? item.description,
+				});
 				if (mapped) results.push(mapped);
 			}
 			return results;

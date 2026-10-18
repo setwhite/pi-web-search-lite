@@ -1,6 +1,11 @@
 /** Brave：GET /web/search，`X-Subscription-Token` 认证，query 参数 `q` / `count`。 */
 
-import { type ProviderRuntime, type SearchProvider, type SearchResult, toSearchResult } from "./types.ts";
+import {
+	type ProviderRuntime,
+	type SearchProvider,
+	type SearchResult,
+	toSearchResult,
+} from "./types.ts";
 
 export const BRAVE_BASE_URL = "https://api.search.brave.com/res/v1";
 
@@ -21,7 +26,11 @@ export function createBraveProvider(runtime: ProviderRuntime): SearchProvider {
 
 			const results: SearchResult[] = [];
 			for (const item of data.web?.results ?? []) {
-				const mapped = toSearchResult({ title: item.title, url: item.url, snippet: item.description });
+				const mapped = toSearchResult({
+					title: item.title,
+					url: item.url,
+					snippet: item.description,
+				});
 				if (mapped) results.push(mapped);
 			}
 			return results;

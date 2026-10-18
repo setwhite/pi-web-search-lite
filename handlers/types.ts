@@ -20,7 +20,11 @@ export interface GhRunOptions {
 }
 
 /** gh 执行器签名；生产缺省用 gh.ts 的 execFile 实现，测试可注入。 */
-export type GhExecutor = (command: string, args: string[], options: GhRunOptions) => Promise<GhExecResult>;
+export type GhExecutor = (
+	command: string,
+	args: string[],
+	options: GhRunOptions,
+) => Promise<GhExecResult>;
 
 /** 已处理：markdown 正文，可能已按 maxChars 截断。 */
 export interface HandlerSuccess {

@@ -7,7 +7,12 @@ export const PARALLEL_API_BASE = "https://api.parallel.ai";
 
 interface ParallelExtractResponse {
 	results?: Array<{ url?: string; title?: string; full_content?: string }>;
-	errors?: Array<{ url?: string; error_type?: string; http_status_code?: number; content?: string }>;
+	errors?: Array<{
+		url?: string;
+		error_type?: string;
+		http_status_code?: number;
+		content?: string;
+	}>;
 }
 
 export function createParallelExtractor(baseUrl = PARALLEL_API_BASE): Extractor {
@@ -15,7 +20,9 @@ export function createParallelExtractor(baseUrl = PARALLEL_API_BASE): Extractor 
 	return {
 		id: "parallel",
 		unavailableReason: (ctx) =>
-			ctx.apiKeys.parallel?.trim() ? null : `not configured (${API_KEY_ENV_KEYS.parallel} env var or config.apiKeys.parallel)`,
+			ctx.apiKeys.parallel?.trim()
+				? null
+				: `not configured (${API_KEY_ENV_KEYS.parallel} env var or config.apiKeys.parallel)`,
 		async extract(url, ctx: ExtractorContext): Promise<ExtractedContent> {
 			const apiKey = ctx.apiKeys.parallel?.trim() ?? "";
 			const { data } = await ctx.http.fetchJson<ParallelExtractResponse>(endpoint, {

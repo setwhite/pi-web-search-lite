@@ -7,7 +7,11 @@ import { createHttpClient } from "../../http/index.ts";
 
 function baseContext(overrides: Partial<ExtractorContext> = {}): ExtractorContext {
 	return {
-		http: createHttpClient({ proxy: undefined, timeoutMs: 5_000, userAgent: "pi-web-search-lite/test" }),
+		http: createHttpClient({
+			proxy: undefined,
+			timeoutMs: 5_000,
+			userAgent: "pi-web-search-lite/test",
+		}),
 		apiKeys: {},
 		minChars: 200,
 		maxCharsPerPage: 150_000,
@@ -54,7 +58,16 @@ async function failureOf(promise: Promise<unknown>): Promise<ExtractError> {
 
 describe("extractWithChain", () => {
 	it("内置八家齐全", () => {
-		expect(Object.keys(EXTRACTORS).sort()).toEqual(["deepseek", "exa", "firecrawl", "html", "jina", "keenable", "parallel", "tavily"]);
+		expect(Object.keys(EXTRACTORS).sort()).toEqual([
+			"deepseek",
+			"exa",
+			"firecrawl",
+			"html",
+			"jina",
+			"keenable",
+			"parallel",
+			"tavily",
+		]);
 	});
 
 	it("未配 key 的提取器跳过且不发任何请求", async () => {
@@ -62,7 +75,9 @@ describe("extractWithChain", () => {
 		const fetchText = vi.fn();
 		const http = { fetchJson, fetchText } as unknown as HttpClient;
 
-		const error = await failureOf(extractWithChain("https://example.com/a", ["tavily"], baseContext({ http })));
+		const error = await failureOf(
+			extractWithChain("https://example.com/a", ["tavily"], baseContext({ http })),
+		);
 
 		expect(error).toBeInstanceOf(ExtractError);
 		expect(fetchJson).not.toHaveBeenCalled();
@@ -75,7 +90,12 @@ describe("extractWithChain", () => {
 		const first = fake("tavily", { error: "HTTP 500" });
 		const second = fake("exa", { content: "y".repeat(300) });
 
-		const page = await extractWithChain("https://example.com/a", ["tavily", "exa"], baseContext(), table(first, second));
+		const page = await extractWithChain(
+			"https://example.com/a",
+			["tavily", "exa"],
+			baseContext(),
+			table(first, second),
+		);
 
 		expect(first.calls()).toBe(1);
 		expect(page.extractor).toBe("exa");
@@ -93,7 +113,12 @@ describe("extractWithChain", () => {
 		};
 		const second = fake("exa", { content: "y".repeat(300) });
 
-		const page = await extractWithChain("https://example.com/a", ["tavily", "exa"], baseContext(), table({ extractor: broken }, second));
+		const page = await extractWithChain(
+			"https://example.com/a",
+			["tavily", "exa"],
+			baseContext(),
+			table({ extractor: broken }, second),
+		);
 
 		expect(page.extractor).toBe("exa");
 	});
@@ -102,7 +127,12 @@ describe("extractWithChain", () => {
 		const short = fake("tavily", { content: "太短" });
 		const long = fake("exa", { content: "x".repeat(300) });
 
-		const page = await extractWithChain("https://example.com/a", ["tavily", "exa"], baseContext(), table(short, long));
+		const page = await extractWithChain(
+			"https://example.com/a",
+			["tavily", "exa"],
+			baseContext(),
+			table(short, long),
+		);
 
 		expect(short.calls()).toBe(1);
 		expect(page.extractor).toBe("exa");
@@ -113,7 +143,12 @@ describe("extractWithChain", () => {
 		const later1 = fake("exa", { content: "x".repeat(300) });
 		const later2 = fake("html", { content: "x".repeat(300) });
 
-		const page = await extractWithChain("https://example.com/a", ["tavily", "exa", "html"], baseContext(), table(winner, later1, later2));
+		const page = await extractWithChain(
+			"https://example.com/a",
+			["tavily", "exa", "html"],
+			baseContext(),
+			table(winner, later1, later2),
+		);
 
 		expect(page.extractor).toBe("tavily");
 		expect(later1.calls()).toBe(0);
@@ -122,10 +157,19 @@ describe("extractWithChain", () => {
 
 	it("全部失败时汇总每个提取器的名字与原因", async () => {
 		const tavily = fake("tavily", { error: "HTTP 401" });
-		const exa = fake("exa", { skipped: "not configured (EXA_API_KEY env var or config.apiKeys.exa)" });
+		const exa = fake("exa", {
+			skipped: "not configured (EXA_API_KEY env var or config.apiKeys.exa)",
+		});
 		const html = fake("html", { content: "太短" });
 
-		const error = await failureOf(extractWithChain("https://example.com/a", ["tavily", "exa", "html"], baseContext(), table(tavily, exa, html)));
+		const error = await failureOf(
+			extractWithChain(
+				"https://example.com/a",
+				["tavily", "exa", "html"],
+				baseContext(),
+				table(tavily, exa, html),
+			),
+		);
 
 		expect(error.attempts).toHaveLength(3);
 		expect(error.message).toContain("tavily");
@@ -139,7 +183,12 @@ describe("extractWithChain", () => {
 	it("title 缺失时用最终 URL 顶替", async () => {
 		const winner = fake("exa", { content: "x".repeat(300) });
 
-		const page = await extractWithChain("https://example.com/a", ["exa"], baseContext(), table(winner));
+		const page = await extractWithChain(
+			"https://example.com/a",
+			["exa"],
+			baseContext(),
+			table(winner),
+		);
 
 		expect(page.title).toBe("https://example.com/a");
 	});
@@ -147,7 +196,12 @@ describe("extractWithChain", () => {
 	it("内容超 maxCharsPerPage 时截断并标记", async () => {
 		const winner = fake("tavily", { content: "x".repeat(5_000) });
 
-		const page = await extractWithChain("https://example.com/a", ["tavily"], baseContext({ maxCharsPerPage: 1_000 }), table(winner));
+		const page = await extractWithChain(
+			"https://example.com/a",
+			["tavily"],
+			baseContext({ maxCharsPerPage: 1_000 }),
+			table(winner),
+		);
 
 		expect(page.truncated).toBe(true);
 		expect(page.content.startsWith("x".repeat(1_000))).toBe(true);

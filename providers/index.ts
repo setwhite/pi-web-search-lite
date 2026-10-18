@@ -4,7 +4,7 @@
  * - key 已由配置层把 `API_KEY_ENV_KEYS` 环境变量合并进 `config.apiKeys`，这里只做存在性检查。
  */
 
-import { API_KEY_ENV_KEYS, PROVIDER_IDS, type ApiKeyId, type ProviderId } from "../config/index.ts";
+import { API_KEY_ENV_KEYS, type ApiKeyId, PROVIDER_IDS, type ProviderId } from "../config/index.ts";
 import { createBraveProvider } from "./brave.ts";
 import { createDeepSeekProvider } from "./deepseek.ts";
 import { createExaProvider } from "./exa.ts";
@@ -33,7 +33,10 @@ export class ProviderError extends Error {
 export const SEARCH_PROVIDER_ENV_KEY = "WEB_SEARCH_PROVIDER";
 
 /** 两层解析：env 覆盖 config；默认值由配置层填好（`config.provider` 必填），这里不回落。未知名字直接抛错，不静默回落。 */
-export function resolveProviderId(configProvider: ProviderId, env: NodeJS.ProcessEnv = process.env): ProviderId {
+export function resolveProviderId(
+	configProvider: ProviderId,
+	env: NodeJS.ProcessEnv = process.env,
+): ProviderId {
 	const candidate = env[SEARCH_PROVIDER_ENV_KEY]?.trim() || configProvider;
 	if ((PROVIDER_IDS as readonly string[]).includes(candidate)) return candidate as ProviderId;
 	throw new ProviderError(

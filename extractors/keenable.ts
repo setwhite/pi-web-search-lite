@@ -18,7 +18,9 @@ export function createKeenableExtractor(baseUrl = KEENABLE_API_BASE): Extractor 
 	return {
 		id: "keenable",
 		unavailableReason: (ctx) =>
-			ctx.apiKeys.keenable?.trim() ? null : `not configured (${API_KEY_ENV_KEYS.keenable} env var or config.apiKeys.keenable)`,
+			ctx.apiKeys.keenable?.trim()
+				? null
+				: `not configured (${API_KEY_ENV_KEYS.keenable} env var or config.apiKeys.keenable)`,
 		async extract(url, ctx: ExtractorContext): Promise<ExtractedContent> {
 			const apiKey = ctx.apiKeys.keenable?.trim() ?? "";
 			const endpoint = `${baseUrl}/v1/fetch?url=${encodeURIComponent(url)}&live=true`;

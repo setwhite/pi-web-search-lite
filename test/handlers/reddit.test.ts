@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { HandlerContext } from "../../handlers/types.ts";
 import { runPageHandlers } from "../../handlers/index.ts";
+import type { HandlerContext } from "../../handlers/types.ts";
 import { baseContext } from "./fixtures.ts";
 
 const BASE = "https://redlib.catsarch.com";
-const POST = "https://www.reddit.com/r/PiCodingAgent/comments/1ue3hsb/pi_herdr_and_gondolin_combo_has_been_a_great/";
+const POST =
+	"https://www.reddit.com/r/PiCodingAgent/comments/1ue3hsb/pi_herdr_and_gondolin_combo_has_been_a_great/";
 
 function context(overrides: Partial<NonNullable<HandlerContext["reddit"]>> = {}): HandlerContext {
 	return baseContext({ reddit: { enabled: true, baseUrl: BASE, ...overrides } });
@@ -39,9 +40,14 @@ describe("reddit handler：只换域名", () => {
 	});
 
 	it("baseUrl 带子路径时前缀保留", async () => {
-		const outcome = await runPageHandlers(new URL(POST), context({ baseUrl: "https://example.com/redlib/" }));
+		const outcome = await runPageHandlers(
+			new URL(POST),
+			context({ baseUrl: "https://example.com/redlib/" }),
+		);
 
-		expect(outcome.rewrite?.url).toBe(`https://example.com/redlib/r/PiCodingAgent/comments/1ue3hsb/pi_herdr_and_gondolin_combo_has_been_a_great/`);
+		expect(outcome.rewrite?.url).toBe(
+			`https://example.com/redlib/r/PiCodingAgent/comments/1ue3hsb/pi_herdr_and_gondolin_combo_has_been_a_great/`,
+		);
 	});
 
 	it("丢掉锚点", async () => {

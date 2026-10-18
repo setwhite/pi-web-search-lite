@@ -80,7 +80,9 @@ describe("index：注册与开关", () => {
 		piWebSearchLite(api);
 
 		expect(registered.map((tool) => tool.name)).toEqual(["web_search", "web_fetch"]);
-		expect(registered.every((tool) => tool.exposure === "direct" && tool.defaultActive === true)).toBe(true);
+		expect(
+			registered.every((tool) => tool.exposure === "direct" && tool.defaultActive === true),
+		).toBe(true);
 		expect(setActiveCalls).toEqual([]);
 	});
 
@@ -118,11 +120,16 @@ describe("index：注册与开关", () => {
 describe("index：deferred 激活", () => {
 	it("deferred 注册为 deferred + defaultActive false，加载期不碰动作方法，会话开始后才激活 tool_search", () => {
 		useConfig({ activation: "deferred" });
-		const { api, registered, setActiveCalls, emit, allToolsCalls } = fakeApi(["tool_search", "read"], ["read"]);
+		const { api, registered, setActiveCalls, emit, allToolsCalls } = fakeApi(
+			["tool_search", "read"],
+			["read"],
+		);
 
 		piWebSearchLite(api);
 
-		expect(registered.every((tool) => tool.exposure === "deferred" && tool.defaultActive === false)).toBe(true);
+		expect(
+			registered.every((tool) => tool.exposure === "deferred" && tool.defaultActive === false),
+		).toBe(true);
 		expect(allToolsCalls()).toBe(0);
 		expect(setActiveCalls).toEqual([]);
 
@@ -159,7 +166,11 @@ describe("index：guidance 覆盖", () => {
 	it("guidance.* 覆盖 description / promptSnippet / promptGuidelines，未配置的用默认值", () => {
 		useConfig({
 			guidance: {
-				web_search: { description: "自定义搜索描述", promptSnippet: "自定义一行", promptGuidelines: ["优先用 web_search"] },
+				web_search: {
+					description: "自定义搜索描述",
+					promptSnippet: "自定义一行",
+					promptGuidelines: ["优先用 web_search"],
+				},
 			},
 		});
 		const { api, registered } = fakeApi();
@@ -174,7 +185,7 @@ describe("index：guidance 覆盖", () => {
 		expect(fetch?.description).toBe("Extract content of URL.");
 		expect(fetch?.promptSnippet).toBe("Extract URL text");
 		expect(fetch?.promptGuidelines).toEqual([
-			'web_fetch: use to get full text of a URL, e.g. docs or URLs found by web_search.',
+			"web_fetch: use to get full text of a URL, e.g. docs or URLs found by web_search.",
 		]);
 	});
 

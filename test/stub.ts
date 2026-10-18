@@ -22,7 +22,9 @@ export interface StubServer {
 }
 
 /** 本地桩 server：记录请求的方法 / 路径 / 头 / 体，返回 handler 给定的响应。 */
-export async function startStubServer(handler: (request: StubRequest) => StubReply): Promise<StubServer> {
+export async function startStubServer(
+	handler: (request: StubRequest) => StubReply,
+): Promise<StubServer> {
 	const requests: StubRequest[] = [];
 	const server = createServer((req, res) => {
 		const chunks: Buffer[] = [];
@@ -36,7 +38,9 @@ export async function startStubServer(handler: (request: StubRequest) => StubRep
 			};
 			requests.push(request);
 			const reply = handler(request);
-			res.writeHead(reply.status ?? 200, { "content-type": reply.contentType ?? "application/json" });
+			res.writeHead(reply.status ?? 200, {
+				"content-type": reply.contentType ?? "application/json",
+			});
 			res.end(reply.body);
 		});
 	});
@@ -58,7 +62,9 @@ afterEach(async () => {
 });
 
 /** `startStubServer` + 测试结束自动关闭。 */
-export async function startTrackedStubServer(handler: (request: StubRequest) => StubReply): Promise<StubServer> {
+export async function startTrackedStubServer(
+	handler: (request: StubRequest) => StubReply,
+): Promise<StubServer> {
 	const stub = await startStubServer(handler);
 	cleanups.push(stub.close);
 	return stub;

@@ -21,7 +21,11 @@ const FIXTURE = `<!doctype html>
 
 function makeContext(): ExtractorContext {
 	return {
-		http: createHttpClient({ proxy: undefined, timeoutMs: 5_000, userAgent: "pi-web-search-lite/test" }),
+		http: createHttpClient({
+			proxy: undefined,
+			timeoutMs: 5_000,
+			userAgent: "pi-web-search-lite/test",
+		}),
 		apiKeys: {},
 		minChars: 0,
 		maxCharsPerPage: 150_000,
@@ -72,7 +76,10 @@ describe("htmlToText", () => {
 
 describe("htmlExtractor", () => {
 	it("通过 http 抓取并返回正文与标题", async () => {
-		const stub = await startTrackedStubServer(() => ({ contentType: "text/html; charset=utf-8", body: FIXTURE }));
+		const stub = await startTrackedStubServer(() => ({
+			contentType: "text/html; charset=utf-8",
+			body: FIXTURE,
+		}));
 
 		const page = await htmlExtractor.extract(`${stub.base}/page`, makeContext());
 
@@ -82,8 +89,13 @@ describe("htmlExtractor", () => {
 	});
 
 	it("二进制内容类型直接抛错", async () => {
-		const stub = await startTrackedStubServer(() => ({ contentType: "application/pdf", body: "%PDF-1.4" }));
+		const stub = await startTrackedStubServer(() => ({
+			contentType: "application/pdf",
+			body: "%PDF-1.4",
+		}));
 
-		await expect(htmlExtractor.extract(`${stub.base}/file.pdf`, makeContext())).rejects.toThrow(/unsupported content type/);
+		await expect(htmlExtractor.extract(`${stub.base}/file.pdf`, makeContext())).rejects.toThrow(
+			/unsupported content type/,
+		);
 	});
 });

@@ -1,6 +1,11 @@
 /** Firecrawl：POST /v2/search，Bearer 认证，body `{ query, limit, sources: ["web"] }`。 */
 
-import { type ProviderRuntime, type SearchProvider, type SearchResult, toSearchResult } from "./types.ts";
+import {
+	type ProviderRuntime,
+	type SearchProvider,
+	type SearchResult,
+	toSearchResult,
+} from "./types.ts";
 
 export const FIRECRAWL_BASE_URL = "https://api.firecrawl.dev";
 
@@ -38,7 +43,11 @@ export function createFirecrawlProvider(runtime: ProviderRuntime): SearchProvide
 			const items = data.data?.web ?? [];
 			const results: SearchResult[] = [];
 			for (const item of items) {
-				const mapped = toSearchResult({ title: item.title, url: item.url, snippet: item.description });
+				const mapped = toSearchResult({
+					title: item.title,
+					url: item.url,
+					snippet: item.description,
+				});
 				if (mapped) results.push(mapped);
 			}
 			return results;

@@ -9,7 +9,13 @@ import { jinaExtractor } from "./jina.ts";
 import { keenableExtractor } from "./keenable.ts";
 import { parallelExtractor } from "./parallel.ts";
 import { tavilyExtractor } from "./tavily.ts";
-import { ExtractError, type ExtractAttempt, type ExtractedPage, type Extractor, type ExtractorContext } from "./types.ts";
+import {
+	type ExtractAttempt,
+	ExtractError,
+	type ExtractedPage,
+	type Extractor,
+	type ExtractorContext,
+} from "./types.ts";
 
 export * from "./types.ts";
 
@@ -47,7 +53,11 @@ export async function extractWithChain(
 			const result = await extractor.extract(url, ctx);
 			const content = result.content.trim();
 			if (content.length < ctx.minChars) {
-				attempts.push({ extractor: id, status: "failed", reason: `content too short (${content.length} < ${ctx.minChars} chars)` });
+				attempts.push({
+					extractor: id,
+					status: "failed",
+					reason: `content too short (${content.length} < ${ctx.minChars} chars)`,
+				});
 				continue;
 			}
 			const truncated = content.length > ctx.maxCharsPerPage;
@@ -61,7 +71,11 @@ export async function extractWithChain(
 				truncated,
 			};
 		} catch (error) {
-			attempts.push({ extractor: id, status: "failed", reason: error instanceof Error ? error.message : String(error) });
+			attempts.push({
+				extractor: id,
+				status: "failed",
+				reason: error instanceof Error ? error.message : String(error),
+			});
 		}
 	}
 	throw new ExtractError(chainFailureText(attempts), attempts);

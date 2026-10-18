@@ -2,7 +2,13 @@
 
 import { githubHandler } from "./github/index.ts";
 import { redditHandler } from "./reddit/index.ts";
-import type { HandlerContext, HandlerRewrite, HandlerSkip, HandlerSuccess, PageHandler } from "./types.ts";
+import type {
+	HandlerContext,
+	HandlerRewrite,
+	HandlerSkip,
+	HandlerSuccess,
+	PageHandler,
+} from "./types.ts";
 
 export * from "./types.ts";
 

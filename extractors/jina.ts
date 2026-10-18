@@ -21,9 +21,13 @@ export function createJinaExtractor(baseUrl = JINA_READER_BASE): Extractor {
 			const apiKey = ctx.apiKeys.jina?.trim();
 			const headers: Record<string, string> = { accept: "application/json" };
 			if (apiKey) headers.authorization = `Bearer ${apiKey}`;
-			const { data } = await ctx.http.fetchJson<JinaReaderResponse>(`${baseUrl}/${url}`, { headers, signal: ctx.signal });
+			const { data } = await ctx.http.fetchJson<JinaReaderResponse>(`${baseUrl}/${url}`, {
+				headers,
+				signal: ctx.signal,
+			});
 
-			if (data.code !== 200) throw new Error(`reader failed: ${data.message ?? `code ${data.code ?? "unknown"}`}`);
+			if (data.code !== 200)
+				throw new Error(`reader failed: ${data.message ?? `code ${data.code ?? "unknown"}`}`);
 			const content = data.data?.content;
 			if (!content) throw new Error("response has no content");
 			return { url: data.data?.url ?? url, title: data.data?.title, content };

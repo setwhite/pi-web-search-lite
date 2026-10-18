@@ -3,7 +3,12 @@
  * 用的是返回原始排名结果的 Search API，不是产出 LLM 答案的 Agent / Sonar 接口。
  */
 
-import { type ProviderRuntime, type SearchProvider, type SearchResult, toSearchResult } from "./types.ts";
+import {
+	type ProviderRuntime,
+	type SearchProvider,
+	type SearchResult,
+	toSearchResult,
+} from "./types.ts";
 
 export const PERPLEXITY_BASE_URL = "https://api.perplexity.ai";
 

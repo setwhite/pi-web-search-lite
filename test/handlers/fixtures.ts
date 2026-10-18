@@ -82,7 +82,14 @@ export function ghStub(options: GhStubOptions = {}): { exec: GhExecutor; calls: 
 		calls.push(args);
 		if (args[0] === "--version") return options.version ?? OK_VERSION;
 		if (args[0] === "auth") return options.auth ?? OK_AUTH;
-		return options.reply?.(args) ?? { ok: false, stdout: "", stderr: "", error: `unexpected gh call: ${args.join(" ")}` };
+		return (
+			options.reply?.(args) ?? {
+				ok: false,
+				stdout: "",
+				stderr: "",
+				error: `unexpected gh call: ${args.join(" ")}`,
+			}
+		);
 	};
 	return { exec, calls };
 }

@@ -3,7 +3,12 @@ import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PROVIDER_IDS } from "../../config/index.ts";
 import { createHttpClient } from "../../http/index.ts";
-import { createSearchProvider, ProviderError, resolveApiKey, resolveProviderId } from "../../providers/index.ts";
+import {
+	createSearchProvider,
+	ProviderError,
+	resolveApiKey,
+	resolveProviderId,
+} from "../../providers/index.ts";
 
 /** 只认声明语句：import 与「从 config 重导出」都不算重复定义。 */
 const DECLARES_DEFAULT_PROVIDER = /\b(?:const|let|var)\s+DEFAULT_PROVIDER\b/;
@@ -17,12 +22,19 @@ function packageSourceFiles(): Array<{ path: string; text: string }> {
 			if (entry.isDirectory()) return entry.name === "test" ? [] : walk(join(dir, entry.name));
 			return entry.name.endsWith(".ts") ? [join(dir, entry.name)] : [];
 		});
-	return walk(REPO_ROOT).map((path) => ({ path: relative(REPO_ROOT, path).split(sep).join("/"), text: readFileSync(path, "utf-8") }));
+	return walk(REPO_ROOT).map((path) => ({
+		path: relative(REPO_ROOT, path).split(sep).join("/"),
+		text: readFileSync(path, "utf-8"),
+	}));
 }
 
 describe("createSearchProvider", () => {
 	it("按 id 分发到对应 provider", () => {
-		const http = createHttpClient({ proxy: undefined, timeoutMs: 5_000, userAgent: "pi-web-search-lite/test" });
+		const http = createHttpClient({
+			proxy: undefined,
+			timeoutMs: 5_000,
+			userAgent: "pi-web-search-lite/test",
+		});
 		for (const id of PROVIDER_IDS) {
 			expect(createSearchProvider(id, { http, apiKey: "test-key" }).id).toBe(id);
 		}

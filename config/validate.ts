@@ -4,8 +4,21 @@
  */
 
 import {
+	asObject,
+	checkUnknownKeys,
+	optionalString,
+	readBoolean,
+	readEnum,
+	readNullableNumber,
+	readNumber,
+	readString,
+	readStringArray,
+} from "./readers.ts";
+import {
 	API_KEY_ENV_KEYS,
 	API_KEY_IDS,
+	type ApiKeyId,
+	type ContextSettings,
 	DEFAULT_EXTRACTORS,
 	DEFAULT_HANDLER_COMMAND,
 	DEFAULT_HANDLER_MAX_CHARS,
@@ -18,39 +31,26 @@ import {
 	DEFAULT_REDDIT_BASE_URL,
 	DEFAULT_TIMEOUT_MS,
 	DEFAULT_USER_AGENT,
+	type Errors,
 	EXTRACTOR_IDS,
+	type ExtractorId,
+	type FetchSettings,
+	type GitHubHandlerSettings,
+	type GuidanceFields,
 	MAX_INLINE_CHARS_MIN,
 	MAX_INLINE_LINES_MIN,
 	PROVIDER_IDS,
 	RANGES,
-	RESERVED_TOOL_NAMES,
-	TOOL_IDS,
-	TOOL_NAME_PATTERN,
-	type ApiKeyId,
-	type ContextSettings,
-	type Errors,
-	type ExtractorId,
-	type FetchSettings,
-	type GuidanceFields,
-	type GitHubHandlerSettings,
 	type Raw,
+	RESERVED_TOOL_NAMES,
 	type RedditHandlerSettings,
 	type ResolvedConfig,
 	type SearchSettings,
+	TOOL_IDS,
+	TOOL_NAME_PATTERN,
 	type ToolId,
 	type ToolSettings,
 } from "./schema.ts";
-import {
-	asObject,
-	checkUnknownKeys,
-	optionalString,
-	readBoolean,
-	readEnum,
-	readNullableNumber,
-	readNumber,
-	readString,
-	readStringArray,
-} from "./readers.ts";
 
 // ---------------------------------------------------------------------------
 // 校验：每个字段非法时记一条错误并回退默认值；收集完统一由 loadConfig 抛出。
@@ -68,13 +68,28 @@ function envNonEmpty(value: string | undefined): string | undefined {
 export function buildConfig(raw: Raw, env: NodeJS.ProcessEnv, errors: Errors): ResolvedConfig {
 	checkUnknownKeys(
 		raw,
-		["provider", "apiKeys", "proxy", "timeoutMs", "userAgent", "tools", "activation", "guidance", "context", "search", "fetch", "handlers"],
+		[
+			"provider",
+			"apiKeys",
+			"proxy",
+			"timeoutMs",
+			"userAgent",
+			"tools",
+			"activation",
+			"guidance",
+			"context",
+			"search",
+			"fetch",
+			"handlers",
+		],
 		"",
 		errors,
 	);
 	const tools = readTools(raw.tools, errors);
 	if (!tools.web_search.enabled && !tools.web_fetch.enabled) {
-		errors.push("tools: web_search and web_fetch cannot both be disabled; keep at least one enabled");
+		errors.push(
+			"tools: web_search and web_fetch cannot both be disabled; keep at least one enabled",
+		);
 	}
 	return {
 		provider: readEnum(raw.provider, PROVIDER_IDS, DEFAULT_PROVIDER, "provider", errors),
@@ -83,7 +98,13 @@ export function buildConfig(raw: Raw, env: NodeJS.ProcessEnv, errors: Errors): R
 		timeoutMs: readNumber(raw.timeoutMs, DEFAULT_TIMEOUT_MS, "timeoutMs", errors, RANGES.timeoutMs),
 		userAgent: readString(raw.userAgent, DEFAULT_USER_AGENT, "userAgent", errors),
 		tools,
-		activation: readEnum(raw.activation, ["eager", "deferred"] as const, "eager", "activation", errors),
+		activation: readEnum(
+			raw.activation,
+			["eager", "deferred"] as const,
+			"eager",
+			"activation",
+			errors,
+		),
 		guidance: readGuidance(raw.guidance, errors),
 		context: readContext(raw.context, errors),
 		search: readSearch(raw.search, errors),
@@ -92,7 +113,11 @@ export function buildConfig(raw: Raw, env: NodeJS.ProcessEnv, errors: Errors): R
 	};
 }
 
-function readApiKeys(value: unknown, env: NodeJS.ProcessEnv, errors: Errors): Partial<Record<ApiKeyId, string>> {
+function readApiKeys(
+	value: unknown,
+	env: NodeJS.ProcessEnv,
+	errors: Errors,
+): Partial<Record<ApiKeyId, string>> {
 	const raw = asObject(value, "apiKeys", errors) ?? {};
 	checkUnknownKeys(raw, API_KEY_IDS, "apiKeys", errors);
 	const keys: Partial<Record<ApiKeyId, string>> = {};
@@ -135,18 +160,27 @@ function readTools(value: unknown, errors: Errors): Record<ToolId, ToolSettings>
 		web_fetch: readToolSettings(raw.web_fetch, "tools.web_fetch", "web_fetch", errors),
 	};
 	if (tools.web_search.name === tools.web_fetch.name) {
-		errors.push(`tools: web_search and web_fetch cannot share the same name (both "${tools.web_search.name}")`);
+		errors.push(
+			`tools: web_search and web_fetch cannot share the same name (both "${tools.web_search.name}")`,
+		);
 	}
 	return tools;
 }
 
-function readToolSettings(value: unknown, path: string, defaultName: string, errors: Errors): ToolSettings {
+function readToolSettings(
+	value: unknown,
+	path: string,
+	defaultName: string,
+	errors: Errors,
+): ToolSettings {
 	const raw = asObject(value, path, errors) ?? {};
 	checkUnknownKeys(raw, ["enabled", "name"], path, errors);
 	const name = readString(raw.name, defaultName, `${path}.name`, errors);
 	if (typeof raw.name === "string" && raw.name.trim() !== "") {
 		if (!TOOL_NAME_PATTERN.test(name)) {
-			errors.push(`${path}.name: must start with a letter and contain only letters, digits, "_" or "-", got ${JSON.stringify(name)}`);
+			errors.push(
+				`${path}.name: must start with a letter and contain only letters, digits, "_" or "-", got ${JSON.stringify(name)}`,
+			);
 		} else if (RESERVED_TOOL_NAMES.has(name)) {
 			errors.push(`${path}.name: "${name}" is reserved by the host`);
 		}
@@ -174,7 +208,11 @@ function readGuidanceFields(value: unknown, path: string, errors: Errors): Guida
 	if (description !== undefined) fields.description = description;
 	if (snippet !== undefined) fields.promptSnippet = snippet;
 	if (raw.promptGuidelines !== undefined) {
-		fields.promptGuidelines = readStringArray(raw.promptGuidelines, `${path}.promptGuidelines`, errors);
+		fields.promptGuidelines = readStringArray(
+			raw.promptGuidelines,
+			`${path}.promptGuidelines`,
+			errors,
+		);
 	}
 	return fields;
 }
@@ -183,8 +221,18 @@ function readContext(value: unknown, errors: Errors): ContextSettings {
 	const raw = asObject(value, "context", errors) ?? {};
 	checkUnknownKeys(raw, ["maxInlineChars", "maxInlineLines", "spillToFile"], "context", errors);
 	return {
-		maxInlineChars: readNullableNumber(raw.maxInlineChars, "context.maxInlineChars", errors, MAX_INLINE_CHARS_MIN),
-		maxInlineLines: readNullableNumber(raw.maxInlineLines, "context.maxInlineLines", errors, MAX_INLINE_LINES_MIN),
+		maxInlineChars: readNullableNumber(
+			raw.maxInlineChars,
+			"context.maxInlineChars",
+			errors,
+			MAX_INLINE_CHARS_MIN,
+		),
+		maxInlineLines: readNullableNumber(
+			raw.maxInlineLines,
+			"context.maxInlineLines",
+			errors,
+			MAX_INLINE_LINES_MIN,
+		),
 		spillToFile: readBoolean(raw.spillToFile, true, "context.spillToFile", errors),
 	};
 }
@@ -192,7 +240,13 @@ function readContext(value: unknown, errors: Errors): ContextSettings {
 function readSearch(value: unknown, errors: Errors): SearchSettings {
 	const raw = asObject(value, "search", errors) ?? {};
 	checkUnknownKeys(raw, ["defaultMaxResults", "maxResultsLimit"], "search", errors);
-	const maxResultsLimit = readNumber(raw.maxResultsLimit, DEFAULT_MAX_RESULTS_LIMIT, "search.maxResultsLimit", errors, RANGES.maxResultsLimit);
+	const maxResultsLimit = readNumber(
+		raw.maxResultsLimit,
+		DEFAULT_MAX_RESULTS_LIMIT,
+		"search.maxResultsLimit",
+		errors,
+		RANGES.maxResultsLimit,
+	);
 	const defaultMaxResults = readNumber(
 		raw.defaultMaxResults,
 		DEFAULT_MAX_RESULTS,
@@ -208,10 +262,22 @@ function readFetch(value: unknown, errors: Errors): FetchSettings {
 	checkUnknownKeys(raw, ["extractors", "minChars", "allowRaw", "maxCharsPerPage"], "fetch", errors);
 	return {
 		extractors: readExtractors(raw.extractors, errors),
-		minChars: readNumber(raw.minChars, DEFAULT_MIN_CHARS, "fetch.minChars", errors, RANGES.minChars),
+		minChars: readNumber(
+			raw.minChars,
+			DEFAULT_MIN_CHARS,
+			"fetch.minChars",
+			errors,
+			RANGES.minChars,
+		),
 		// raw 默认关：原始响应体噪声大，需要时显式打开；关闭时 raw 参数不进 schema
 		allowRaw: readBoolean(raw.allowRaw, false, "fetch.allowRaw", errors),
-		maxCharsPerPage: readNumber(raw.maxCharsPerPage, DEFAULT_MAX_CHARS_PER_PAGE, "fetch.maxCharsPerPage", errors, RANGES.maxCharsPerPage),
+		maxCharsPerPage: readNumber(
+			raw.maxCharsPerPage,
+			DEFAULT_MAX_CHARS_PER_PAGE,
+			"fetch.maxCharsPerPage",
+			errors,
+			RANGES.maxCharsPerPage,
+		),
 	};
 }
 
@@ -228,7 +294,9 @@ function readExtractors(value: unknown, errors: Errors): ExtractorId[] {
 	const extractors: ExtractorId[] = [];
 	for (const item of value) {
 		if (!isExtractorId(item)) {
-			errors.push(`fetch.extractors: supported ids are ${EXTRACTOR_IDS.join(" / ")}, got ${JSON.stringify(item)}`);
+			errors.push(
+				`fetch.extractors: supported ids are ${EXTRACTOR_IDS.join(" / ")}, got ${JSON.stringify(item)}`,
+			);
 			continue;
 		}
 		if (!extractors.includes(item)) extractors.push(item);
@@ -236,19 +304,44 @@ function readExtractors(value: unknown, errors: Errors): ExtractorId[] {
 	return extractors.length > 0 ? extractors : [...DEFAULT_EXTRACTORS];
 }
 
-function readHandlers(value: unknown, errors: Errors): { github: GitHubHandlerSettings; reddit: RedditHandlerSettings } {
+function readHandlers(
+	value: unknown,
+	errors: Errors,
+): { github: GitHubHandlerSettings; reddit: RedditHandlerSettings } {
 	const raw = asObject(value, "handlers", errors) ?? {};
 	checkUnknownKeys(raw, ["github", "reddit"], "handlers", errors);
 	const github = asObject(raw.github, "handlers.github", errors) ?? {};
-	checkUnknownKeys(github, ["enabled", "command", "timeoutMs", "maxChars"], "handlers.github", errors);
+	checkUnknownKeys(
+		github,
+		["enabled", "command", "timeoutMs", "maxChars"],
+		"handlers.github",
+		errors,
+	);
 	const reddit = asObject(raw.reddit, "handlers.reddit", errors) ?? {};
 	checkUnknownKeys(reddit, ["enabled", "baseUrl"], "handlers.reddit", errors);
 	return {
 		github: {
 			enabled: readBoolean(github.enabled, true, "handlers.github.enabled", errors),
-			command: readString(github.command, DEFAULT_HANDLER_COMMAND, "handlers.github.command", errors),
-			timeoutMs: readNumber(github.timeoutMs, DEFAULT_HANDLER_TIMEOUT_MS, "handlers.github.timeoutMs", errors, RANGES.handlerTimeoutMs),
-			maxChars: readNumber(github.maxChars, DEFAULT_HANDLER_MAX_CHARS, "handlers.github.maxChars", errors, RANGES.handlerMaxChars),
+			command: readString(
+				github.command,
+				DEFAULT_HANDLER_COMMAND,
+				"handlers.github.command",
+				errors,
+			),
+			timeoutMs: readNumber(
+				github.timeoutMs,
+				DEFAULT_HANDLER_TIMEOUT_MS,
+				"handlers.github.timeoutMs",
+				errors,
+				RANGES.handlerTimeoutMs,
+			),
+			maxChars: readNumber(
+				github.maxChars,
+				DEFAULT_HANDLER_MAX_CHARS,
+				"handlers.github.maxChars",
+				errors,
+				RANGES.handlerMaxChars,
+			),
 		},
 		reddit: {
 			enabled: readBoolean(reddit.enabled, true, "handlers.reddit.enabled", errors),
@@ -265,7 +358,9 @@ function readBaseUrl(value: unknown, errors: Errors): string {
 	try {
 		const url = new URL(text);
 		if (url.protocol === "http:" || url.protocol === "https:") return text;
-		errors.push(`handlers.reddit.baseUrl: only http/https URLs are supported, got ${url.protocol}//`);
+		errors.push(
+			`handlers.reddit.baseUrl: only http/https URLs are supported, got ${url.protocol}//`,
+		);
 	} catch {
 		errors.push(`handlers.reddit.baseUrl: not a valid URL, got ${JSON.stringify(value)}`);
 	}

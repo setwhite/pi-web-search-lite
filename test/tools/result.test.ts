@@ -11,7 +11,11 @@ afterEach(() => {
 
 describe("finalizeContent", () => {
 	it("未超限时原样返回且不落盘", async () => {
-		const outcome = await finalizeContent("短文本", { maxInlineChars: null, maxInlineLines: null, spillToFile: true });
+		const outcome = await finalizeContent("短文本", {
+			maxInlineChars: null,
+			maxInlineLines: null,
+			spillToFile: true,
+		});
 
 		expect(outcome).toEqual({ content: "短文本", truncated: false, fullOutputPath: undefined });
 	});
@@ -19,7 +23,11 @@ describe("finalizeContent", () => {
 	it("按 maxInlineLines 截断并写临时文件，content 给出绝对路径", async () => {
 		const text = Array.from({ length: 500 }, (_, index) => `第 ${index} 行`).join("\n");
 
-		const outcome = await finalizeContent(text, { maxInlineChars: null, maxInlineLines: 10, spillToFile: true });
+		const outcome = await finalizeContent(text, {
+			maxInlineChars: null,
+			maxInlineLines: 10,
+			spillToFile: true,
+		});
 		const path = outcome.fullOutputPath;
 		if (path) spilled.push(path);
 
@@ -32,7 +40,11 @@ describe("finalizeContent", () => {
 	});
 
 	it("spillToFile 为 false 时不写文件，仍说明已截断", async () => {
-		const outcome = await finalizeContent("x".repeat(10_000), { maxInlineChars: 1_000, maxInlineLines: null, spillToFile: false });
+		const outcome = await finalizeContent("x".repeat(10_000), {
+			maxInlineChars: 1_000,
+			maxInlineLines: null,
+			spillToFile: false,
+		});
 
 		expect(outcome.truncated).toBe(true);
 		expect(outcome.fullOutputPath).toBeUndefined();

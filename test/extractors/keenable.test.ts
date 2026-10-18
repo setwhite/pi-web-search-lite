@@ -6,7 +6,11 @@ import { startTrackedStubServer } from "../stub.ts";
 
 function makeContext(overrides: Partial<ExtractorContext> = {}): ExtractorContext {
 	return {
-		http: createHttpClient({ proxy: undefined, timeoutMs: 5_000, userAgent: "pi-web-search-lite/test" }),
+		http: createHttpClient({
+			proxy: undefined,
+			timeoutMs: 5_000,
+			userAgent: "pi-web-search-lite/test",
+		}),
 		apiKeys: { keenable: "keen-key" },
 		minChars: 0,
 		maxCharsPerPage: 150_000,
@@ -32,19 +36,27 @@ describe("keenable extractor", () => {
 	});
 
 	it("没有 content 时抛错", async () => {
-		const stub = await startTrackedStubServer(() => ({ body: JSON.stringify({ url: "https://example.com/a" }) }));
+		const stub = await startTrackedStubServer(() => ({
+			body: JSON.stringify({ url: "https://example.com/a" }),
+		}));
 
-		await expect(createKeenableExtractor(stub.base).extract("https://example.com/a", makeContext())).rejects.toThrow(/content/);
+		await expect(
+			createKeenableExtractor(stub.base).extract("https://example.com/a", makeContext()),
+		).rejects.toThrow(/content/);
 	});
 
 	it("缺 key 时 unavailableReason 给出两个配置位置", () => {
-		const reason = createKeenableExtractor("http://127.0.0.1:1").unavailableReason(makeContext({ apiKeys: {} }));
+		const reason = createKeenableExtractor("http://127.0.0.1:1").unavailableReason(
+			makeContext({ apiKeys: {} }),
+		);
 
 		expect(reason).toContain("KEENABLE_API_KEY");
 		expect(reason).toContain("config.apiKeys.keenable");
 	});
 
 	it("有 key 时可用", () => {
-		expect(createKeenableExtractor("http://127.0.0.1:1").unavailableReason(makeContext())).toBeNull();
+		expect(
+			createKeenableExtractor("http://127.0.0.1:1").unavailableReason(makeContext()),
+		).toBeNull();
 	});
 });

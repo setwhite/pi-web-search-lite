@@ -7,14 +7,19 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+	type AgentToolResult,
 	DEFAULT_MAX_BYTES,
 	DEFAULT_MAX_LINES,
 	truncateHead,
 	withFileMutationQueue,
-	type AgentToolResult,
 } from "@earendil-works/pi-coding-agent";
 
-export type { AgentToolResult, Theme, ToolDefinition, ToolRenderResultOptions } from "@earendil-works/pi-coding-agent";
+export type {
+	AgentToolResult,
+	Theme,
+	ToolDefinition,
+	ToolRenderResultOptions,
+} from "@earendil-works/pi-coding-agent";
 
 export interface FinalizeOptions {
 	/** `config.context.maxInlineChars`；null = 宿主 DEFAULT_MAX_BYTES。超过宿主上限时按宿主上限截断。 */
@@ -32,7 +37,10 @@ export interface FinalizeOutcome {
 }
 
 /** 截断并按配置 spill：返回模型可见 content（含续读提示）与结构化标记。 */
-export async function finalizeContent(text: string, options: FinalizeOptions): Promise<FinalizeOutcome> {
+export async function finalizeContent(
+	text: string,
+	options: FinalizeOptions,
+): Promise<FinalizeOutcome> {
 	const result = truncateHead(text, {
 		maxBytes: clampToHost(options.maxInlineChars, DEFAULT_MAX_BYTES),
 		maxLines: clampToHost(options.maxInlineLines, DEFAULT_MAX_LINES),

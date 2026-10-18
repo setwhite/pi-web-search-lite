@@ -6,9 +6,9 @@
  */
 
 import { Text } from "@earendil-works/pi-tui";
+import type { FetchDetails, FetchParams } from "./fetch.ts";
 import type { AgentToolResult, Theme, ToolRenderResultOptions } from "./result.ts";
 import type { SearchDetails, SearchParams } from "./search.ts";
-import type { FetchDetails, FetchParams } from "./fetch.ts";
 
 /** 只用到主题的 fg / bold；收窄后测试注入假 Theme 不必构造整个 Theme。 */
 type RenderTheme = Pick<Theme, "fg" | "bold">;
@@ -75,7 +75,11 @@ export function renderFetchResult(
 }
 
 /** 失败结果：折叠只给 ✗ + 错误首行，展开给全文。 */
-function renderFailure(result: AgentToolResult<unknown>, options: ToolRenderResultOptions, theme: RenderTheme): Text {
+function renderFailure(
+	result: AgentToolResult<unknown>,
+	options: ToolRenderResultOptions,
+	theme: RenderTheme,
+): Text {
 	const lines = firstText(result).split("\n");
 	const shown = options.expanded ? lines : lines.slice(0, 1);
 	const head = shown[0]?.trim() === "" || shown[0] === undefined ? FAILURE_FALLBACK : shown[0];

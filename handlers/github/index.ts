@@ -18,30 +18,119 @@ export type GitHubTarget =
 const GITHUB_HOSTS = new Set(["github.com", "www.github.com"]);
 /** 2 段路径才会被当成仓库，这些首段其实是站内路由。 */
 const RESERVED_FIRST_SEGMENTS = new Set([
-	"about", "apps", "codespaces", "collections", "dashboard", "enterprise", "explore", "features", "issues", "join",
-	"login", "marketplace", "new", "notifications", "orgs", "pricing", "pulls", "search", "settings", "site",
-	"sponsors", "topics", "trending",
+	"about",
+	"apps",
+	"codespaces",
+	"collections",
+	"dashboard",
+	"enterprise",
+	"explore",
+	"features",
+	"issues",
+	"join",
+	"login",
+	"marketplace",
+	"new",
+	"notifications",
+	"orgs",
+	"pricing",
+	"pulls",
+	"search",
+	"settings",
+	"site",
+	"sponsors",
+	"topics",
+	"trending",
 ]);
 
 const REPO_FIELDS = [
-	"name", "description", "url", "stargazerCount", "forkCount", "defaultBranchRef", "primaryLanguage", "licenseInfo", "updatedAt",
+	"name",
+	"description",
+	"url",
+	"stargazerCount",
+	"forkCount",
+	"defaultBranchRef",
+	"primaryLanguage",
+	"licenseInfo",
+	"updatedAt",
 ];
 const ISSUE_FIELDS = [
-	"title", "number", "state", "stateReason", "author", "createdAt", "closedAt", "labels", "assignees", "milestone",
-	"comments", "body", "url",
+	"title",
+	"number",
+	"state",
+	"stateReason",
+	"author",
+	"createdAt",
+	"closedAt",
+	"labels",
+	"assignees",
+	"milestone",
+	"comments",
+	"body",
+	"url",
 ];
 const ISSUE_CORE_FIELDS = [
-	"title", "number", "state", "author", "createdAt", "closedAt", "labels", "assignees", "milestone", "comments", "body", "url",
+	"title",
+	"number",
+	"state",
+	"author",
+	"createdAt",
+	"closedAt",
+	"labels",
+	"assignees",
+	"milestone",
+	"comments",
+	"body",
+	"url",
 ];
 const PR_FIELDS = [
-	"title", "number", "state", "isDraft", "author", "baseRefName", "headRefName", "createdAt", "mergedAt", "closedAt",
-	"labels", "additions", "deletions", "changedFiles", "comments", "body", "url",
+	"title",
+	"number",
+	"state",
+	"isDraft",
+	"author",
+	"baseRefName",
+	"headRefName",
+	"createdAt",
+	"mergedAt",
+	"closedAt",
+	"labels",
+	"additions",
+	"deletions",
+	"changedFiles",
+	"comments",
+	"body",
+	"url",
 ];
 const PR_CORE_FIELDS = [
-	"title", "number", "state", "isDraft", "author", "baseRefName", "headRefName", "createdAt", "mergedAt", "closedAt",
-	"labels", "additions", "deletions", "changedFiles", "comments", "body", "url",
+	"title",
+	"number",
+	"state",
+	"isDraft",
+	"author",
+	"baseRefName",
+	"headRefName",
+	"createdAt",
+	"mergedAt",
+	"closedAt",
+	"labels",
+	"additions",
+	"deletions",
+	"changedFiles",
+	"comments",
+	"body",
+	"url",
 ];
-const RELEASE_FIELDS = ["tagName", "name", "isDraft", "isPrerelease", "publishedAt", "author", "body", "url"];
+const RELEASE_FIELDS = [
+	"tagName",
+	"name",
+	"isDraft",
+	"isPrerelease",
+	"publishedAt",
+	"author",
+	"body",
+	"url",
+];
 
 export const githubHandler: PageHandler = {
 	name: "github",
@@ -66,7 +155,12 @@ export const githubHandler: PageHandler = {
 
 		const outputs: string[] = [];
 		for (const [index, step] of planSteps(target).entries()) {
-			const runOptions = { timeoutMs: settings.timeoutMs, maxBuffer: GH_MAX_BUFFER, env, signal: ctx.signal };
+			const runOptions = {
+				timeoutMs: settings.timeoutMs,
+				maxBuffer: GH_MAX_BUFFER,
+				env,
+				signal: ctx.signal,
+			};
 			let result = await exec(settings.command, step.args, runOptions);
 			if (!result.ok && step.coreArgs && isUnknownFieldError(result)) {
 				result = await exec(settings.command, step.coreArgs, runOptions);
@@ -80,7 +174,12 @@ export const githubHandler: PageHandler = {
 		}
 
 		const page = renderTarget(target, outputs, settings.maxChars);
-		const handled: HandlerSuccess = { kind: "handled", handler: "github", url: url.toString(), ...page };
+		const handled: HandlerSuccess = {
+			kind: "handled",
+			handler: "github",
+			url: url.toString(),
+			...page,
+		};
 		return handled;
 	},
 };
@@ -112,12 +211,16 @@ export function parseGitHubUrl(url: URL): GitHubTarget | null {
 		case "blob": {
 			if (segments.length < 5) return null;
 			const ref = safeRef(segments[3]);
-			return ref === null ? null : { kind: "blob", ...slug, ref, path: segments.slice(4).join("/") };
+			return ref === null
+				? null
+				: { kind: "blob", ...slug, ref, path: segments.slice(4).join("/") };
 		}
 		case "tree": {
 			if (segments.length < 4) return null;
 			const ref = safeRef(segments[3]);
-			return ref === null ? null : { kind: "tree", ...slug, ref, path: segments.slice(4).join("/") };
+			return ref === null
+				? null
+				: { kind: "tree", ...slug, ref, path: segments.slice(4).join("/") };
 		}
 		case "issues": {
 			if (segments.length !== 4) return null;
@@ -158,15 +261,49 @@ function planSteps(target: GitHubTarget): GhStep[] {
 			];
 		case "blob": {
 			const path = target.path.split("/").map(encodeURIComponent).join("/");
-			return [{ args: ["api", "-H", "Accept: application/vnd.github.raw", `repos/${repoSlug}/contents/${path}?ref=${encodeURIComponent(target.ref)}`] }];
+			return [
+				{
+					args: [
+						"api",
+						"-H",
+						"Accept: application/vnd.github.raw",
+						`repos/${repoSlug}/contents/${path}?ref=${encodeURIComponent(target.ref)}`,
+					],
+				},
+			];
 		}
 		case "tree":
-			return [{ args: ["api", `repos/${repoSlug}/git/trees/${encodeURIComponent(target.ref)}?recursive=1`, "--jq", ".tree[].path"] }];
+			return [
+				{
+					args: [
+						"api",
+						`repos/${repoSlug}/git/trees/${encodeURIComponent(target.ref)}?recursive=1`,
+						"--jq",
+						".tree[].path",
+					],
+				},
+			];
 		case "issue":
 			return [
 				{
-					args: ["issue", "view", String(target.number), "--repo", repoSlug, "--json", ISSUE_FIELDS.join(",")],
-					coreArgs: ["issue", "view", String(target.number), "--repo", repoSlug, "--json", ISSUE_CORE_FIELDS.join(",")],
+					args: [
+						"issue",
+						"view",
+						String(target.number),
+						"--repo",
+						repoSlug,
+						"--json",
+						ISSUE_FIELDS.join(","),
+					],
+					coreArgs: [
+						"issue",
+						"view",
+						String(target.number),
+						"--repo",
+						repoSlug,
+						"--json",
+						ISSUE_CORE_FIELDS.join(","),
+					],
 				},
 			];
 		case "pull":
@@ -174,13 +311,42 @@ function planSteps(target: GitHubTarget): GhStep[] {
 				? [{ args: ["pr", "diff", String(target.number), "--repo", repoSlug] }]
 				: [
 						{
-							args: ["pr", "view", String(target.number), "--repo", repoSlug, "--json", PR_FIELDS.join(",")],
-							coreArgs: ["pr", "view", String(target.number), "--repo", repoSlug, "--json", PR_CORE_FIELDS.join(",")],
+							args: [
+								"pr",
+								"view",
+								String(target.number),
+								"--repo",
+								repoSlug,
+								"--json",
+								PR_FIELDS.join(","),
+							],
+							coreArgs: [
+								"pr",
+								"view",
+								String(target.number),
+								"--repo",
+								repoSlug,
+								"--json",
+								PR_CORE_FIELDS.join(","),
+							],
 						},
 					];
 		case "release":
 			// tag 取自 URL 末段，可能以 - 开头；gh 走 pflag，-- 之后一律当位置参数，所以 flag 全排在它前面
-			return [{ args: ["release", "view", "--repo", repoSlug, "--json", RELEASE_FIELDS.join(","), "--", target.tag] }];
+			return [
+				{
+					args: [
+						"release",
+						"view",
+						"--repo",
+						repoSlug,
+						"--json",
+						RELEASE_FIELDS.join(","),
+						"--",
+						target.tag,
+					],
+				},
+			];
 	}
 }
 

@@ -1,6 +1,11 @@
 /** Exa：POST /search，`x-api-key` 认证；请求 `contents.text` 以填充 snippet。 */
 
-import { type ProviderRuntime, type SearchProvider, type SearchResult, toSearchResult } from "./types.ts";
+import {
+	type ProviderRuntime,
+	type SearchProvider,
+	type SearchResult,
+	toSearchResult,
+} from "./types.ts";
 
 export const EXA_BASE_URL = "https://api.exa.ai";
 

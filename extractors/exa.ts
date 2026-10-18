@@ -13,7 +13,10 @@ export function createExaExtractor(baseUrl = EXA_API_BASE): Extractor {
 	const endpoint = `${baseUrl}/contents`;
 	return {
 		id: "exa",
-		unavailableReason: (ctx) => (ctx.apiKeys.exa?.trim() ? null : `not configured (${API_KEY_ENV_KEYS.exa} env var or config.apiKeys.exa)`),
+		unavailableReason: (ctx) =>
+			ctx.apiKeys.exa?.trim()
+				? null
+				: `not configured (${API_KEY_ENV_KEYS.exa} env var or config.apiKeys.exa)`,
 		async extract(url, ctx: ExtractorContext): Promise<ExtractedContent> {
 			const apiKey = ctx.apiKeys.exa?.trim() ?? "";
 			const { data } = await ctx.http.fetchJson<ExaContentsResponse>(endpoint, {

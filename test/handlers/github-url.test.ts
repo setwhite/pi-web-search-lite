@@ -21,25 +21,64 @@ describe("parseGitHubUrl 命中六类页面", () => {
 	});
 
 	it("tree：根与子目录", () => {
-		expect(parse("https://github.com/o/r/tree/main")).toEqual({ kind: "tree", owner: "o", repo: "r", ref: "main", path: "" });
-		expect(parse("https://github.com/o/r/tree/main/src")).toEqual({ kind: "tree", owner: "o", repo: "r", ref: "main", path: "src" });
+		expect(parse("https://github.com/o/r/tree/main")).toEqual({
+			kind: "tree",
+			owner: "o",
+			repo: "r",
+			ref: "main",
+			path: "",
+		});
+		expect(parse("https://github.com/o/r/tree/main/src")).toEqual({
+			kind: "tree",
+			owner: "o",
+			repo: "r",
+			ref: "main",
+			path: "src",
+		});
 	});
 
 	it("issue", () => {
-		expect(parse("https://github.com/o/r/issues/7")).toEqual({ kind: "issue", owner: "o", repo: "r", number: 7 });
+		expect(parse("https://github.com/o/r/issues/7")).toEqual({
+			kind: "issue",
+			owner: "o",
+			repo: "r",
+			number: 7,
+		});
 	});
 
 	it("pull：普通与 /files", () => {
-		expect(parse("https://github.com/o/r/pull/12")).toEqual({ kind: "pull", owner: "o", repo: "r", number: 12, files: false });
-		expect(parse("https://github.com/o/r/pull/12/files")).toEqual({ kind: "pull", owner: "o", repo: "r", number: 12, files: true });
+		expect(parse("https://github.com/o/r/pull/12")).toEqual({
+			kind: "pull",
+			owner: "o",
+			repo: "r",
+			number: 12,
+			files: false,
+		});
+		expect(parse("https://github.com/o/r/pull/12/files")).toEqual({
+			kind: "pull",
+			owner: "o",
+			repo: "r",
+			number: 12,
+			files: true,
+		});
 	});
 
 	it("release tag", () => {
-		expect(parse("https://github.com/o/r/releases/tag/v0.2.0")).toEqual({ kind: "release", owner: "o", repo: "r", tag: "v0.2.0" });
+		expect(parse("https://github.com/o/r/releases/tag/v0.2.0")).toEqual({
+			kind: "release",
+			owner: "o",
+			repo: "r",
+			tag: "v0.2.0",
+		});
 	});
 
 	it("release tag 以 - 开头或含 - 仍解析为 release", () => {
-		expect(parse("https://github.com/o/r/releases/tag/--repo")).toEqual({ kind: "release", owner: "o", repo: "r", tag: "--repo" });
+		expect(parse("https://github.com/o/r/releases/tag/--repo")).toEqual({
+			kind: "release",
+			owner: "o",
+			repo: "r",
+			tag: "--repo",
+		});
 		expect(parse("https://github.com/o/r/releases/tag/v0.2.0-rc.1")).toEqual({
 			kind: "release",
 			owner: "o",
@@ -49,12 +88,22 @@ describe("parseGitHubUrl 命中六类页面", () => {
 	});
 
 	it("query 与锚点被忽略，仍命中", () => {
-		expect(parse("https://github.com/o/r/issues/7?foo=1#issuecomment-9")).toMatchObject({ kind: "issue", number: 7 });
-		expect(parse("https://github.com/o/r/blob/main/README.md?plain=1#L3")).toMatchObject({ kind: "blob", path: "README.md" });
+		expect(parse("https://github.com/o/r/issues/7?foo=1#issuecomment-9")).toMatchObject({
+			kind: "issue",
+			number: 7,
+		});
+		expect(parse("https://github.com/o/r/blob/main/README.md?plain=1#L3")).toMatchObject({
+			kind: "blob",
+			path: "README.md",
+		});
 	});
 
 	it("www.github.com 与 .git 后缀", () => {
-		expect(parse("https://www.github.com/o/r.git")).toEqual({ kind: "repo", owner: "o", repo: "r" });
+		expect(parse("https://www.github.com/o/r.git")).toEqual({
+			kind: "repo",
+			owner: "o",
+			repo: "r",
+		});
 	});
 });
 

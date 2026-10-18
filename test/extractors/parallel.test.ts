@@ -6,7 +6,11 @@ import { startTrackedStubServer } from "../stub.ts";
 
 function makeContext(overrides: Partial<ExtractorContext> = {}): ExtractorContext {
 	return {
-		http: createHttpClient({ proxy: undefined, timeoutMs: 5_000, userAgent: "pi-web-search-lite/test" }),
+		http: createHttpClient({
+			proxy: undefined,
+			timeoutMs: 5_000,
+			userAgent: "pi-web-search-lite/test",
+		}),
 		apiKeys: { parallel: "parallel-key" },
 		minChars: 0,
 		maxCharsPerPage: 150_000,
@@ -17,10 +21,15 @@ function makeContext(overrides: Partial<ExtractorContext> = {}): ExtractorContex
 describe("parallel extractor", () => {
 	it("请求形状：POST /v1/extract，x-api-key 认证，body 要 full_content", async () => {
 		const stub = await startTrackedStubServer(() => ({
-			body: JSON.stringify({ results: [{ url: "https://example.com/a", title: "标题", full_content: "正文" }] }),
+			body: JSON.stringify({
+				results: [{ url: "https://example.com/a", title: "标题", full_content: "正文" }],
+			}),
 		}));
 
-		const page = await createParallelExtractor(stub.base).extract("https://example.com/a", makeContext());
+		const page = await createParallelExtractor(stub.base).extract(
+			"https://example.com/a",
+			makeContext(),
+		);
 
 		const request = stub.requests[0];
 		expect(request.method).toBe("POST");
@@ -37,27 +46,44 @@ describe("parallel extractor", () => {
 	it("errors 非空时抛出带 error_type 的错误", async () => {
 		const stub = await startTrackedStubServer(() => ({
 			body: JSON.stringify({
-				errors: [{ url: "https://example.com/a", error_type: "fetch_error", http_status_code: 500, content: "无法访问" }],
+				errors: [
+					{
+						url: "https://example.com/a",
+						error_type: "fetch_error",
+						http_status_code: 500,
+						content: "无法访问",
+					},
+				],
 			}),
 		}));
 
-		await expect(createParallelExtractor(stub.base).extract("https://example.com/a", makeContext())).rejects.toThrow(/fetch_error/);
+		await expect(
+			createParallelExtractor(stub.base).extract("https://example.com/a", makeContext()),
+		).rejects.toThrow(/fetch_error/);
 	});
 
 	it("没有 full_content 时抛错", async () => {
-		const stub = await startTrackedStubServer(() => ({ body: JSON.stringify({ results: [{ url: "https://example.com/a" }] }) }));
+		const stub = await startTrackedStubServer(() => ({
+			body: JSON.stringify({ results: [{ url: "https://example.com/a" }] }),
+		}));
 
-		await expect(createParallelExtractor(stub.base).extract("https://example.com/a", makeContext())).rejects.toThrow(/full_content/);
+		await expect(
+			createParallelExtractor(stub.base).extract("https://example.com/a", makeContext()),
+		).rejects.toThrow(/full_content/);
 	});
 
 	it("缺 key 时 unavailableReason 给出两个配置位置", () => {
-		const reason = createParallelExtractor("http://127.0.0.1:1").unavailableReason(makeContext({ apiKeys: {} }));
+		const reason = createParallelExtractor("http://127.0.0.1:1").unavailableReason(
+			makeContext({ apiKeys: {} }),
+		);
 
 		expect(reason).toContain("PARALLEL_API_KEY");
 		expect(reason).toContain("config.apiKeys.parallel");
 	});
 
 	it("有 key 时可用", () => {
-		expect(createParallelExtractor("http://127.0.0.1:1").unavailableReason(makeContext())).toBeNull();
+		expect(
+			createParallelExtractor("http://127.0.0.1:1").unavailableReason(makeContext()),
+		).toBeNull();
 	});
 });

@@ -61,11 +61,17 @@ describe("回归：web_search 全链路", () => {
 	it("真实 HTTP 客户端打到桩 Tavily，返回统一信封", async () => {
 		const stub = await startTrackedStubServer(() => ({
 			body: JSON.stringify({
-				results: [{ title: "Pi 文档", url: "https://example.test/docs", content: "  正文   段落  " }],
+				results: [
+					{ title: "Pi 文档", url: "https://example.test/docs", content: "  正文   段落  " },
+				],
 			}),
 		}));
 		const config = makeConfig({ apiKeys: { tavily: "tvly-test" } });
-		const provider = createSearchProvider("tavily", { http: client(), apiKey: "tvly-test", baseUrl: stub.base });
+		const provider = createSearchProvider("tavily", {
+			http: client(),
+			apiKey: "tvly-test",
+			baseUrl: stub.base,
+		});
 
 		const result = await executeSearch(config, { query: "pi agent" }, undefined, { provider });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { renderTarget, truncateText } from "../../handlers/github/render.ts";
 import type { GitHubTarget } from "../../handlers/github/index.ts";
+import { renderTarget, truncateText } from "../../handlers/github/render.ts";
 import { ISSUE, PULL, RELEASE, REPO } from "./fixtures.ts";
 
 const MAX = 150_000;

@@ -3,7 +3,12 @@
  * 走自研搜索索引返回结构化结果，不是模型问答接口。
  */
 
-import { type ProviderRuntime, type SearchProvider, type SearchResult, toSearchResult } from "./types.ts";
+import {
+	type ProviderRuntime,
+	type SearchProvider,
+	type SearchResult,
+	toSearchResult,
+} from "./types.ts";
 
 export const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 
@@ -26,7 +31,11 @@ export function createDeepSeekProvider(runtime: ProviderRuntime): SearchProvider
 			const results: SearchResult[] = [];
 			for (const item of data.results ?? []) {
 				// summary 是官方标注「给模型读」的长摘要（600–800 字符），snippet 是 UI 用短摘要
-				const mapped = toSearchResult({ title: item.title, url: item.url, snippet: item.summary ?? item.snippet });
+				const mapped = toSearchResult({
+					title: item.title,
+					url: item.url,
+					snippet: item.summary ?? item.snippet,
+				});
 				if (mapped) results.push(mapped);
 			}
 			return results;

@@ -5,10 +5,28 @@
 
 import { readFileSync } from "node:fs";
 
-export const PROVIDER_IDS = ["tavily", "brave", "exa", "firecrawl", "perplexity", "parallel", "keenable", "deepseek"] as const;
+export const PROVIDER_IDS = [
+	"tavily",
+	"brave",
+	"exa",
+	"firecrawl",
+	"perplexity",
+	"parallel",
+	"keenable",
+	"deepseek",
+] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
-export const EXTRACTOR_IDS = ["tavily", "exa", "html", "firecrawl", "jina", "parallel", "keenable", "deepseek"] as const;
+export const EXTRACTOR_IDS = [
+	"tavily",
+	"exa",
+	"html",
+	"firecrawl",
+	"jina",
+	"parallel",
+	"keenable",
+	"deepseek",
+] as const;
 export type ExtractorId = (typeof EXTRACTOR_IDS)[number];
 
 export const TOOL_IDS = ["web_search", "web_fetch"] as const;
