@@ -10,8 +10,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { loadConfig } from "../../config/index.ts";
 import { extractWithChain } from "../../extractors/index.ts";
 import { checkGhAvailable, execGh, resetGhProbeCache } from "../../handlers/github/gh.ts";
-import type { GhExecResult } from "../../handlers/types.ts";
 import { executeSearch } from "../../tools/search.ts";
+import { ghStub } from "../handlers/fixtures.ts";
 import { fakeHttp, makeConfig, rejectionOf } from "../tools/fixtures.ts";
 
 const dirs: string[] = [];
@@ -73,12 +73,9 @@ describe("回归：错误文案", () => {
 	});
 
 	it("gh 未登录时提示先登录", async () => {
-		const exec = async (_command: string, args: string[]): Promise<GhExecResult> =>
-			args[0] === "--version"
-				? { ok: true, stdout: "gh version 2.0.0", stderr: "" }
-				: { ok: false, stdout: "", stderr: "HTTP 401: Bad credentials", error: "" };
+		const stub = ghStub({ auth: { ok: false, stdout: "", stderr: "HTTP 401: Bad credentials", error: "" } });
 
-		const availability = await checkGhAvailable("gh-probe-fake", { exec, timeoutMs: 5_000, env: {} });
+		const availability = await checkGhAvailable("gh-probe-fake", { exec: stub.exec, timeoutMs: 5_000, env: {} });
 
 		expect(availability.reason).toBe("gh is not authenticated: HTTP 401: Bad credentials. Run gh auth login first.");
 	});

@@ -1,4 +1,4 @@
-import type { HandlerContext } from "../../handlers/types.ts";
+import type { GhExecResult, GhExecutor, HandlerContext } from "../../handlers/types.ts";
 
 export const ISSUE = {
 	title: "崩溃：设置页空白",
@@ -59,6 +59,33 @@ export const REPO = {
 	updatedAt: "2026-03-01T00:00:00Z",
 	homepageUrl: null,
 };
+
+const OK_VERSION: GhExecResult = { ok: true, stdout: "gh version 2.60.0", stderr: "" };
+const OK_AUTH: GhExecResult = { ok: true, stdout: "Logged in", stderr: "" };
+
+export interface GhStubOptions {
+	/** 业务命令（两次探测之后）的返回；默认失败，用来暴露不该发生的调用。 */
+	reply?: (args: string[]) => GhExecResult;
+	/** `--version` 探测的返回，默认成功。 */
+	version?: GhExecResult;
+	/** `auth status` 探测的返回，默认成功。 */
+	auth?: GhExecResult;
+}
+
+/**
+ * 假 gh 执行器：吃掉 `--version` 与 `auth status` 两次可用性探测，业务命令交给 reply。
+ * 记录全部调用 —— `calls[0]` / `calls[1]` 是探测，`calls[2]` 起是业务。
+ */
+export function ghStub(options: GhStubOptions = {}): { exec: GhExecutor; calls: string[][] } {
+	const calls: string[][] = [];
+	const exec: GhExecutor = async (_command, args) => {
+		calls.push(args);
+		if (args[0] === "--version") return options.version ?? OK_VERSION;
+		if (args[0] === "auth") return options.auth ?? OK_AUTH;
+		return options.reply?.(args) ?? { ok: false, stdout: "", stderr: "", error: `unexpected gh call: ${args.join(" ")}` };
+	};
+	return { exec, calls };
+}
 
 export function baseContext(overrides: Partial<HandlerContext> = {}): HandlerContext {
 	return {

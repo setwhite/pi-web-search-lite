@@ -6,7 +6,7 @@ import type { ExtractedContent, Extractor } from "../../extractors/index.ts";
 import { resetGhProbeCache } from "../../handlers/github/gh.ts";
 import type { GhExecutor } from "../../handlers/index.ts";
 import { createFetchTool, executeFetch } from "../../tools/fetch.ts";
-import { ISSUE } from "../handlers/fixtures.ts";
+import { ghStub, ISSUE } from "../handlers/fixtures.ts";
 import { fakeHttp, firstText, makeConfig, rejectionOf } from "./fixtures.ts";
 
 const spilled: string[] = [];
@@ -15,19 +15,6 @@ afterEach(() => {
 });
 
 beforeEach(() => resetGhProbeCache());
-
-const okExec: GhExecutor = async (_command, args) => {
-	if (args[0] === "--version") return { ok: true, stdout: "gh version 2.60.0", stderr: "" };
-	if (args[0] === "auth") return { ok: true, stdout: "Logged in", stderr: "" };
-	return { ok: true, stdout: JSON.stringify(ISSUE), stderr: "" };
-};
-
-const missingExec: GhExecutor = async (command) => ({
-	ok: false,
-	stdout: "",
-	stderr: "",
-	error: `spawn ${command} ENOENT`,
-});
 
 /** 计数用的提取器表；内容必须长于默认 minChars(200)，否则链会继续下一个。 */
 function countingExtractors() {
@@ -60,10 +47,11 @@ describe("executeFetch：handler 与提取器链", () => {
 	it("命中 handler 时提取器链与 HTTP 都不被调用", async () => {
 		const counted = countingExtractors();
 		const http = fakeHttp(() => ({ text: "不该被请求" }));
+		const stub = ghStub({ reply: () => ({ ok: true, stdout: JSON.stringify(ISSUE), stderr: "" }) });
 
 		const result = await executeFetch(makeConfig(), { url: "https://github.com/o/r/issues/7" }, undefined, {
 			http,
-			execGh: okExec,
+			execGh: stub.exec,
 			extractors: counted.extractors,
 		});
 
@@ -76,7 +64,8 @@ describe("executeFetch：handler 与提取器链", () => {
 	it("handler 跳过时注明原因并顺延到链", async () => {
 		const http = fakeHttp(() => ({ text: `<html><title>GH 页面</title><body>${"回退正文".repeat(60)}</body></html>` }));
 
-		const result = await executeFetch(makeConfig(), { url: "https://github.com/o/r/issues/7" }, undefined, { http, execGh: missingExec });
+		const stub = ghStub({ version: { ok: false, stdout: "", stderr: "", error: "spawn gh ENOENT" } });
+		const result = await executeFetch(makeConfig(), { url: "https://github.com/o/r/issues/7" }, undefined, { http, execGh: stub.exec });
 
 		expect(result.details.source).toBe("html");
 		expect(result.details.handlerSkips?.[0]).toContain("gh command not found");

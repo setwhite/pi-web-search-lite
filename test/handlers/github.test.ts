@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ghEnv, GH_MAX_BUFFER, resetGhProbeCache, execGh } from "../../handlers/github/gh.ts";
 import { githubHandler } from "../../handlers/github/index.ts";
 import type { GhExecResult, GhExecutor, HandlerContext, HandlerOutcome, HandlerSkip, HandlerSuccess } from "../../handlers/types.ts";
-import { baseContext, ISSUE, RELEASE } from "./fixtures.ts";
+import { baseContext, ghStub, ISSUE, RELEASE } from "./fixtures.ts";
 
 beforeEach(() => resetGhProbeCache());
 
@@ -45,29 +45,20 @@ describe("github handler：gh 不可用", () => {
 	});
 
 	it("gh 不在 PATH 时返回 skipped 并给出原因，且不发起任何 HTTP 请求", async () => {
-		const calls: string[][] = [];
-		const exec: GhExecutor = async (_command, args) => {
-			calls.push(args);
-			const error = new Error(`spawn ${_command} ENOENT`);
-			(error as NodeJS.ErrnoException).code = "ENOENT";
-			return { ok: false, stdout: "", stderr: "", error: error.message };
-		};
+		const stub = ghStub({ version: { ok: false, stdout: "", stderr: "", error: "spawn gh ENOENT" } });
 
-		const skip = asSkip(await githubHandler.run(new URL("https://github.com/o/r"), baseContext({ execGh: exec })));
+		const skip = asSkip(await githubHandler.run(new URL("https://github.com/o/r"), baseContext({ execGh: stub.exec })));
 
 		expect(skip.handler).toBe("github");
 		expect(skip.reason).toContain("gh");
 		expect(fetchSpy).not.toHaveBeenCalled();
-		expect(calls.length).toBeGreaterThan(0);
+		expect(stub.calls.length).toBeGreaterThan(0);
 	});
 
 	it("gh 未登录时返回 skipped 并提示 gh auth login", async () => {
-		const exec: GhExecutor = async (_command, args) => {
-			if (args[0] === "--version") return ok("gh version 2.60.0");
-			return { ok: false, stdout: "", stderr: "You are not logged into any GitHub hosts.", error: "exit 1" };
-		};
+		const stub = ghStub({ auth: { ok: false, stdout: "", stderr: "You are not logged into any GitHub hosts.", error: "exit 1" } });
 
-		const skip = asSkip(await githubHandler.run(new URL("https://github.com/o/r"), baseContext({ execGh: exec })));
+		const skip = asSkip(await githubHandler.run(new URL("https://github.com/o/r"), baseContext({ execGh: stub.exec })));
 
 		expect(skip.reason).toContain("not authenticated");
 		expect(skip.reason).toContain("gh auth login");
@@ -99,56 +90,39 @@ describe("github handler：gh 不可用", () => {
 	});
 
 	it("可用性探测只执行一次，后续调用走缓存", async () => {
-		let probes = 0;
-		const exec: GhExecutor = async (_command, args) => {
-			if (args[0] === "--version" || args[0] === "auth") {
-				probes += 1;
-				return ok("");
-			}
-			return ok(JSON.stringify(ISSUE));
-		};
-		const ctx = baseContext({ execGh: exec });
+		const stub = ghStub({ reply: () => ok(JSON.stringify(ISSUE)) });
+		const ctx = baseContext({ execGh: stub.exec });
 
 		await githubHandler.run(new URL("https://github.com/o/r/issues/7"), ctx);
 		await githubHandler.run(new URL("https://github.com/o/r/issues/7"), ctx);
 
-		expect(probes).toBe(2);
+		expect(stub.calls.map((args) => args[0])).toEqual(["--version", "auth", "issue", "issue"]);
 	});
 
 	it("handlers.github.enabled 为 false 时不探测也不执行", async () => {
-		const calls: string[][] = [];
-		const exec: GhExecutor = async (_command, args) => {
-			calls.push(args);
-			return ok("");
-		};
+		const stub = ghStub();
 		const ctx: HandlerContext = baseContext({
-			execGh: exec,
+			execGh: stub.exec,
 			github: { enabled: false, command: "gh", timeoutMs: 10_000, maxChars: 150_000 },
 		});
 
 		const skip = asSkip(await githubHandler.run(new URL("https://github.com/o/r"), ctx));
 
 		expect(skip.reason).toContain("enabled");
-		expect(calls).toEqual([]);
+		expect(stub.calls).toEqual([]);
 	});
 });
 
 describe("github handler：gh 可用", () => {
 	it("issue：调用 gh issue view 并渲染 markdown，不 clone 不落盘", async () => {
-		const calls: string[][] = [];
-		const exec: GhExecutor = async (_command, args) => {
-			calls.push(args);
-			if (args[0] === "--version") return ok("gh version 2.60.0");
-			if (args[0] === "auth") return ok("Logged in to github.com account alice");
-			return ok(JSON.stringify(ISSUE));
-		};
-		const result = asHandled(await githubHandler.run(new URL("https://github.com/o/r/issues/7"), baseContext({ execGh: exec })));
+		const stub = ghStub({ reply: () => ok(JSON.stringify(ISSUE)) });
+		const result = asHandled(await githubHandler.run(new URL("https://github.com/o/r/issues/7"), baseContext({ execGh: stub.exec })));
 
 		expect(result.title).toContain("#7");
 		expect(result.content).toContain("打开设置页就白屏。");
 		expect(result.content).toContain("@bob");
-		expect(calls[2]).toEqual(expect.arrayContaining(["issue", "view", "7", "--repo", "o/r"]));
-		expect(calls.some((args) => args.includes("clone") || args.includes("git"))).toBe(false);
+		expect(stub.calls[2]).toEqual(expect.arrayContaining(["issue", "view", "7", "--repo", "o/r"]));
+		expect(stub.calls.some((args) => args.includes("clone") || args.includes("git"))).toBe(false);
 		const offenders = handlerSourceFiles()
 			.filter((file) => /\bnode:fs\b|from\s+["']fs["']/.test(file.text))
 			.map((file) => file.path);
@@ -156,17 +130,11 @@ describe("github handler：gh 可用", () => {
 	});
 
 	it("release：tag 走 -- 分界，不被 gh 当开关解析", async () => {
-		const calls: string[][] = [];
-		const exec: GhExecutor = async (_command, args) => {
-			calls.push(args);
-			if (args[0] === "--version") return ok("gh version 2.60.0");
-			if (args[0] === "auth") return ok("Logged in");
-			return ok(JSON.stringify(RELEASE));
-		};
+		const stub = ghStub({ reply: () => ok(JSON.stringify(RELEASE)) });
 		const result = asHandled(
-			await githubHandler.run(new URL("https://github.com/o/r/releases/tag/--repo"), baseContext({ execGh: exec })),
+			await githubHandler.run(new URL("https://github.com/o/r/releases/tag/--repo"), baseContext({ execGh: stub.exec })),
 		);
-		const args = calls[2] ?? [];
+		const args = stub.calls[2] ?? [];
 
 		expect(args.slice(0, 2)).toEqual(["release", "view"]);
 		expect(args).toContain("--json");
@@ -176,32 +144,26 @@ describe("github handler：gh 可用", () => {
 	});
 
 	it("gh 版本不认字段时回退 core 字段集", async () => {
-		const calls: string[][] = [];
 		let issueViews = 0;
-		const exec: GhExecutor = async (_command, args) => {
-			calls.push(args);
-			if (args[0] === "--version") return ok("gh version 2.60.0");
-			if (args[0] === "auth") return ok("Logged in");
-			issueViews += 1;
-			if (issueViews === 1) return { ok: false, stdout: "", stderr: "unknown JSON field: stateReason", error: "exit 1" };
-			return ok(JSON.stringify(ISSUE));
-		};
+		const stub = ghStub({
+			reply: () => {
+				issueViews += 1;
+				if (issueViews === 1) return { ok: false, stdout: "", stderr: "unknown JSON field: stateReason", error: "exit 1" };
+				return ok(JSON.stringify(ISSUE));
+			},
+		});
 
-		const result = asHandled(await githubHandler.run(new URL("https://github.com/o/r/issues/7"), baseContext({ execGh: exec })));
+		const result = asHandled(await githubHandler.run(new URL("https://github.com/o/r/issues/7"), baseContext({ execGh: stub.exec })));
 
 		expect(issueViews).toBe(2);
-		expect(calls[calls.length - 1]?.join(",")).not.toContain("stateReason");
+		expect(stub.calls.at(-1)?.join(",")).not.toContain("stateReason");
 		expect(result.content).toContain("崩溃：设置页空白");
 	});
 
 	it("主命令失败时返回 skipped 并带上 gh 的错误输出", async () => {
-		const exec: GhExecutor = async (_command, args) => {
-			if (args[0] === "--version") return ok("gh version 2.60.0");
-			if (args[0] === "auth") return ok("Logged in");
-			return { ok: false, stdout: "", stderr: "could not resolve to a Repository", error: "exit 1" };
-		};
+		const stub = ghStub({ reply: () => ({ ok: false, stdout: "", stderr: "could not resolve to a Repository", error: "exit 1" }) });
 
-		const skip = asSkip(await githubHandler.run(new URL("https://github.com/o/r"), baseContext({ execGh: exec })));
+		const skip = asSkip(await githubHandler.run(new URL("https://github.com/o/r"), baseContext({ execGh: stub.exec })));
 
 		expect(skip.reason).toContain("could not resolve to a Repository");
 	});
