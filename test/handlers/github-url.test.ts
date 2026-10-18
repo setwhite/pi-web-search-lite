@@ -38,6 +38,16 @@ describe("parseGitHubUrl 命中六类页面", () => {
 		expect(parse("https://github.com/o/r/releases/tag/v0.2.0")).toEqual({ kind: "release", owner: "o", repo: "r", tag: "v0.2.0" });
 	});
 
+	it("release tag 以 - 开头或含 - 仍解析为 release", () => {
+		expect(parse("https://github.com/o/r/releases/tag/--repo")).toEqual({ kind: "release", owner: "o", repo: "r", tag: "--repo" });
+		expect(parse("https://github.com/o/r/releases/tag/v0.2.0-rc.1")).toEqual({
+			kind: "release",
+			owner: "o",
+			repo: "r",
+			tag: "v0.2.0-rc.1",
+		});
+	});
+
 	it("query 与锚点被忽略，仍命中", () => {
 		expect(parse("https://github.com/o/r/issues/7?foo=1#issuecomment-9")).toMatchObject({ kind: "issue", number: 7 });
 		expect(parse("https://github.com/o/r/blob/main/README.md?plain=1#L3")).toMatchObject({ kind: "blob", path: "README.md" });

@@ -35,7 +35,7 @@ checkGhAvailable(command, { exec, timeoutMs, env, signal }): Promise<{ ok, reaso
 | `/O/R/tree/REF[/PATH]` | `gh api repos/O/R/git/trees/REF?recursive=1 --jq .tree[].path`（渲染时截前 200 条） |
 | `/O/R/issues/N` | `gh issue view N --repo O/R --json …`（老 gh 不认字段时回退 core 字段集） |
 | `/O/R/pull/N`（含 `/files`） | `gh pr view …`；`/files` 走 `gh pr diff` |
-| `/O/R/releases/tag/T` | `gh release view T --repo O/R --json …` |
+| `/O/R/releases/tag/T` | `gh release view --repo O/R --json … -- T`（tag 取自 URL，可能以 `-` 开头，所以 flag 全排在 `--` 之前；gh 用 pflag，`--` 之后只当位置参数） |
 
 其余（gist / wiki / actions / discussions / settings / `/O/R/pull/N/commits` 等）返回 `null`，交给提取器链。忽略 query 与锚点。
 

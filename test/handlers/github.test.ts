@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ghEnv, GH_MAX_BUFFER, resetGhProbeCache, execGh } from "../../handlers/github/gh.ts";
 import { githubHandler } from "../../handlers/github/index.ts";
 import type { GhExecResult, GhExecutor, HandlerContext, HandlerOutcome, HandlerSkip, HandlerSuccess } from "../../handlers/types.ts";
-import { baseContext, ISSUE } from "./fixtures.ts";
+import { baseContext, ISSUE, RELEASE } from "./fixtures.ts";
 
 beforeEach(() => resetGhProbeCache());
 
@@ -153,6 +153,26 @@ describe("github handler：gh 可用", () => {
 			.filter((file) => /\bnode:fs\b|from\s+["']fs["']/.test(file.text))
 			.map((file) => file.path);
 		expect(offenders).toEqual([]);
+	});
+
+	it("release：tag 走 -- 分界，不被 gh 当开关解析", async () => {
+		const calls: string[][] = [];
+		const exec: GhExecutor = async (_command, args) => {
+			calls.push(args);
+			if (args[0] === "--version") return ok("gh version 2.60.0");
+			if (args[0] === "auth") return ok("Logged in");
+			return ok(JSON.stringify(RELEASE));
+		};
+		const result = asHandled(
+			await githubHandler.run(new URL("https://github.com/o/r/releases/tag/--repo"), baseContext({ execGh: exec })),
+		);
+		const args = calls[2] ?? [];
+
+		expect(args.slice(0, 2)).toEqual(["release", "view"]);
+		expect(args).toContain("--json");
+		expect(args.at(-2)).toBe("--");
+		expect(args.at(-1)).toBe("--repo");
+		expect(result.content).toContain("修复若干问题");
 	});
 
 	it("gh 版本不认字段时回退 core 字段集", async () => {

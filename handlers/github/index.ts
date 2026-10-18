@@ -178,7 +178,8 @@ function planSteps(target: GitHubTarget): GhStep[] {
 						},
 					];
 		case "release":
-			return [{ args: ["release", "view", target.tag, "--repo", repoSlug, "--json", RELEASE_FIELDS.join(",")] }];
+			// tag 取自 URL 末段，可能以 - 开头；gh 走 pflag，-- 之后一律当位置参数，所以 flag 全排在它前面
+			return [{ args: ["release", "view", "--repo", repoSlug, "--json", RELEASE_FIELDS.join(","), "--", target.tag] }];
 	}
 }
 
