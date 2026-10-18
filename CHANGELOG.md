@@ -2,6 +2,13 @@
 
 已发布版本的用户可见变更；更细的过程见 git log。0.x 期间破坏性变更走 minor 号，条目里标注 **BREAKING**。
 
+## 0.8.0 — 2026-10-18
+
+- 出站请求失败的错误文案带上底层原因（`connect ECONNREFUSED …`、`getaddrinfo ENOTFOUND …`、`bad port`）：此前模型只能看到 undici 的 `fetch failed`，无从判断该换域名还是重试
+- 跨域重定向摘掉的认证头从 `authorization` 扩到整个头名族（`x-api-key`、`x-subscription-token` 等以 `token` / `api-key` / `api_key` / `apikey` 结尾的头名）：此前 exa / parallel / keenable 的 key 会随 30x 转发到新域
+- GitHub release 链接的 tag 与 blob / tree 的 ref 走同一套校验，gh 参数用 `--` 分界：`/o/r/releases/tag/--repo` 不再被当成开关，含控制字符的 tag 落到提取器链，不再把 Node 的 `must be a string without null bytes` 透给模型
+- 开发：新增 `pnpm lint`（biome 的 lint + 格式闸），CI 与发布流水线跑同一条命令
+
 ## 0.7.0 — 2026-10-18
 
 - 新增 parallel / keenable / deepseek 三家：既是搜索源（`provider`）也是提取器（`fetch.extractors`），key 走 `PARALLEL_API_KEY` / `KEENABLE_API_KEY` / `DEEPSEEK_API_KEY` 或 `config.apiKeys.*`
