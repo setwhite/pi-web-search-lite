@@ -24,3 +24,29 @@
     - README 中英两版一致：最小可用配置含 `provider` 与对应 key，provider 清单含三家
   - 验收证据：`test/providers/{parallel,keenable,deepseek}.test.ts`、`test/extractors/{parallel,keenable,deepseek}.test.ts`、`test/config.test.ts`
   - 前置：无
+
+- [ ] T19 http 层：网络错误文案带病因 + 跨源重定向摘掉全部认证头
+  - 交付物：`http/index.ts`（`describeCause` 展开 cause 链；`dropSensitiveHeaders` 按头名族判定）、`docs/modules/http.md`
+  - 验收：
+    - 连接被拒 / DNS 失败的 `network` 错误消息含底层 code（`ECONNREFUSED` / `ENOTFOUND`）与地址，不再是裸的 `fetch failed`
+    - 多地址（`AggregateError`）场景消息非空，code 与各地址都在
+    - 跨 origin 重定向后 `authorization` / `x-api-key` / `x-subscription-token` 不出现在下一跳，`accept` 等非认证头保留；首跳同源仍带认证头
+  - 验收证据：`test/http.test.ts` 的「http：网络错误文案」「http：跨源重定向的认证头」两组
+  - 前置：无
+
+- [ ] T20 handlers/github：release tag 加参数分界
+  - 交付物：`handlers/github/index.ts`（`release view` 的 tag 校验或 `--` 分界）
+  - 验收：`/o/r/releases/tag/--repo` 这类以 `-` 开头的 tag 不会被 gh 当开关解析（落到提取器链或作为位置参数）
+  - 验收证据：`test/handlers/github-url.test.ts` 新增边界用例
+  - 前置：T19
+
+- [ ] T21 providers：`DEFAULT_PROVIDER` 收成单源
+  - 交付物：`providers/index.ts`（删本地常量与第三层回落、参数去掉 `| undefined`、头注释同步）、`test/providers/index.test.ts`
+  - 验收：`DEFAULT_PROVIDER` 只在 `config/schema.ts` 定义一处；`resolveProviderId` 只做 env > config 两层
+  - 验收证据：`test/providers/index.test.ts`
+  - 前置：T19
+
+## 待决（未成任务）
+
+- biome 风格闸（审查 #4）：需先批准 devDependency + CI 改动；`lineWidth` 按现状（源码 p90 ≈ 88）定 100/120，否则首次格式化 diff 过大。
+- 16 张 provider / extractor 表是否抽象（审查 #5）：当前决定**不动**（认证头名、请求体字段、响应路径、错误约定各不相同），等第 9 家再加入口。
