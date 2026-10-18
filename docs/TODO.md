@@ -59,12 +59,20 @@
   - 前置：无
 
 - [ ] T24 引入 biome 做 lint + 格式闸
-  - 交付物：`biome.json`、`package.json`（`lint` 脚本）、`README.md` 开发段、CI 与 `devDependencies` 各一行
-  - 验收：`pnpm lint`（= `biome check .`）零诊断；`lineWidth` 100（现状源码 p90 ≈ 88，避免首次格式化 diff 过大）；CI 与本地同一条命令
-  - 验收证据：`pnpm exec biome check . --reporter=summary` 只输出 `Checked N files`；`pnpm test` 34 files / 300 tests
-  - 进度：工具与 9 处 lint 修复已随 db73099 落地（`pnpm lint` 的 lint 部分零诊断）；剩 70 个文件的格式化重排与 `ci.yml` 的 `pnpm lint` 步骤
+  - 交付物：`biome.json`、`package.json`（`lint` 脚本）、`README.md` / `README.en.md` 开发段、`ci.yml` 与 `npm-publish.yml` 的 lint 步骤、`devDependencies`
+  - 验收：`pnpm lint`（= `biome check .`）零诊断；CI 与本地同一条命令；`lineWidth` 100 —— 现状源码 p90 实测 89、最长 187，取 100 让既有代码里没被折的行保持原样；重排量随宽度单调下降（88 / 100 / 120 / 140 → 3156 / 2196 / 903 / 407 改动行 = 74 / 73 / 49 / 25 个文件，在 HEAD 副本上用同一 biome 实测），此处不追最小重排：120 会把行宽上限整体抬高
+  - 验收证据：`pnpm exec biome check . --reporter=summary` 只输出 `Checked N files`；`pnpm test` 35 files / 303 tests
+  - 进度：工具与 9 处 lint 修复随 db73099 落地；格式化重排（72 文件）、`ci.yml` / `npm-publish.yml` 的 lint 步骤、英文 README 与 `docs/ARCHITECTURE.md` 的口径补齐待提交
   - 前置：T22 / T23 先提交——已完成（efeff50 / 20a51c1）
+
+- [ ] T25 桩 server 的临时端口绕开 undici 的 bad port 名单
+  - 交付物：`test/stub.ts`（`listenEphemeral`）、`test/undici-internals.d.ts`、`test/stub.test.ts`，以及 `test/http.test.ts` / `test/ssrf.test.ts` / `test/regression/chain.test.ts` 的 6 个调用点
+  - 验收：`listen(0)` 抽到名单内端口时关掉重抽，连续 10 次抽不到就明确报错而不是让用例超时；全套测试不再因 `bad port` 随机红
+  - 验收证据：`test/stub.test.ts` 三例（直接返回 / 重抽一次 / 连续命中报错）；`pnpm test` 35 files / 303 tests
+  - 前置：无
+  - 来源：T24 验收首跑红——`test/extractors/firecrawl.test.ts:70` 收到 `network error: … fetch failed; bad port`；根因是本机动态端口段 1024–15000（`netsh int ipv4 show dynamicport tcp`）与 undici 的 82 个 bad port（全部 ≤ 10080）重叠，实测抽到 6566
 
 ## 待决（未成任务）
 
+- `HttpError.status` / `.body` 是否删（本会话提出，全仓零生产读者、只有 `test/http.test.ts:113,117` 读）：决定**保留**——口径写进 `http/index.ts` 注释与 `docs/modules/http.md`，将来要按状态码做事（如 429 退避）或把错误页正文给模型时直接用。注意 `body` 是整页、不截断。
 - 16 张 provider / extractor 表是否抽象（审查 #5）：决定**不动**——认证头名、请求体字段、响应路径、错误约定各不相同，等第 9 家再加入口（用户已确认）。
