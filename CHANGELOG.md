@@ -2,6 +2,10 @@
 
 已发布版本的用户可见变更；更细的过程见 git log。0.x 期间破坏性变更走 minor 号，条目里标注 **BREAKING**。
 
+## 0.8.1 — 2026-10-18
+
+- 无运行时变更（与 0.8.0 相同）：CI 只跑 Linux——Windows runner 的 `core.autocrlf=true` 会让 checkout 出来是 CRLF，与 biome 的 LF 默认冲突，lint 必红；README 中英两版补「发版」一行；模块文档把代理转发形态改成实测口径（`http:` 目标走 absolute-form，只有 `https:` 目标才建 CONNECT 隧道）
+
 ## 0.8.0 — 2026-10-18
 
 - 出站请求失败的错误文案带上底层原因（`connect ECONNREFUSED …`、`getaddrinfo ENOTFOUND …`、`bad port`）：此前模型只能看到 undici 的 `fetch failed`，无从判断该换域名还是重试
