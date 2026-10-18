@@ -161,21 +161,16 @@ describe("http：超时与中断", () => {
 });
 
 describe("http：代理", () => {
-	/** 桩代理：同时兼容 CONNECT 隧道与绝对形式请求两种转发形态。 */
+	/**
+	 * 桩代理：只认 absolute-form 转发 —— undici 的 ProxyAgent 默认 `proxyTunnel: false`，只对 https 目标建 CONNECT 隧道，
+	 * 本组用例全是 http 目标，所以这里没有 `connect` 分支（写了也走不到）。
+	 */
 	async function startProxyStub(): Promise<{ base: string; forwarded: string[]; hits: number; close: () => Promise<void> }> {
 		const forwarded: string[] = [];
 		const server = createServer((req, res) => {
 			forwarded.push(`request ${req.method} ${req.url}`);
 			res.writeHead(200, { "content-type": "text/plain" });
 			res.end("via-proxy");
-		});
-		server.on("connect", (req, socket) => {
-			forwarded.push(`connect ${req.url}`);
-			socket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
-			socket.once("data", (chunk) => {
-				forwarded.push(chunk.toString().split("\r\n")[0] ?? "");
-				socket.end("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 9\r\n\r\nvia-proxy");
-			});
 		});
 		await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 		return {
