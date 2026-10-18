@@ -4,7 +4,7 @@
 
 1. 领取：取第一条 `- [ ]` 且「前置」全部完成的原子任务；任务目标或接口契约不明确时先提问，不猜测。
 2. 实现：一次只推进一步（先写失败测试 Red，再补最少实现 Green）；遇 Bug 先加 Log 或查堆栈验证假设；同一错误连续失败 3 次停机汇报。
-3. 交付：新模块固定为**实现 + 模块文档 + 单元测试**三件套；收工跑 `pnpm test` 与 `pnpm typecheck`（见 `docs/ARCHITECTURE.md` §3）。
+3. 交付：新模块固定为**实现 + 模块文档 + 单元测试**三件套；收工跑 `pnpm lint`、`pnpm test` 与 `pnpm typecheck`（见 `docs/ARCHITECTURE.md` §3）。
 4. 证据：只记可复跑的指针（测试文件 / 命令输出 / commit），且必须是当前会话产生；实现会话不改状态，挂起等用户 Review。
 5. 审计：在没参与实现的会话里做，只读不改仓库文件，证据只认该会话的运行输出。
 6. 边界：契约与理由分别落在 `docs/modules/` 与 `docs/adr/`，本文件不复述。
@@ -76,4 +76,5 @@
 ## 待决（未成任务）
 
 - `HttpError.status` / `.body` 是否删（本会话提出，全仓零生产读者、只有 `test/http.test.ts:113,117` 读）：决定**保留**——口径写进 `http/index.ts` 注释与 `docs/modules/http.md`，将来要按状态码做事（如 429 退避）或把错误页正文给模型时直接用。注意 `body` 是整页、不截断。
+- Windows 上的 `pnpm lint`（CI 收窄到 Linux 后记下）：git 为 `core.autocrlf=true` 时 checkout 出 CRLF，biome 默认 `lineEnding: lf` 会把整仓判成待格式化，lint 直接红——本轮据此把 Windows 移出 CI 矩阵（a99bd5c，原因同时写在 `.github/workflows/ci.yml` 头注释）。要在 Windows 上也绿，加一行 `.gitattributes`（`* text=auto eol=lf`）即可；现在没人踩到，按 YAGNI 不加。
 - 16 张 provider / extractor 表是否抽象（审查 #5）：决定**不动**——认证头名、请求体字段、响应路径、错误约定各不相同，等第 9 家再加入口（用户已确认）。
