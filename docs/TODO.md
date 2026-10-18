@@ -49,4 +49,5 @@
 ## 待决（未成任务）
 
 - biome 风格闸（审查 #4）：需先批准 devDependency + CI 改动；`lineWidth` 按现状（源码 p90 ≈ 88）定 100/120，否则首次格式化 diff 过大。
+- release tag 未过 `safeRef`（T20 只做 `--` 分界，tag 是唯一没做边界校验的 ref 类取值）：`/releases/tag/a%00b` 会让 execFile 抛 `The argument 'args[7]' must be a string without null bytes`，被 `handlers/github/gh.ts` 的 catch 吞成 `skipped`，模型看到的是 Node 内部文案。修法是复用 `safeRef`（与 blob/tree 对齐，非法即返回 null 落到提取器链），1 行 + 1 条用例。
 - 16 张 provider / extractor 表是否抽象（审查 #5）：当前决定**不动**（认证头名、请求体字段、响应路径、错误约定各不相同），等第 9 家再加入口。
