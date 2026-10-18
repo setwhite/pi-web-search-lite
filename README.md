@@ -168,8 +168,9 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 
 ```bash
 pnpm install
+pnpm lint        # biome：lint + 格式检查（加 --write 即自动修正）
 pnpm test        # 单元测试，不打真实网络
 pnpm typecheck
 ```
 
-CI 在 Linux 与 Windows 上跑这两条命令；pnpm 版本由 `packageManager` 字段锁定。
+CI 在 Linux 与 Windows 上跑这三条命令；pnpm 版本由 `packageManager` 字段锁定。格式与 lint 规则见 `biome.json`（`lineWidth` 100）。

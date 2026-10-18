@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage } from "node:http";
-import { type AddressInfo } from "node:net";
+import type { AddressInfo } from "node:net";
 import { afterEach } from "vitest";
 
 export interface StubRequest {

@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { type AddressInfo } from "node:net";
+import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import { createHttpClient, HttpError } from "../http/index.ts";
 import { SsrfError } from "../ssrf/index.ts";
@@ -67,7 +67,7 @@ describe("http：请求形状与响应", () => {
 		const result = await makeClient().fetchText(`${stub.base}/page`);
 
 		expect(result.status).toBe(200);
-		expect(result.url).toBe(stub.base + "/page");
+		expect(result.url).toBe(`${stub.base}/page`);
 		expect(result.contentType).toBe("text/plain; charset=utf-8");
 		expect(result.text).toBe("hello");
 		expect(stub.requests[0]?.headers["user-agent"]).toBe(UA);
@@ -111,9 +111,9 @@ describe("http：请求形状与响应", () => {
 		expect(error).toBeInstanceOf(HttpError);
 		expect((error as HttpError).type).toBe("http_status");
 		expect((error as HttpError).status).toBe(404);
-		expect((error as HttpError).url).toBe(stub.base + "/nope");
+		expect((error as HttpError).url).toBe(`${stub.base}/nope`);
 		expect((error as HttpError).message).toContain("404");
-		expect((error as HttpError).message).toContain(stub.base + "/nope");
+		expect((error as HttpError).message).toContain(`${stub.base}/nope`);
 		expect((error as HttpError).body).toContain("missing");
 	});
 

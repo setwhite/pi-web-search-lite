@@ -201,6 +201,7 @@ function isRepo(value: string): boolean {
 }
 
 function safeRef(segment: string | undefined): string | null {
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: 这里就是要拦控制字符（含 NUL），不是误写
 	if (!segment || segment.length > 1024 || /[\0-\x1f\x7f]/.test(segment)) return null;
 	return segment;
 }

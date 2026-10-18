@@ -1,7 +1,7 @@
 /** web_search 工具：provider 两层解析（env > config）、max_results clamp、统一结果信封与截断。 */
 
 import { Type, type Static } from "typebox";
-import { type ProviderId, type ResolvedConfig } from "../config/index.ts";
+import type { ProviderId, ResolvedConfig } from "../config/index.ts";
 import { createHttpClient, type HttpClient } from "../http/index.ts";
 import { createSearchProvider, resolveApiKey, resolveProviderId, type SearchProvider, type SearchResult } from "../providers/index.ts";
 import { buildToolResult, finalizeContent, type AgentToolResult, type ToolDefinition } from "./result.ts";

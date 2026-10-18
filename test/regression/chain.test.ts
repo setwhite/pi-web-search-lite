@@ -5,7 +5,7 @@
 
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
-import { type AddressInfo } from "node:net";
+import type { AddressInfo } from "node:net";
 import { dirname } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createHttpClient } from "../../http/index.ts";
