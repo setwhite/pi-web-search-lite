@@ -48,7 +48,7 @@ index.ts
 - 模块文档统一放 `docs/modules/`，与模块同名（`config/` → `docs/modules/config.md`）；改接口或语义时同 PR 更新。术语见 `docs/GLOSSARY.md`。
 - 测试统一放仓库根 `test/`，命名 `<模块>.test.ts`；模块内多文件时镜像子目录（如 `test/providers/tavily.test.ts`）。测试不进 npm 发布产物。测试标题与夹具可用中文（不进 pi），断言运行时文案时必须与源码英文一致。
 - 根 README 的封面图放 `assets/`，同样不进 npm 发布产物，所以 README 里用 GitHub raw 绝对地址引用。
-- 收工 QA 固定两条：`pnpm test`、`pnpm typecheck`（与 CI 同款，见根 README「开发」）。
+- 收工 QA 固定三条：`pnpm lint`、`pnpm test`、`pnpm typecheck`（与 CI 同款，见根 README「开发」）。
 - 手动验收用隔离 agent 目录：`PI_CODING_AGENT_DIR=<临时目录> pi --extension ./index.ts -p "<prompt>"`；临时目录只放真实 `auth.json` 与最小 `settings.json`，避免与本机同名工具冲突。
 
 ## 4. 文档职责（防止重复）

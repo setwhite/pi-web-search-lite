@@ -170,8 +170,9 @@ Docs are currently written in Chinese.
 
 ```bash
 pnpm install
+pnpm lint        # biome: lint + format check (add --write to fix in place)
 pnpm test        # unit tests, no real network
 pnpm typecheck
 ```
 
-CI runs the same two commands on Linux and Windows; the pnpm version is pinned via `packageManager`.
+CI runs the same three commands on Linux and Windows; the pnpm version is pinned via `packageManager`. Lint and format rules live in `biome.json` (`lineWidth` 100).
