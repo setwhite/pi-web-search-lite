@@ -4,10 +4,22 @@
  * 本模块只对重定向的每一跳目标调用 `assertPublicUrl`。
  */
 
-import { fetch as undiciFetch, ProxyAgent, type Dispatcher, type Response as UndiciResponse } from "undici";
+import {
+	type Dispatcher,
+	ProxyAgent,
+	type Response as UndiciResponse,
+	fetch as undiciFetch,
+} from "undici";
 import { assertPublicUrl, isLoopbackHost, SsrfError } from "../ssrf/index.ts";
 
-export type HttpErrorType = "timeout" | "abort" | "http_status" | "parse" | "network" | "redirect" | "too_many_redirects";
+export type HttpErrorType =
+	| "timeout"
+	| "abort"
+	| "http_status"
+	| "parse"
+	| "network"
+	| "redirect"
+	| "too_many_redirects";
 
 /** 结构化 HTTP 错误；模型可见文案由 tools/ 组装。 */
 export class HttpError extends Error {
@@ -16,7 +28,12 @@ export class HttpError extends Error {
 	readonly status: number | undefined;
 	readonly body: string | undefined;
 
-	constructor(type: HttpErrorType, url: string, message: string, extra: { status?: number; body?: string } = {}) {
+	constructor(
+		type: HttpErrorType,
+		url: string,
+		message: string,
+		extra: { status?: number; body?: string } = {},
+	) {
 		super(message);
 		this.name = "HttpError";
 		this.type = type;
@@ -90,7 +107,10 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 			userSignal: request?.signal,
 			timeout: AbortSignal.timeout(options.timeoutMs),
 		};
-		const signal = state.userSignal === undefined ? state.timeout : AbortSignal.any([state.userSignal, state.timeout]);
+		const signal =
+			state.userSignal === undefined
+				? state.timeout
+				: AbortSignal.any([state.userSignal, state.timeout]);
 		const { response, finalUrl } = await perform(url, request, state, signal);
 
 		let text: string;
@@ -101,12 +121,22 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 		}
 
 		if (!response.ok) {
-			throw new HttpError("http_status", finalUrl, `HTTP ${response.status}: ${state.method} ${finalUrl}`, {
-				status: response.status,
-				body: text,
-			});
+			throw new HttpError(
+				"http_status",
+				finalUrl,
+				`HTTP ${response.status}: ${state.method} ${finalUrl}`,
+				{
+					status: response.status,
+					body: text,
+				},
+			);
 		}
-		return { status: response.status, url: finalUrl, contentType: response.headers.get("content-type") ?? undefined, text };
+		return {
+			status: response.status,
+			url: finalUrl,
+			contentType: response.headers.get("content-type") ?? undefined,
+			text,
+		};
 	}
 
 	return {
@@ -119,7 +149,11 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 			try {
 				return { ...result, data: JSON.parse(result.text) as T };
 			} catch {
-				throw new HttpError("parse", result.url, `invalid JSON response: ${request?.method ?? "GET"} ${result.url}`);
+				throw new HttpError(
+					"parse",
+					result.url,
+					`invalid JSON response: ${request?.method ?? "GET"} ${result.url}`,
+				);
 			}
 		},
 	};
@@ -134,7 +168,10 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 		let current = new URL(url);
 		let method = state.method;
 		let body = request?.body;
-		const headers: Record<string, string> = { ...request?.headers, "user-agent": options.userAgent };
+		const headers: Record<string, string> = {
+			...request?.headers,
+			"user-agent": options.userAgent,
+		};
 
 		for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
 			let response: UndiciResponse;
@@ -159,13 +196,22 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 			await response.body?.cancel().catch(() => undefined); // 尽力释放连接，失败不影响重定向
 			const next = redirectTarget(current, location);
 			if (next.origin !== current.origin) dropSensitiveHeaders(headers);
-			if (response.status === 303 || ((response.status === 301 || response.status === 302) && method !== "GET" && method !== "HEAD")) {
+			if (
+				response.status === 303 ||
+				((response.status === 301 || response.status === 302) &&
+					method !== "GET" &&
+					method !== "HEAD")
+			) {
 				method = "GET";
 				body = undefined;
 			}
 			current = next;
 		}
-		throw new HttpError("too_many_redirects", current.href, `too many redirects (limit ${MAX_REDIRECTS}): ${url}`);
+		throw new HttpError(
+			"too_many_redirects",
+			current.href,
+			`too many redirects (limit ${MAX_REDIRECTS}): ${url}`,
+		);
 	}
 }
 
@@ -175,7 +221,11 @@ function redirectTarget(current: URL, location: string): URL {
 	try {
 		next = new URL(location, current);
 	} catch {
-		throw new HttpError("redirect", current.href, `invalid redirect target: ${location} (from ${current.href})`);
+		throw new HttpError(
+			"redirect",
+			current.href,
+			`invalid redirect target: ${location} (from ${current.href})`,
+		);
 	}
 	assertPublicUrl(next.href);
 	return next;
@@ -184,8 +234,10 @@ function redirectTarget(current: URL, location: string): URL {
 /** 归一化 fetch / 读体阶段的异常：区分调用方中断、超时与网络错误。 */
 function toHttpError(cause: unknown, url: string, state: RequestState): HttpError | SsrfError {
 	if (cause instanceof HttpError || cause instanceof SsrfError) return cause;
-	if (state.userSignal?.aborted === true) return new HttpError("abort", url, `request aborted: ${state.method} ${url}`);
-	if (state.timeout.aborted) return new HttpError("timeout", url, `request timed out: ${state.method} ${url}`);
+	if (state.userSignal?.aborted === true)
+		return new HttpError("abort", url, `request aborted: ${state.method} ${url}`);
+	if (state.timeout.aborted)
+		return new HttpError("timeout", url, `request timed out: ${state.method} ${url}`);
 	const detail = describeCause(cause);
 	return new HttpError("network", url, `network error: ${state.method} ${url}: ${detail}`);
 }
@@ -203,7 +255,13 @@ function describeCause(cause: unknown): string {
 			details.add(String(node));
 			return;
 		}
-		const { name, message, code, errors, cause: nested } = node as {
+		const {
+			name,
+			message,
+			code,
+			errors,
+			cause: nested,
+		} = node as {
 			name?: unknown;
 			message?: unknown;
 			code?: unknown;
@@ -230,7 +288,13 @@ function describeCause(cause: unknown): string {
  */
 function isSensitiveHeader(name: string): boolean {
 	const lower = name.toLowerCase();
-	return lower === "authorization" || lower.endsWith("token") || lower.endsWith("api-key") || lower.endsWith("api_key") || lower.endsWith("apikey");
+	return (
+		lower === "authorization" ||
+		lower.endsWith("token") ||
+		lower.endsWith("api-key") ||
+		lower.endsWith("api_key") ||
+		lower.endsWith("apikey")
+	);
 }
 
 /** 跨 origin 重定向前摘认证头：目标域不该拿到只该发给来源域的凭据。 */
