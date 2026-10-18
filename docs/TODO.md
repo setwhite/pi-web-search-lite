@@ -58,11 +58,11 @@
   - 验收证据：`rg -c 'args\[0\] === "--version"' test/` 只剩 `fixtures.ts` 与该条用例；`pnpm test` 34 files / 300 tests
   - 前置：无
 
-- [ ] T24 引入 biome 做 lint + 格式闸
+- [x] T24 引入 biome 做 lint + 格式闸
   - 交付物：`biome.json`、`package.json`（`lint` 脚本）、`README.md` / `README.en.md` 开发段、`ci.yml` 与 `npm-publish.yml` 的 lint 步骤、`devDependencies`
   - 验收：`pnpm lint`（= `biome check .`）零诊断；CI 与本地同一条命令；`lineWidth` 100 —— 现状源码 p90 实测 89、最长 187，取 100 让既有代码里没被折的行保持原样；重排量随宽度单调下降（88 / 100 / 120 / 140 → 3156 / 2196 / 903 / 407 改动行 = 74 / 73 / 49 / 25 个文件，在 HEAD 副本上用同一 biome 实测），此处不追最小重排：120 会把行宽上限整体抬高
   - 验收证据：`pnpm exec biome check . --reporter=summary` 只输出 `Checked N files`；`pnpm test` 35 files / 303 tests
-  - 进度：工具与 9 处 lint 修复随 db73099 落地；格式化重排（72 文件）、`ci.yml` / `npm-publish.yml` 的 lint 步骤、英文 README 与 `docs/ARCHITECTURE.md` 的口径补齐待提交
+  - 进度：已提交——工具与 9 处 lint 修复随 db73099；格式化重排随 3509915（71 个文件）与 911eb7f（`http/index.ts` 单独一枚，它带着待审的手改）；`biome.json` 随 160679f；两个工作流的 lint 步骤随 b64a87b；英文 README 与 `docs/ARCHITECTURE.md` 的口径随 708768e
   - 前置：T22 / T23 先提交——已完成（efeff50 / 20a51c1）
 
 - [ ] T25 桩 server 的临时端口绕开 undici 的 bad port 名单
