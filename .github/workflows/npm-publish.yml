@@ -43,6 +43,8 @@ jobs:
       - if: ${{ steps.check.outputs.publish == 'true' }}
         run: pnpm install --frozen-lockfile
       - if: ${{ steps.check.outputs.publish == 'true' }}
+        run: pnpm run lint
+      - if: ${{ steps.check.outputs.publish == 'true' }}
         run: pnpm run typecheck
       - if: ${{ steps.check.outputs.publish == 'true' }}
         run: pnpm test
