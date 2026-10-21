@@ -1,7 +1,7 @@
 # CI：风格闸 + 类型检查 + 全部测试（不打真实网络，全部用桩 server / 注入的 exec）。
-# 矩阵：Linux 覆盖 Node 22 / 24（宿主要求 >= 22.19.0，见 package.json engines）。
-# 只跑 Linux：Windows runner 的 git 是 core.autocrlf=true，checkout 出来是 CRLF，而 biome 默认
-# lineEnding lf，每个文件都会被判要格式化，lint 在 windows-latest 上必红。
+# 矩阵：Linux 覆盖 Node 22 / 24（宿主要求 >= 22.19.0，见 package.json engines），Windows 覆盖 Node 22。
+# 行尾由 .gitattributes 固定为 LF（* text=auto eol=lf）；Windows runner 默认 core.autocrlf=true，
+# 不固定的话 biome 的 lineEnding lf 会把每个文件判成要格式化。
 # pnpm/setup 自带 pnpm + Node（版本取自 package.json 的 packageManager / 本文件的 runtime），并在有 package.json 时自动执行 pnpm install。
 name: CI
 
@@ -29,6 +29,8 @@ jobs:
             node: 22
           - os: ubuntu-latest
             node: 24
+          - os: windows-latest
+            node: 22
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@v3

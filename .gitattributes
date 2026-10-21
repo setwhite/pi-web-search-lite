@@ -1,0 +1,4 @@
+# 行尾不交给平台决定：Windows 上 core.autocrlf=true 会把检出改成 CRLF，
+# 而 biome 默认 lineEnding lf，lint 会在每个文件上报格式错误。
+# 与 pi-todo-lite 同一策略：仓库与工作区一律 LF。
+* text=auto eol=lf
