@@ -13,7 +13,7 @@
 - 每条失败路径都给出可操作信息：缺哪个 key、缺哪个字段、HTTP 状态或超时来源。
 - 结果超限自动截断；`context.spillToFile` 默认开启，完整内容落临时文件，路径写进结果供 `read` 续读。
 
-取舍与「不做什么」的完整清单见 `docs/adr/`。
+取舍与「不做什么」的完整清单见 [docs/adr/](docs/adr/)。
 
 ## 安装
 
@@ -26,7 +26,7 @@ pi install git:github.com/setwhite/pi-web-search-lite    # 从 git 仓库安装
 
 ## 配置
 
-配置只有一个 JSON 文件：`<PI_CODING_AGENT_DIR 或 ~/.pi/agent>/pi-web-search-lite/config.json`，不存在时全用默认值。类型、枚举名或未知键写错会启动失败并指出字段；数值越界不报错，静默 clamp 到区间（见 `docs/modules/config.md`）。示例里的 `//` 注释只为讲解，实际文件必须是严格 JSON，拷走前先删掉。
+配置只有一个 JSON 文件：`<PI_CODING_AGENT_DIR 或 ~/.pi/agent>/pi-web-search-lite/config.json`，不存在时全用默认值。类型、枚举名或未知键写错会启动失败并指出字段；数值越界不报错，静默 clamp 到区间（见 [docs/modules/config.md](docs/modules/config.md)）。示例里的 `//` 注释只为讲解，实际文件必须是严格 JSON，拷走前先删掉。
 
 **最小可用配置**——挑一个搜索源、填上它的 key 就能用（默认源是 tavily）：
 
@@ -122,7 +122,7 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 }
 ```
 
-每个键都可省略。默认值与取值范围见 `docs/modules/config.md`；要覆盖提示词就往 `guidance.web_search` / `guidance.web_fetch` 里填字段。
+每个键都可省略。默认值与取值范围见 [docs/modules/config.md](docs/modules/config.md)；要覆盖提示词就往 `guidance.web_search` / `guidance.web_fetch` 里填字段。
 
 ### 三道 max 闸，别混
 
@@ -134,12 +134,12 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 | `handlers.github.maxChars` | gh 输出渲染成 markdown 之后 | 同上；只作用于 GitHub handler |
 | `context.maxInlineChars` / `maxInlineLines` | 组装好、要发给模型的信封（两个工具都过） | 切片；`spillToFile` 为真时完整文本落临时文件，路径写进结果 |
 
-`context.*` 两个上限用 `Math.min` 夹到宿主上限，写大了不生效；GitHub 页面只过第 2、3 道，普通网页只过第 1、3 道，`raw` 只过第 3 道。支持的 GitHub / Reddit URL 形态见 `docs/modules/handlers.md`。
+`context.*` 两个上限用 `Math.min` 夹到宿主上限，写大了不生效；GitHub 页面只过第 2、3 道，普通网页只过第 1、3 道，`raw` 只过第 3 道。支持的 GitHub / Reddit URL 形态见 [docs/modules/handlers.md](docs/modules/handlers.md)。
 
 ## 功能
 
 - 搜网页：tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek 任选一个，不会偷偷换源；缺 key 会直接告诉你配哪里。
-- 抓网页：按 `fetch.extractors` 顺序逐个尝试提取器，第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key；`tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` 可以插到中间）。GitHub 页面优先用 `gh`，reddit 默认把域名换成 redlib 实例（两者见 `docs/modules/handlers.md`）；`fetch.allowRaw` 打开后才有 `raw` 参数，raw 跳过整条链。
+- 抓网页：按 `fetch.extractors` 顺序逐个尝试提取器，第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key；`tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` 可以插到中间）。GitHub 页面优先用 `gh`，reddit 默认把域名换成 redlib 实例（两者见 [docs/modules/handlers.md](docs/modules/handlers.md)）；`fetch.allowRaw` 打开后才有 `raw` 参数，raw 跳过整条链。
 - 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查；结果太长自动截断，`context.spillToFile` 为真时全文落到临时文件（路径写进结果）。
 - 上下文可控：工具可改名、可关闭、可改成按需发现，减少常驻提示词。
 - 提示词精简：内置提示词是英文单行；续读提示、key 位置、参数范围这些信息都由报错和结果给出，不占提示词；工具改名后提示词自动跟着变。
@@ -158,11 +158,11 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 
 ## 文档索引
 
-- 设计取舍与「不做什么」：`docs/adr/`（索引：`docs/adr/README.md`）
-- 模块划分与依赖方向：`docs/ARCHITECTURE.md`
-- 术语表：`docs/GLOSSARY.md`
-- 模块 API 与契约：`docs/modules/`（`config`、`http`、`ssrf`、`providers`、`handlers`、`extractors`、`tools`）
-- 发布记录：`CHANGELOG.md`
+- 设计取舍与「不做什么」：[docs/adr/](docs/adr/)（索引：[docs/adr/README.md](docs/adr/README.md)）
+- 模块划分与依赖方向：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- 术语表：[docs/GLOSSARY.md](docs/GLOSSARY.md)
+- 模块 API 与契约：[docs/modules/](docs/modules/)（[config](docs/modules/config.md)、[http](docs/modules/http.md)、[ssrf](docs/modules/ssrf.md)、[providers](docs/modules/providers.md)、[handlers](docs/modules/handlers.md)、[extractors](docs/modules/extractors.md)、[tools](docs/modules/tools.md)）
+- 发布记录：[CHANGELOG.md](CHANGELOG.md)
 
 ## 开发
 
