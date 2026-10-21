@@ -6,7 +6,7 @@
 
 ```ts
 assertPublicUrl(input: string): URL        // 通过返回解析结果，否则抛 SsrfError
-isLoopbackHost(hostname: string): boolean  // localhost / 127.0.0.0/8 / ::1（含 ::ffff: 映射）
+isLoopbackHost(hostname: string): boolean  // localhost / *.localhost / 127.0.0.0/8 / ::1（含 ::ffff: 映射）
 class SsrfError extends Error              // { type: SsrfErrorType; url: string }
 type SsrfErrorType = "invalid_url" | "blocked_protocol" | "blocked_host" | "blocked_ip"
 ```

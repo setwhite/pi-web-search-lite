@@ -4,14 +4,14 @@
 
 ![A pi session: web_search returns 5 results via exa, then web_fetch extracts the first page](https://raw.githubusercontent.com/setwhite/pi-web-search-lite/main/assets/cover.png)
 
-Adds two tools to pi: `web_search` for the web, `web_fetch` for page text; every outbound request goes through a single proxy setting.
+Adds two tools to pi: `web_search` for the web, `web_fetch` for page text; every request the extension sends goes through a single proxy setting.
 
 ## Design goals
 
-- Two tools only — `web_search` + `web_fetch` — with every outbound request going through one proxy setting.
+- Two tools only — `web_search` + `web_fetch` — with every request the extension sends going through one proxy setting.
 - Add a search key and you are ready; the default fetch chain (`html` / `jina`) needs no key.
 - Every failure path names what to fix: which key, which field, the HTTP status or the timeout source.
-- Oversized results are truncated with the full text spilled to a temp file, whose path is returned for `read`.
+- Oversized results are truncated; with `context.spillToFile` on by default, the full text goes to a temp file whose path is returned for `read`.
 
 The full list of trade-offs and non-goals: `docs/adr/`.
 
@@ -59,7 +59,7 @@ Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY
     "jina": "jina-your-key"
   },
 
-  // Proxy: the single egress point for every request; "" = direct
+  // Proxy: the single egress point for the extension's own requests; "" = direct. The gh subprocess also inherits the host's HTTP(S)_PROXY; setting this writes the same variables
   "proxy": "",
   // Request timeout in milliseconds
   "timeoutMs": 30000,
@@ -98,7 +98,7 @@ Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY
   },
   // Search results: how many by default, and the ceiling
   "search": { "defaultMaxResults": 5, "maxResultsLimit": 10 },
-  // Fetching: extractors are a fallback chain — tried in order, the first usable body wins; a missing key, an error or a body under minChars falls through
+  // Fetching: extractors form a chain — tried in order, the first usable body wins; a missing key, an error or a body under minChars falls through
   // Recommended order html → your provider → jina: html and jina need no key; tavily / exa / firecrawl / parallel / keenable / deepseek are both search backends and extractors
   "fetch": {
     "extractors": ["html", "jina"],
@@ -126,7 +126,7 @@ Every key is optional. Defaults and ranges: `docs/modules/config.md`; to overrid
 
 ### The three max gates
 
-A fetch result passes three independent caps on its way to the model:
+Three independent caps sit between a fetch and the model; each result passes one or two of them:
 
 | Key | Applies to | On overflow |
 |---|---|---|
@@ -134,19 +134,19 @@ A fetch result passes three independent caps on its way to the model:
 | `handlers.github.maxChars` | gh output after it is rendered to markdown | same; GitHub handler only |
 | `context.maxInlineChars` / `maxInlineLines` | the envelope handed to the model (both tools) | sliced; with `spillToFile` the full text goes to a temp file and the path is included in the result |
 
-Both `context.*` caps are clamped with `Math.min` against the host caps, so larger values have no effect. GitHub pages pass gates 2 and 3; ordinary pages pass 1 and 3. Supported GitHub / Reddit URL shapes: `docs/modules/handlers.md`.
+Both `context.*` caps are clamped with `Math.min` against the host caps, so larger values have no effect. GitHub pages pass gates 2 and 3, ordinary pages pass 1 and 3, and `raw` passes only gate 3. Supported GitHub / Reddit URL shapes: `docs/modules/handlers.md`.
 
 ## Features
 
 - Search: pick one of tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek — no silent switching; a missing key tells you exactly where to set it.
-- Fetch: extractors are a fallback chain, tried in order until one works (default `html` → `jina`, neither needs a key; insert `tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` in the middle). GitHub pages go through `gh`, reddit URLs are rewritten to a redlib instance by default (both in `docs/modules/handlers.md`); `fetch.allowRaw` unlocks the `raw` argument, which skips the chain.
+- Fetch: extractors are tried in `fetch.extractors` order until one works (default `html` → `jina`, neither needs a key; insert `tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` in the middle). GitHub pages go through `gh`, reddit URLs are rewritten to a redlib instance by default (both in `docs/modules/handlers.md`); `fetch.allowRaw` unlocks the `raw` argument, which skips the chain.
 - Safe by default: private and loopback addresses are rejected, and every redirect hop is re-checked; oversized results are truncated with the full text spilled to a temp file when `context.spillToFile` is on (the path is included in the result).
 - Controllable context: tools can be renamed, disabled or switched to on-demand discovery.
 - Lean prompts: built-in prompts are single-line English; how to continue after truncation, where to put the key or what the argument ranges are live in errors and results instead of the prompt, and renamed tools are reflected in the prompts automatically.
 
 ## Requirements
 
-- pi host (the Node version follows the host's requirement).
+- pi host; Node.js >= 22.19.0 (`engines` in `package.json`; the host may require newer).
 - `gh` CLI **optional**: only GitHub page fetching uses it.
 
 ## Credits
@@ -175,6 +175,6 @@ pnpm test        # unit tests, no real network
 pnpm typecheck
 ```
 
-CI runs the same three commands on Linux, on Node 22 and 24; the pnpm version is pinned via `packageManager`. Lint and format rules live in `biome.json` (`lineWidth` 100).
+CI runs the same three commands on Linux (Node 22 / 24) and Windows (Node 22); `.gitattributes` pins line endings to LF so biome reports the same result on both. The pnpm version is pinned via `packageManager`, and lint/format rules live in `biome.json` (`lineWidth` 100).
 
 Releasing: bump `version` in `package.json`, add a `CHANGELOG.md` entry, and push to `main` — `.github/workflows/npm-publish.yml` publishes it (the whole run is skipped when the version is already on the registry).

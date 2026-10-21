@@ -30,14 +30,14 @@ class ProviderError extends Error  // { type: "unknown_provider" | "missing_api_
 |---|---|---|---|
 | tavily | `POST https://api.tavily.com/search`，body `{ query, max_results }` | `Authorization: Bearer` | `results[].title/url/content` |
 | brave | `GET https://api.search.brave.com/res/v1/web/search?q&count` | `X-Subscription-Token` | `web.results[].title/url/description` |
-| exa | `POST https://api.exa.ai/search`，body `{ query, numResults, contents.text.maxCharacters }` | `x-api-key` | `results[].title/url/text` |
+| exa | `POST https://api.exa.ai/search`，body `{ query, numResults, contents.text.maxCharacters }`（`maxCharacters` 固定 300） | `x-api-key` | `results[].title/url/text` |
 | firecrawl | `POST https://api.firecrawl.dev/v2/search`，body `{ query, limit, sources: ["web"] }` | `Authorization: Bearer` | `data.web[].title/url/description` |
 | perplexity | `POST https://api.perplexity.ai/search`，body `{ query, max_results }` | `Authorization: Bearer` | `results[].title/url/snippet` |
 | parallel | `POST https://api.parallel.ai/v1/search`，body `{ mode: "fast", search_queries: [query], advanced_settings: { max_results } }` | `x-api-key` | `results[].title/url/excerpts[]`（拼成 snippet） |
 | keenable | `POST https://api.keenable.ai/v1/search`，body `{ query, max_results }` | `X-API-Key` | `results[].title/url/snippet`，缺则取 `description` |
 | deepseek | `POST https://api.deepseek.com/v1/tools/search`，body `{ query, count }` | `Authorization: Bearer` | `results[].title/url/summary`，缺则取 `snippet` |
 
-统一映射：缺 `title` 用 `url` 顶替，snippet 折叠空白，缺 `url` 的条目丢弃。非 2xx / 超时由 `http/` 抛 `HttpError`，本层不吞错。
+统一映射：缺 `title` 用 `url` 顶替，snippet 折叠空白，缺 `url` 的条目丢弃。非 2xx / 超时由 `http/` 抛 `HttpError`；firecrawl 的 200 + `success: false` 也抛错，不当空结果。本层不吞错。
 
 ## 三处取舍
 

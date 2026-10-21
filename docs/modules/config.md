@@ -15,7 +15,7 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 ```
 
 - `configPath` 缺省由 `env` 推导；`env` 缺省 `process.env`（测试可注入）。
-- JSON 损坏、顶层非对象、字段非法 → 抛 `Error`，消息含配置文件的绝对路径；字段非法时逐条列出 `<field path>: <reason>`。
+- JSON 损坏、顶层非对象、未知键、字段非法、读取失败（ENOENT 除外）→ 抛 `Error`，消息含配置文件路径；字段非法时逐条列出 `<field path>: <reason>`。
 - 数值字段越界不报错，clamp 到 `schema.ts` 的 `RANGES` 区间；`context.maxInlineChars` / `maxInlineLines` 只 clamp 下限（`1000` / `50`），同样不报错（区间见下表）。
 - API key：`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `PARALLEL_API_KEY` / `KEENABLE_API_KEY` / `DEEPSEEK_API_KEY` / `JINA_API_KEY` 优先于文件 `apiKeys.<id>`；空字符串环境变量视为未设置。`jina` 是提取器专用键，**可缺**（官方允许匿名 20 RPM，配了走更高配额）。
 - `proxy` 仅接受 `http(s)://`；其余枚举与命名规则见下表。
@@ -51,7 +51,7 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 | `handlers.reddit.enabled` | `true` | — |
 | `handlers.reddit.baseUrl` | `"https://redlib.catsarch.com"` | `http(s)` 绝对 URL，可带子路径 |
 
-三层截断（`fetch.maxCharsPerPage` → `handlers.github.maxChars` → `context.*`）的作用对象与顺序见根 `README.md`「三道 max 闸」。
+三道上限（`fetch.maxCharsPerPage` / `handlers.github.maxChars` / `context.*`）的适用对象见根 `README.md`「三道 max 闸」。
 
 ## 文件
 

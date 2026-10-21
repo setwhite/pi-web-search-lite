@@ -1,6 +1,6 @@
-# http/ — 出站 HTTP 唯一出口
+# http/ — 扩展自身出站 HTTP 的唯一出口
 
-代理、超时、UA、`AbortSignal`、错误归一化。**不认 provider 语义、不 import 宿主包**；全仓库只有这一个模块直接调用 `undici` 的 `fetch`。
+代理、超时、UA、`AbortSignal`、错误归一化。**不认 provider 语义、不 import 宿主包**；全仓库只有这一个模块直接调用 `undici` 的 `fetch`，gh 子进程不走本模块（见 `handlers.md`）。
 
 ## API
 
@@ -14,12 +14,12 @@ type HttpErrorType = "timeout" | "abort" | "http_status" | "parse" | "network" |
 
 ## 契约要点
 
-- **代理**：`proxy` 为 `undefined` / 空串时直连；非空时非本机目标经同一个 `ProxyAgent`。`localhost` / `127.0.0.0/8` / `::1`（含 `::ffff:` 映射）永远绕过代理。不读 `HTTP_PROXY` 等环境变量（ADR-0004）。
+- **代理**：`proxy` 为 `undefined` / 空串时直连；非空时非本机目标经同一个 `ProxyAgent`。`localhost` / `*.localhost` / `127.0.0.0/8` / `::1`（含 `::ffff:` 映射）永远绕过代理。不读 `HTTP_PROXY` 等环境变量（ADR-0004；gh 子进程的代理注入见 `handlers.md`）。
 - **SSRF 边界**：入口 URL 不做校验——调用方必须在抓取前调用 `ssrf/assertPublicUrl`。本模块对重定向每一跳目标调用它，命中抛 `SsrfError`（非 http(s)、私有 / 回环地址均拒绝）。
 - **超时**：`AbortSignal.timeout(timeoutMs)` 覆盖含重定向的整条请求链；调用方 `signal` 中断优先判定为 `abort`。
-- **重定向**：上限 5 跳；跨 origin 摘掉认证头——`authorization`，以及任何以 `token` / `api-key` / `api_key` / `apikey` 结尾的头名（覆盖 provider 的 `x-api-key`、`x-subscription-token`），其余请求头保留；303 与 301/302 下的非 GET 请求改为 GET，307/308 保持 method / body。
+- **重定向**：上限 5 跳；跨 origin 摘掉认证头——`authorization`，以及任何以 `token` / `api-key` / `api_key` / `apikey` 结尾的头名（覆盖 provider 的 `x-api-key`、`x-subscription-token`），其余请求头保留；303 一律改为 GET，301/302 下的非 GET/HEAD 请求改为 GET，307/308 保持 method / body；非法 Location 抛 `redirect`。
 - **userAgent**：强制使用配置值，请求头里的同名值会被覆盖；调用方无法绕过。
-- **错误**：非 2xx 抛 `http_status`（`status` + `body` 只为诊断与测试保留，上层只用 `message` 组装模型可见文案）；200 但 body 非 JSON 抛 `parse`；DNS / 连接失败抛 `network`，消息里按序带上 cause 链各层的 `code` 与原因（如 `ECONNREFUSED` / `ENOTFOUND` / `bad port`），不止 undici 外层的 `fetch failed`；多地址场景的 `AggregateError` 会展开（深度上限 4 层）。
+- **错误**：非 2xx 抛 `http_status`（`status` + `body` 只为诊断与测试保留，上层只用 `message` 组装模型可见文案）；2xx 但 body 非 JSON 抛 `parse`；DNS / 连接失败抛 `network`，消息里按序带上 cause 链各层的 `code` 与原因（如 `ECONNREFUSED` / `ENOTFOUND` / `bad port`），不止 undici 外层的 `fetch failed`；多地址场景的 `AggregateError` 会展开（深度上限 4 层）。
 
 ## 验证局限
 

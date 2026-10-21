@@ -4,14 +4,14 @@
 
 ![pi 会话：web_search 用 exa 搜到 5 条结果，web_fetch 紧接着抓到第一页正文](https://raw.githubusercontent.com/setwhite/pi-web-search-lite/main/assets/cover.png)
 
-给 pi 加两个工具：`web_search` 搜网页、`web_fetch` 抓网页正文；所有出站请求走同一个代理。
+给 pi 加两个工具：`web_search` 搜网页、`web_fetch` 抓网页正文；扩展自身发出的请求都走同一个代理配置点。
 
 ## 设计目标
 
-- 只做 `web_search` + `web_fetch` 两个工具，所有出站请求经同一个代理配置点。
+- 只做 `web_search` + `web_fetch` 两个工具，扩展自身的出站请求经同一个代理配置点。
 - 装完配一个搜索 key 就能用；抓取默认链（`html` / `jina`）不需要 key。
 - 每条失败路径都给出可操作信息：缺哪个 key、缺哪个字段、HTTP 状态或超时来源。
-- 结果超限自动截断，完整内容落临时文件，路径写进结果供 `read` 续读。
+- 结果超限自动截断；`context.spillToFile` 默认开启，完整内容落临时文件，路径写进结果供 `read` 续读。
 
 取舍与「不做什么」的完整清单见 `docs/adr/`。
 
@@ -59,7 +59,7 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
     "jina": "jina-你的key"
   },
 
-  // 代理：所有出站请求的唯一出口；"" = 直连
+  // 代理：扩展自身请求的唯一出口；"" = 直连。gh 子进程另会继承宿主的 HTTP(S)_PROXY（配置了本项时会写入同名变量）
   "proxy": "",
   // 请求超时（毫秒）
   "timeoutMs": 30000,
@@ -98,7 +98,7 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
   },
   // 搜索条数：不传时给多少、最多允许多少
   "search": { "defaultMaxResults": 5, "maxResultsLimit": 10 },
-  // 抓取：extractors 是 fallback 链，按顺序挨个试，第一个能用的胜出；缺 key、报错、正文太短都顺延下一个
+  // 抓取：extractors 是提取器链，按顺序挨个试，第一个能用的胜出；缺 key、报错、正文太短都顺延下一个
   // 推荐顺序 html → 你的 provider → jina：html 与 jina 不需要 key；tavily / exa / firecrawl / parallel / keenable / deepseek 六家既是搜索源也是提取器
   "fetch": {
     "extractors": ["html", "jina"],
@@ -126,7 +126,7 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 
 ### 三道 max 闸，别混
 
-抓取结果从出网到进模型要过三层上限，各自独立截断：
+抓取结果从出网到进模型有三道独立上限，按来源经过其中 1–2 道：
 
 | 键 | 作用对象 | 超限后果 |
 |---|---|---|
@@ -134,19 +134,19 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 | `handlers.github.maxChars` | gh 输出渲染成 markdown 之后 | 同上；只作用于 GitHub handler |
 | `context.maxInlineChars` / `maxInlineLines` | 组装好、要发给模型的信封（两个工具都过） | 切片；`spillToFile` 为真时完整文本落临时文件，路径写进结果 |
 
-`context.*` 两个上限用 `Math.min` 夹到宿主上限，写大了不生效；GitHub 页面只过第 2、3 道，普通网页只过第 1、3 道。支持的 GitHub / Reddit URL 形态见 `docs/modules/handlers.md`。
+`context.*` 两个上限用 `Math.min` 夹到宿主上限，写大了不生效；GitHub 页面只过第 2、3 道，普通网页只过第 1、3 道，`raw` 只过第 3 道。支持的 GitHub / Reddit URL 形态见 `docs/modules/handlers.md`。
 
 ## 功能
 
 - 搜网页：tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek 任选一个，不会偷偷换源；缺 key 会直接告诉你配哪里。
-- 抓网页：提取器是 fallback 链，按顺序挨个试、第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key；`tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` 可以插到中间）。GitHub 页面优先用 `gh`，reddit 默认把域名换成 redlib 实例（两者见 `docs/modules/handlers.md`）；`fetch.allowRaw` 打开后才有 `raw` 参数，raw 跳过整条链。
+- 抓网页：按 `fetch.extractors` 顺序逐个尝试提取器，第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key；`tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` 可以插到中间）。GitHub 页面优先用 `gh`，reddit 默认把域名换成 redlib 实例（两者见 `docs/modules/handlers.md`）；`fetch.allowRaw` 打开后才有 `raw` 参数，raw 跳过整条链。
 - 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查；结果太长自动截断，`context.spillToFile` 为真时全文落到临时文件（路径写进结果）。
 - 上下文可控：工具可改名、可关闭、可改成按需发现，减少常驻提示词。
 - 提示词精简：内置提示词是英文单行；续读提示、key 位置、参数范围这些信息都由报错和结果给出，不占提示词；工具改名后提示词自动跟着变。
 
 ## 环境要求
 
-- pi 宿主（Node 版本随宿主要求）。
+- pi 宿主；Node.js >= 22.19.0（`package.json` 的 `engines`，宿主可能要求更高）。
 - `gh` CLI **可选**：只有抓 GitHub 页面会用到，没装不影响其它功能。
 
 ## 参考项目
@@ -173,6 +173,6 @@ pnpm test        # 单元测试，不打真实网络
 pnpm typecheck
 ```
 
-CI 在 Linux 上跑这三条命令（Node 22 与 24）；pnpm 版本由 `packageManager` 字段锁定。格式与 lint 规则见 `biome.json`（`lineWidth` 100）。
+CI 在 Linux（Node 22 / 24）与 Windows（Node 22）上跑这三条命令；行尾由 `.gitattributes` 固定为 LF，两边的 biome 结果一致。pnpm 版本由 `packageManager` 字段锁定，格式与 lint 规则见 `biome.json`（`lineWidth` 100）。
 
 发版：改 `package.json` 的 `version` 与 `CHANGELOG.md`，推送 `main` 即由 `.github/workflows/npm-publish.yml` 发布（registry 上已有该版本则整条跳过）。

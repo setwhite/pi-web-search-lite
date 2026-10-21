@@ -17,7 +17,7 @@ _Avoid_: 抽取器、parser、抓取器
 _Avoid_: fallback 链（链是配置顺序，不是失败回退）
 
 **handler**:
-`web_fetch` 第 0 步的专用页面处理器：命中后直取正文（github）或只改写 URL（reddit）。不做提取、不发 HTTP。
+`web_fetch` 第 0 步的专用页面处理器：命中后直取正文（github，经 gh 子进程）或只改写 URL（reddit）。本层不发 HTTP、不做提取。
 _Avoid_: 插件、适配器
 
 **跳（skip）**:
@@ -39,7 +39,7 @@ _Avoid_: 跳转、重定向（重定向是 HTTP 层行为）
 _Avoid_: 响应包、result（`AgentToolResult` 是宿主类型）
 
 **三道 max 闸**:
-正文从出网到进模型的三层上限：`fetch.maxCharsPerPage` → `handlers.github.maxChars` → `context.maxInlineChars` / `maxInlineLines`。
+正文从出网到进模型的三道独立上限，按来源只经过其中 1–2 道（`raw` 只过第 3 道）：`fetch.maxCharsPerPage` → `handlers.github.maxChars` → `context.maxInlineChars` / `maxInlineLines`。
 _Avoid_: 截断链
 
 **spill**:

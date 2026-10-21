@@ -73,8 +73,7 @@
   - 来源：T24 验收首跑红——`test/extractors/firecrawl.test.ts:70` 收到 `network error: … fetch failed; bad port`；根因是本机动态端口段 1024–15000（`netsh int ipv4 show dynamicport tcp`）与 undici 的 82 个 bad port（全部 ≤ 10080）重叠，实测抽到 6566
   - 进度：已随 a1503e5 提交（6 文件）；`pnpm test` 在本会话跑 6 次全绿（35 files / 303 tests，含一次 3 连跑）
 
-## 待决（未成任务）
+## 已决（未成任务）
 
 - `HttpError.status` / `.body` 是否删（本会话提出，全仓零生产读者、只有 `test/http.test.ts:113,117` 读）：决定**保留**——口径写进 `http/index.ts` 注释与 `docs/modules/http.md`，将来要按状态码做事（如 429 退避）或把错误页正文给模型时直接用。注意 `body` 是整页、不截断。
-- Windows 上的 `pnpm lint`（CI 收窄到 Linux 后记下）：git 为 `core.autocrlf=true` 时 checkout 出 CRLF，biome 默认 `lineEnding: lf` 会把整仓判成待格式化，lint 直接红——本轮据此把 Windows 移出 CI 矩阵（a99bd5c，原因同时写在 `.github/workflows/ci.yml` 头注释）。要在 Windows 上也绿，加一行 `.gitattributes`（`* text=auto eol=lf`）即可；现在没人踩到，按 YAGNI 不加。
 - 16 张 provider / extractor 表是否抽象（审查 #5）：决定**不动**——认证头名、请求体字段、响应路径、错误约定各不相同，等第 9 家再加入口（用户已确认）。

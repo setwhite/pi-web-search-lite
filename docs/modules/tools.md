@@ -14,7 +14,7 @@
 ## API
 
 ```ts
-createSearchTool(config, overrides?): ToolDefinition<SearchParameters, SearchDetails>   // T7 在 index.ts 注册
+createSearchTool(config, overrides?): ToolDefinition<SearchParameters, SearchDetails>   // 由 index.ts 注册
 createFetchTool(config, overrides?): ToolDefinition<TSchema, FetchDetails>
 executeSearch(config, params, signal, overrides?): Promise<AgentToolResult<SearchDetails>>
 executeFetch(config, params, signal, overrides?): Promise<AgentToolResult<FetchDetails>>
@@ -22,7 +22,7 @@ finalizeContent(text, options): Promise<FinalizeOutcome>
 renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   // 直接挂在工具定义上
 ```
 
-`overrides` 是测试 seam（`http` / `provider` / `execGh` / `extractors`），生产不传。`ToolDefinition` 的五个展示字段（`name` / `label` / `description` / `promptSnippet` / `promptGuidelines`）都在此组装：`name` 取 `config.tools.*.name`，其余可被 `config.guidance.*` 整字段覆盖；内置默认值为英文单行，guidelines 用配置的工具名组装（fetch 的规则引用 search 的实际名字）。`index.ts` 只做注册与开关。
+`overrides` 是测试 seam（`http` / `provider` / `execGh` / `extractors`），生产不传。`ToolDefinition` 的展示字段在此组装：`name` 取 `config.tools.*.name`，`label` 固定（`Web Search` / `Web Fetch`），`description` / `promptSnippet` / `promptGuidelines` 可被 `config.guidance.*` 整字段覆盖；内置默认值为英文单行，guidelines 用配置的工具名组装（fetch 的规则引用 search 的实际名字）。`index.ts` 只做注册与开关。
 
 ## 信封与截断（`result.ts`）
 
@@ -38,10 +38,10 @@ renderSearchCall / renderSearchResult / renderFetchCall / renderFetchResult   //
 | 顺序 | `resolveProviderId`（解析顺序见 `providers.md`）→ `resolveApiKey` → provider | `assertPublicUrl` → handler → 提取器链；handler 只改写 URL 时，改写后的 URL 再跑一遍 `assertPublicUrl` 才进链；`raw: true` 跳过 handler 与链 |
 | details | `{ provider, query, count, results, truncated, fullOutputPath? }` | `{ url, title, source, mode, chars, visibleChars, truncated, fullOutputPath?, handlerSkips, rewrittenFrom? }` |
 
-- `source` 取 `"github"` / `ExtractorId` / `"raw"`；handler 命中但跳过时 `handlerSkips` 记录原因，`content` 用引用行注明「未接管」，再顺延到链（透明顺延）。
+- `source` 取 `"github"` / `ExtractorId` / `"raw"`，`mode` 取 `"extract"` / `"raw"`；handler 命中但跳过时 `handlerSkips` 记录原因，`content` 用引用行注明「未接管」，再顺延到链（透明顺延）。
 - `rewrittenFrom` 只在 handler 只换上域名时出现（如 reddit → redlib），`content` 头部多一行 `Rewritten from: <原 URL>`。
 - `chars` 是提取正文的字符数（信封截断前；可能已被提取器或 handler 截断过），`visibleChars` 是模型实际收到的 `content` 长度（信封截断后，含头部与提示）；两者不等即说明发生过截断。
-- `raw` 与 handler 互斥：raw 分支根本不调用 `runPageHandlers`。
+- `raw` 与 handler 互斥：raw 分支根本不调用 `runPageHandlers`。即使绕过 schema 直接传 `raw: true`，`fetch.allowRaw` 为假时也会抛错。
 - 空搜索结果仍返回成功信封（`content` 写明 `No results returned`）；缺 key / 内网 URL / 全部提取器失败都会 `throw`，错误文本给出环境变量、配置键或原因汇总。
 
 ## 渲染（`render.ts`）

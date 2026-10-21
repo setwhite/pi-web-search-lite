@@ -25,10 +25,10 @@ EXTRACTORS: Record<ExtractorId, Extractor>
 interface ExtractorContext { http; apiKeys; minChars; maxCharsPerPage; signal? }
 ```
 
-## Fallback 语义（ADR-0002）
+## 链式语义（ADR-0002）
 
 1. 该提取器需要 key 但没配 → **跳过**：不发请求、不计失败，原因记入 `attempts`。`jina` 是唯一例外（无 key 也发请求，官方 20 RPM），`html` 不需 key。
-2. 抛错（非 2xx / 超时 / 二进制 / 响应缺字段）→ 记录原因，试下一个。
+2. 抛错（非 2xx / 200 + `success: false` / 超时 / 二进制 / 响应缺字段）→ 记录原因，试下一个。
 3. 结果长度 < `fetch.minChars` → 视为无效，记录原因，试下一个。
 4. 全部失败 → 抛 `ExtractError`，错误文本逐条列出每个提取器的名字与原因（跳过、失败都列）。
 5. 成功 → 内容超 `fetch.maxCharsPerPage` 截断并标记 `truncated`；`title` 缺失时用最终 URL 顶替。
@@ -47,10 +47,10 @@ interface ExtractorContext { http; apiKeys; minChars; maxCharsPerPage; signal? }
 
 ## 已知取舍
 
-- 六家带 key 的提取器各自手写一份 `unavailableReason`（差异只有 id），同形的还有 `extract()` 开头的 `ctx.apiKeys.<id>?.trim() ?? ""`。这是刻意保留的：文案已被各家的单测与 `test/regression/messages.test.ts` 锁住，抽成 helper 只省下 import 数、不改变行为。正确收口点在接口层——让 `Extractor` 声明所需 key（如 `requiresApiKey`），由 `extractors/index.ts` 统一算跳过原因（provider 侧的 `resolveApiKey` 就是这个样板）；待第 7 家出现时按此收口。
+- 六家必须带 key 的提取器各自手写一份 `unavailableReason`（差异只有 id），同形的还有 `extract()` 开头的 `ctx.apiKeys.<id>?.trim() ?? ""`。这是刻意保留的：文案已被各家的单测与 `test/regression/messages.test.ts` 锁住，抽成 helper 只省下 import 数、不改变行为。正确收口点在接口层——让 `Extractor` 声明所需 key（如 `requiresApiKey`），由 `extractors/index.ts` 统一算跳过原因（provider 侧的 `resolveApiKey` 就是这个样板）；待再出现第 7 家需要 key 的提取器时按此收口。
 
 ## 一处实现偏离
 
-端点常量由本层自持（`TAVILY_API_BASE` / `EXA_API_BASE` / `FIRECRAWL_API_BASE` / `JINA_READER_BASE`）、key 只读 `config.apiKeys`：`providers/` 与 `extractors/` 互不依赖，且缺 key 在本层的语义是跳过而非报错（ADR-0002）。
+端点常量由本层自持（`TAVILY_API_BASE` / `EXA_API_BASE` / `FIRECRAWL_API_BASE` / `JINA_READER_BASE` / `PARALLEL_API_BASE` / `KEENABLE_API_BASE` / `DEEPSEEK_API_BASE`）、key 只读 `config.apiKeys`：`providers/` 与 `extractors/` 互不依赖，且缺 key 在本层的语义是跳过而非报错（ADR-0002）。
 
 `raw: true` 不进本链（由工具层直接返回原始 body）。
