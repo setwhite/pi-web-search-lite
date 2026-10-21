@@ -24,6 +24,12 @@ describe("assertPublicUrl：放行", () => {
 		"http://172.32.0.1/", // 172.32 不在 172.16–31 私有段
 		"https://[2001:4860:4860::8888]/",
 		"http://example.com./", // 末尾点（FQDN）不影响判定
+		"http://100.63.0.1/", // 紧邻 100.64.0.0/10 之外
+		"http://100.128.0.1/",
+		"http://192.0.1.1/",
+		"http://198.17.0.1/",
+		"http://223.255.255.255/",
+		"http://[64:ff9b::808:808]/", // NAT64 内嵌公网 8.8.8.8
 	])("接受 %s", (input) => {
 		expect(assertPublicUrl(input).href).toBe(new URL(input).href);
 	});
@@ -63,6 +69,13 @@ describe("assertPublicUrl：拒绝", () => {
 		"http://192.168.1.1/",
 		"http://169.254.169.254/",
 		"http://0.0.0.0/",
+		"http://100.64.0.1/",
+		"http://100.100.100.200/",
+		"http://192.0.0.1/",
+		"http://198.18.0.1/",
+		"http://224.0.0.1/",
+		"http://240.0.0.1/",
+		"http://255.255.255.255/",
 	])("拒绝私有 / 回环 / link-local 字面量 IPv4：%s", (input) => {
 		expectBlocked(input, "blocked_ip");
 	});
@@ -75,6 +88,11 @@ describe("assertPublicUrl：拒绝", () => {
 		"http://[::ffff:127.0.0.1]/",
 		"http://[::ffff:7f00:1]/",
 		"http://[::]/",
+		"http://[fec0::1]/",
+		"http://[ff02::1]/",
+		"http://[64:ff9b::a00:1]/",
+		"http://[64:ff9b::7f00:1]/",
+		"http://[2002:a00:1::1]/",
 	])("拒绝私有 / 回环 / link-local 字面量 IPv6：%s", (input) => {
 		expectBlocked(input, "blocked_ip");
 	});

@@ -91,6 +91,11 @@ function isBlockedIp(host: string): boolean {
 	if (isMappedIpv4(v6)) return isBlockedIpv4(v6.slice(12)); // ::ffff:a.b.c.d
 	if ((v6[0] & 0xfe) === 0xfc) return true; // fc00::/7 唯一本地地址
 	if (v6[0] === 0xfe && (v6[1] & 0xc0) === 0x80) return true; // fe80::/10 link-local
+	if (v6[0] === 0xfe && (v6[1] & 0xc0) === 0xc0) return true; // fec0::/10 站点本地（已弃用）
+	if (v6[0] === 0xff) return true; // ff00::/8 组播
+	if (v6[0] === 0x00 && v6[1] === 0x64 && v6[2] === 0xff && v6[3] === 0x9b)
+		return isBlockedIpv4(v6.slice(12)); // 64:ff9b::/96 NAT64，末 4 字节是内嵌 IPv4
+	if (v6[0] === 0x20 && v6[1] === 0x02) return isBlockedIpv4(v6.slice(2, 6)); // 2002::/16 6to4 内嵌 IPv4
 	return false;
 }
 
@@ -102,7 +107,11 @@ function isBlockedIpv4(bytes: number[]): boolean {
 		a === 10 || // 10.0.0.0/8
 		(a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
 		(a === 192 && b === 168) || // 192.168.0.0/16
-		(a === 169 && b === 254) // 169.254.0.0/16 link-local（含 169.254.169.254）
+		(a === 169 && b === 254) || // 169.254.0.0/16 link-local（含 169.254.169.254）
+		(a === 100 && b >= 64 && b <= 127) || // 100.64.0.0/10 CGNAT（含 100.100.100.200 元数据）
+		(a === 192 && b === 0 && bytes[2] === 0) || // 192.0.0.0/24 IETF 协议分配
+		(a === 198 && (b === 18 || b === 19)) || // 198.18.0.0/15 基准测试
+		a >= 224 // 224.0.0.0/4 组播、240.0.0.0/4 保留与 255.255.255.255 广播
 	);
 }
 
