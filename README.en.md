@@ -140,7 +140,7 @@ Both `context.*` caps are clamped with `Math.min` against the host caps, so larg
 
 - Search: pick one of tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek — no silent switching; a missing key tells you exactly where to set it.
 - Fetch: extractors are tried in `fetch.extractors` order until one works (default `html` → `jina`, neither needs a key; insert `tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` in the middle). GitHub pages go through `gh`, reddit URLs are rewritten to a redlib instance by default (both in [docs/modules/handlers.md](docs/modules/handlers.md)); `fetch.allowRaw` unlocks the `raw` argument, which skips the chain.
-- Safe by default: private and loopback addresses are rejected, and every redirect hop is re-checked; oversized results are truncated with the full text spilled to a temp file when `context.spillToFile` is on (the path is included in the result).
+- Safe by default: private and loopback addresses are rejected and every redirect hop is re-checked — literal values only, no DNS resolution (a domain pointing at a private IP still gets through); oversized results are truncated with the full text spilled to a temp file when `context.spillToFile` is on (the path is included in the result).
 - Controllable context: tools can be renamed, disabled or switched to on-demand discovery.
 - Lean prompts: built-in prompts are single-line English; how to continue after truncation, where to put the key or what the argument ranges are live in errors and results instead of the prompt, and renamed tools are reflected in the prompts automatically.
 

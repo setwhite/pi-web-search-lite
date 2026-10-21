@@ -140,7 +140,7 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 
 - 搜网页：tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek 任选一个，不会偷偷换源；缺 key 会直接告诉你配哪里。
 - 抓网页：按 `fetch.extractors` 顺序逐个尝试提取器，第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key；`tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` 可以插到中间）。GitHub 页面优先用 `gh`，reddit 默认把域名换成 redlib 实例（两者见 [docs/modules/handlers.md](docs/modules/handlers.md)）；`fetch.allowRaw` 打开后才有 `raw` 参数，raw 跳过整条链。
-- 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查；结果太长自动截断，`context.spillToFile` 为真时全文落到临时文件（路径写进结果）。
+- 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查——只判 URL 里的字面量，不解析 DNS（域名解析到内网仍放行）；结果太长自动截断，`context.spillToFile` 为真时全文落到临时文件（路径写进结果）。
 - 上下文可控：工具可改名、可关闭、可改成按需发现，减少常驻提示词。
 - 提示词精简：内置提示词是英文单行；续读提示、key 位置、参数范围这些信息都由报错和结果给出，不占提示词；工具改名后提示词自动跟着变。
 
