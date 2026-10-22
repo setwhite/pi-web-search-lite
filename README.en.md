@@ -122,7 +122,7 @@ Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY
 }
 ```
 
-Every key is optional. Defaults and ranges: [docs/modules/config.md](docs/modules/config.md); to override prompts, fill fields under `guidance.web_search` / `guidance.web_fetch`.
+Every key is optional; in the example above every value except the keys, `userAgent`, `proxy` and guidance is the default. Ranges (clamp) and field semantics: [docs/modules/config.md](docs/modules/config.md); to override prompts, fill fields under `guidance.web_search` / `guidance.web_fetch`.
 
 ### The three max gates
 
@@ -170,11 +170,15 @@ Docs are currently written in Chinese.
 
 ```bash
 pnpm install
-pnpm lint        # biome: lint + format check (add --write to fix in place)
-pnpm test        # unit tests, no real network
+pnpm lint          # biome: lint + format check (a warning fails too; add --write to fix in place)
+pnpm check:imports # dependency-direction gate: executable form of docs/ARCHITECTURE.md §2
 pnpm typecheck
+pnpm test          # unit tests, no real network
+pnpm test:e2e      # optional: live smoke, needs keys and network, run by hand before a release, never in CI
 ```
 
-CI runs the same three commands on Linux (Node 22 / 24) and Windows (Node 22); `.gitattributes` pins line endings to LF so biome reports the same result on both. The pnpm version is pinned via `packageManager`, and lint/format rules live in `biome.json` (`lineWidth` 100).
+CI runs lint / check:imports / typecheck / test on Linux (Node 22 / 24) and Windows (Node 22); `.gitattributes` pins line endings to LF so biome reports the same result on both. The pnpm version is pinned via `packageManager`, and lint/format rules live in `biome.json` (`lineWidth` 100).
+
+Pre-commit gate (optional, per clone): `git config core.hooksPath .githooks` — every commit then runs the lint / `check:imports` / typecheck / test four, about 10 seconds.
 
 Releasing: bump `version` in `package.json`, add a `CHANGELOG.md` entry, and push to `main` — `.github/workflows/npm-publish.yml` publishes it (the whole run is skipped when the version is already on the registry).

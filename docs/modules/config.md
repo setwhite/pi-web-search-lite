@@ -20,36 +20,36 @@ defaultConfigPath(env?: NodeJS.ProcessEnv): string
 - API key：`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `PARALLEL_API_KEY` / `KEENABLE_API_KEY` / `DEEPSEEK_API_KEY` / `JINA_API_KEY` 优先于文件 `apiKeys.<id>`；空字符串环境变量视为未设置。`jina` 是提取器专用键，**可缺**（官方允许匿名 20 RPM，配了走更高配额）。
 - `proxy` 仅接受 `http(s)://`；其余枚举与命名规则见下表。
 
-## 默认值与 clamp 区间
+## clamp 区间与枚举
 
-来源：`schema.ts` 的常量与 `RANGES`（校验逻辑见 `validate.ts`）。
+来源：`schema.ts` 的 `RANGES`（校验逻辑见 `validate.ts`）。默认值**不在本文复述**：唯一来源是 `schema.ts` 的常量，可读版本见根 `README.md` 的「完整示例」（`README.en.md` 同构）。
 
-| 字段 | 默认值 | clamp / 枚举 |
-| --- | --- | --- |
-| `provider` | `"tavily"` | `tavily` / `brave` / `exa` / `firecrawl` / `perplexity` / `parallel` / `keenable` / `deepseek` |
-| `apiKeys` | `{}` | 环境变量优先 |
-| `proxy` | 无（直连） | 仅 `http(s)://`，空串 = 强制直连 |
-| `timeoutMs` | `30000` | `1000–120000` |
-| `userAgent` | `pi-web-search-lite/<package version>` | 非空 |
-| `tools.<id>.enabled` | `true` | 两个工具不能同时为 `false` |
-| `tools.<id>.name` | `web_search` / `web_fetch` | 字母开头，字母数字下划线连字符；不得重名或占宿主保留名 |
-| `activation` | `"eager"` | `eager` / `deferred` |
-| `guidance.<id>` | `{}` | 字段限 `description` / `promptSnippet` / `promptGuidelines` |
-| `context.maxInlineChars` | `null`（宿主 `DEFAULT_MAX_BYTES`） | 下限 `1000`（写小即抬到 1000）；上限由 `tools/` 夹到宿主值（按字节截断） |
-| `context.maxInlineLines` | `null`（宿主 `DEFAULT_MAX_LINES`） | 下限 `50`（写小即抬到 50）；上限同上 |
-| `context.spillToFile` | `true` | — |
-| `search.defaultMaxResults` | `5` | `1–maxResultsLimit` |
-| `search.maxResultsLimit` | `10` | `1–20` |
-| `fetch.extractors` | `["html", "jina"]` | 枚举 `tavily` / `exa` / `html` / `firecrawl` / `jina` / `parallel` / `keenable` / `deepseek`，重复项静默去重 |
-| `fetch.minChars` | `200` | `0–100000` |
-| `fetch.allowRaw` | `false` | — |
-| `fetch.maxCharsPerPage` | `150000` | `1000–1000000` |
-| `handlers.github.enabled` | `true` | — |
-| `handlers.github.command` | `"gh"` | 非空 |
-| `handlers.github.timeoutMs` | `30000` | `1000–120000` |
-| `handlers.github.maxChars` | `150000` | `1000–1000000` |
-| `handlers.reddit.enabled` | `true` | — |
-| `handlers.reddit.baseUrl` | `"https://redlib.catsarch.com"` | `http(s)` 绝对 URL，可带子路径 |
+| 字段 | clamp / 枚举 |
+| --- | --- |
+| `provider` | `tavily` / `brave` / `exa` / `firecrawl` / `perplexity` / `parallel` / `keenable` / `deepseek` |
+| `apiKeys` | 环境变量优先于文件 |
+| `proxy` | 仅 `http(s)://`，空串 = 强制直连 |
+| `timeoutMs` | `1000–120000` |
+| `userAgent` | 非空 |
+| `tools.<id>.enabled` | 两个工具不能同时为 `false` |
+| `tools.<id>.name` | 字母开头，字母数字下划线连字符；不得重名或占宿主保留名 |
+| `activation` | `eager` / `deferred` |
+| `guidance.<id>` | 字段限 `description` / `promptSnippet` / `promptGuidelines` |
+| `context.maxInlineChars` | 下限 `1000`（写小即抬到 1000）；不写 = 用宿主 `DEFAULT_MAX_BYTES`，上限由 `tools/` 夹到宿主值（按字节截断） |
+| `context.maxInlineLines` | 下限 `50`（写小即抬到 50）；不写 = 用宿主 `DEFAULT_MAX_LINES`，上限同上 |
+| `context.spillToFile` | — |
+| `search.defaultMaxResults` | `1–maxResultsLimit` |
+| `search.maxResultsLimit` | `1–20` |
+| `fetch.extractors` | 枚举 `tavily` / `exa` / `html` / `firecrawl` / `jina` / `parallel` / `keenable` / `deepseek`，重复项静默去重 |
+| `fetch.minChars` | `0–100000` |
+| `fetch.allowRaw` | — |
+| `fetch.maxCharsPerPage` | `1000–1000000` |
+| `handlers.github.enabled` | — |
+| `handlers.github.command` | 非空 |
+| `handlers.github.timeoutMs` | `1000–120000` |
+| `handlers.github.maxChars` | `1000–1000000` |
+| `handlers.reddit.enabled` | — |
+| `handlers.reddit.baseUrl` | `http(s)` 绝对 URL，可带子路径 |
 
 三道上限（`fetch.maxCharsPerPage` / `handlers.github.maxChars` / `context.*`）的适用对象见根 `README.md`「三道 max 闸」。
 

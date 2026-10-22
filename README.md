@@ -122,7 +122,7 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 }
 ```
 
-每个键都可省略。默认值与取值范围见 [docs/modules/config.md](docs/modules/config.md)；要覆盖提示词就往 `guidance.web_search` / `guidance.web_fetch` 里填字段。
+每个键都可省略，上面示例里除 key、userAgent、`proxy`、guidance 之外的取值就是默认值。取值范围（clamp 区间）与字段语义见 [docs/modules/config.md](docs/modules/config.md)；要覆盖提示词就往 `guidance.web_search` / `guidance.web_fetch` 里填字段。
 
 ### 三道 max 闸，别混
 
@@ -168,11 +168,15 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 
 ```bash
 pnpm install
-pnpm lint        # biome：lint + 格式检查（加 --write 即自动修正）
-pnpm test        # 单元测试，不打真实网络
+pnpm lint          # biome：lint + 格式检查（warning 也算错；加 --write 即自动修正）
+pnpm check:imports # 依赖方向闸：docs/ARCHITECTURE.md §2 的可执行版本
 pnpm typecheck
+pnpm test          # 单元测试，不打真实网络
+pnpm test:e2e      # 可选：真链路冒烟，需要 key 与外网，发版前手跑，不进 CI
 ```
 
-CI 在 Linux（Node 22 / 24）与 Windows（Node 22）上跑这三条命令；行尾由 `.gitattributes` 固定为 LF，两边的 biome 结果一致。pnpm 版本由 `packageManager` 字段锁定，格式与 lint 规则见 `biome.json`（`lineWidth` 100）。
+CI 在 Linux（Node 22 / 24）与 Windows（Node 22）上跑 lint / check:imports / typecheck / test；行尾由 `.gitattributes` 固定为 LF，两边的 biome 结果一致。pnpm 版本由 `packageManager` 字段锁定，格式与 lint 规则见 `biome.json`（`lineWidth` 100）。
+
+提交前闸（可选，仓库内生效）：`git config core.hooksPath .githooks`，之后每次提交跑上面 lint / `check:imports` / typecheck / test 四条，约 10 秒。
 
 发版：改 `package.json` 的 `version` 与 `CHANGELOG.md`，推送 `main` 即由 `.github/workflows/npm-publish.yml` 发布（registry 上已有该版本则整条跳过）。

@@ -4,7 +4,7 @@
 
 1. 领取：取第一条 `- [ ]` 且「前置」全部完成的原子任务；任务目标或接口契约不明确时先提问，不猜测。
 2. 实现：一次只推进一步（先写失败测试 Red，再补最少实现 Green）；遇 Bug 先加 Log 或查堆栈验证假设；同一错误连续失败 3 次停机汇报。
-3. 交付：新模块固定为**实现 + 模块文档 + 单元测试**三件套；收工跑 `pnpm lint`、`pnpm test` 与 `pnpm typecheck`（见 `docs/ARCHITECTURE.md` §3）。
+3. 交付：新模块固定为**实现 + 模块文档 + 单元测试**三件套；收工跑 `pnpm lint`、`pnpm check:imports`、`pnpm test` 与 `pnpm typecheck`（见 `docs/ARCHITECTURE.md` §3）。
 4. 证据：只记可复跑的指针（测试文件 / 命令输出 / commit），且必须是当前会话产生；实现会话不改状态，挂起等用户 Review。
 5. 审计：在没参与实现的会话里做，只读不改仓库文件，证据只认该会话的运行输出。
 6. 边界：契约与理由分别落在 `docs/modules/` 与 `docs/adr/`，本文件不复述。
@@ -72,6 +72,43 @@
   - 前置：无
   - 来源：T24 验收首跑红——`test/extractors/firecrawl.test.ts:70` 收到 `network error: … fetch failed; bad port`；根因是本机动态端口段 1024–15000（`netsh int ipv4 show dynamicport tcp`）与 undici 的 82 个 bad port（全部 ≤ 10080）重叠，实测抽到 6566
   - 进度：已随 a1503e5 提交（6 文件）；`pnpm test` 在本会话跑 6 次全绿（35 files / 303 tests，含一次 3 连跑）
+
+- [x] T26 钉住 undici 隐式契约并升级到 8.12.3
+  - 交付物：`test/undici-surface.test.ts`、`docs/modules/http.md`（「验证局限」改成实测口径 + 新增「依赖升级」）、`package.json` / `pnpm-lock.yaml`（`undici` 8.10.2 → 8.12.3）、`CHANGELOG.md` 未发布段、`test/http.test.ts` 注释里的 `shouldProxy` → `shouldProxyTunnel`
+  - 验收：四条隐式契约有可复跑断言（`badPortsSet` 的内部路径、http 目标经代理走 absolute-form 且不建 CONNECT、压缩响应自动解压、网络错误 cause 链带底层 code）；升级后全套仍绿；`http:` 目标转发形态的文档口径从「undici 的默认」改成「8.12.3 实测」，并写明 8.7.0 改过这段
+  - 验收证据：`pnpm test` 36 files / 307 tests；`pnpm lint` 与 `pnpm typecheck` 零诊断
+  - 前置：无
+  - 来源：依赖审查——8.7.0 的 `fix: auto-detect HTTP proxy tunneling` 换掉了 http 目标的转发路径，随后在 `ProxyAgent` + http 目标的连接回收上崩（undici#5529）；本仓库的代理形态、`redirect: "manual"`、错误 cause 链、`badPortsSet` 深 import 都压在同一批默认行为上
+  - 进度：随 T27–T30 一起发布（0.8.3）；跑 `pnpm lint`（85 files 零诊断）、`pnpm typecheck`、`pnpm test`（37 files / 311 tests）全绿。审计按用户确认跳过
+
+- [x] T27 仓库守卫：发布物 + 依赖方向
+  - 交付物：`test/package.test.ts`、`scripts/check-imports.mjs`、`package.json`（`check:imports`）、`ci.yml`、`npm-publish.yml`、`.githooks/pre-commit`
+  - 验收：新增顶层模块目录却漏写 `files` 时 `pnpm test` 红；`providers/` 导入 `tools/`、`tools/` 导入 `undici`、`index.ts` 值导入宿主包，三者都让 `pnpm check:imports` 退出码 1；正常代码输出 `ok: 39 files`
+  - 验收证据：本会话 `node scripts/check-imports.mjs` 输出 `ok: 39 files`；仓库副本注入上述两处违规后输出两条失败并退出码 1；`pnpm test` 含 `test/package.test.ts` 全绿
+  - 前置：无
+  - 来源：审计——`files` 是枚举式清单（新模块静默漏发），`ARCHITECTURE.md` §2 的六条边与三处单一出口无执行器
+  - 进度：已发布（0.8.3）；`.githooks/pre-commit` 跑 lint / check:imports / typecheck / test 四条，约 10 秒
+
+- [x] T28 默认值收成单一来源（指针化）
+  - 交付物：`docs/modules/config.md`（删默认值列，保留 clamp / 枚举）、`README.md` / `README.en.md`（默认值归属从 config.md 改成示例本身）
+  - 验收：默认值只出现在 `config/schema.ts` 常量与根 README「完整示例」；跨文档只留指针，符合 `docs/ARCHITECTURE.md` §4
+  - 验收证据：`rg -n '默认值' docs/modules/config.md`——只剩「默认值不在本文复述」与来源说明
+  - 前置：无
+  - 进度：已发布（0.8.3）；同时消掉 README 与 config.md 的互相指向
+
+- [x] T29 真链路 e2e（opt-in）
+  - 交付物：`test/e2e/live.test.ts`、`vitest.config.ts`、`vitest.e2e.config.ts`、`package.json`（`test:e2e`）、`docs/ARCHITECTURE.md` §3
+  - 验收：`pnpm test` 不含 `test/e2e/`；`pnpm test:e2e` 在缺 key 时逐家 skip、有 key 时真打一次并断言结果形状；两者都不进 CI
+  - 验收证据：本会话 `pnpm test:e2e` 1 file / 5 passed 5 skipped（tavily / exa / firecrawl 真打了上游）；`pnpm test` 37 files 不含 `test/e2e/`
+  - 前置：无
+  - 进度：已发布（0.8.3）
+
+- [x] T30 CI 与供应链加固
+  - 交付物：`ci.yml`、`npm-publish.yml`、`.github/workflows/dependency-audit.yml`、`package.json`（`lint` 加 `--error-on-warnings`）
+  - 验收：显式 `--frozen-lockfile`、warning 即错、`timeout-minutes`、action 按 SHA、publish 前 tarball 覆盖全部 `files`、每日 `pnpm audit --prod`
+  - 验收证据：本会话 `pnpm pack --dry-run --json` 实测 41 文件 / 覆盖 8 项 `files`；`pnpm lint` 零诊断
+  - 前置：无
+  - 进度：已发布（0.8.3）
 
 ## 已决（未成任务）
 

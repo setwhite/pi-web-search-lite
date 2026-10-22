@@ -49,6 +49,16 @@ _Avoid_: 落盘、缓存
 **raw**:
 `web_fetch` 的旁路参数：返回原始响应体，跳过 handler 与提取器链；`fetch.allowRaw` 为真时才进 schema。
 
+## 验证
+
+**真链路（live）**:
+打真实外网与真实 key 的冒烟测试，放 `test/e2e/`，只由 `pnpm test:e2e` 拉起、永不进 CI；回答的是「上游还认不认这条请求」，形状与逻辑仍由夹具测试钉。
+_Avoid_: e2e 测试、集成测试（与默认套件不是同一档）
+
+**发布物**:
+`package.json` 的 `files` 决定的那批文件；由 `test/package.test.ts` 与发布流水线的 tarball 断言守，`test/`、`docs/`、`scripts/` 不进包。
+_Avoid_: 产物、artifact
+
 ## 配置面
 
 **agent dir**:

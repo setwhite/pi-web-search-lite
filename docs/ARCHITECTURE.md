@@ -39,14 +39,18 @@ tools/{search,fetch}.ts ─→ tools/result.ts（宿主截断工具） / tools/r
 - 宿主包 `@earendil-works/pi-coding-agent` 在生产代码里只在两处出现：`index.ts` 的 `import type { ExtensionAPI }`（扩展入口签名）与 `tools/result.ts`（截断工具与 `AgentToolResult` / `ToolDefinition` / `Theme` 类型）；`@earendil-works/pi-tui` 只在 `tools/render.ts`；其余模块不依赖宿主 API，便于单测。
 - 工具描述与结果信封只由 `tools/` 组装；下层只产出结构化错误与原因片段（handler 的 skip reason、extractor 的链失败汇总、provider 的缺 key 文案），模型可见的最终文本由工具层决定。界面文案只出现在 `tools/render.ts`。两者统一用英文，注释与文档用中文。
 - 能力边界与「不做什么」见 `docs/adr/`；新增能力不得改动上述依赖方向，必须改动则先更新本文件。
+- 上述边与「单一出口」由 `scripts/check-imports.mjs` 执行（`pnpm check:imports`）：改这张图就同步改脚本里的 `EDGES` / `SINGLE_IMPORT`，两边不一致时 CI 红。
 
 ## 3. 目录与测试约定
 
 - 模块以目录为单位：单文件模块用 `<name>/index.ts`，多文件模块在目录内平铺（如 `providers/tavily.ts`）。
 - 模块文档统一放 `docs/modules/`，与模块同名（`config/` → `docs/modules/config.md`）；改接口或语义时同 PR 更新。术语见 `docs/GLOSSARY.md`。
 - 测试统一放仓库根 `test/`，按被测模块建子目录（如 `test/providers/tavily.test.ts`）；跨模块回归放 `test/regression/`，共享夹具用 `fixtures.ts` / `stub.ts`。测试不进 npm 发布产物。测试标题与夹具可用中文（不进 pi），断言运行时文案时必须与源码英文一致。
+- 需要 key 与外网的真链路冒烟放 `test/e2e/`，只由 `pnpm test:e2e` 拉起（`vitest.config.ts` 把它排除在 `pnpm test` 之外），永不进 CI：夹具钉形状，e2e 只回答「上游还认不认这条请求」。
 - 根 README 的封面图放 `assets/`，同样不进 npm 发布产物，所以 README 里用 GitHub raw 绝对地址引用。
-- 收工 QA 固定三条：`pnpm lint`、`pnpm test`、`pnpm typecheck`（与 CI 同款，见根 README「开发」）。
+- 仓库级守卫是 `scripts/` 下的零依赖 node 脚本（现有：`check-imports.mjs`）；发布物由 `test/package.test.ts` 与发布流水线的 tarball 断言守。
+- 提交前闸是 `.githooks/pre-commit`（跑上述四条，`git config core.hooksPath .githooks` 启用一次）；它与 CI 跑同一批命令，不另立规则。
+- 收工 QA 固定四条：`pnpm lint`、`pnpm check:imports`、`pnpm test`、`pnpm typecheck`（与 CI 同款，见根 README「开发」）；发版前另跑 `pnpm test:e2e`。
 - 手动验收用隔离 agent 目录：`PI_CODING_AGENT_DIR=<临时目录> pi --extension ./index.ts -p "<prompt>"`；临时目录只放真实 `auth.json` 与最小 `settings.json`，避免与本机同名工具冲突。
 
 ## 4. 文档职责（防止重复）
