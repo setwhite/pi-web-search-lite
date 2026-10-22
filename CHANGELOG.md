@@ -2,6 +2,15 @@
 
 已发布版本的用户可见变更；更细的过程见 git log。0.x 期间破坏性变更走 minor 号，条目里标注 **BREAKING**。
 
+## 0.8.3 — 2026-10-22
+
+- 升级 `undici` 8.10.2 → 8.12.3：修掉重复 `Content-Encoding` 头导致的解压失败（8.11.0），抓取拿到的正文不再可能解成乱码
+- 开发：新增 `test/undici-surface.test.ts` 钉住四条隐式契约（`badPortsSet` 的内部路径、http 目标经代理走 absolute-form 不建隧道、响应自动解压、错误 cause 链带底层 code）；undici 升级流程写进 `docs/modules/http.md` 的「依赖升级」
+- 开发：`files` 与依赖方向不再靠 review —— `test/package.test.ts` 断言发布物（新增顶层模块漏写目录即红），`pnpm check:imports` 执行 `docs/ARCHITECTURE.md` §2 的边与四处「单一出口」；发布流水线在 publish 前再对真实 tarball 断言一遍
+- 开发：新增 `pnpm test:e2e`（真链路冒烟：8 家 provider 按 key 跳过 + 一个公开页抓取），不进 CI；`pnpm test` 只跑夹具
+- 开发：CI 显式 `pnpm install --frozen-lockfile`（不再依赖 action 的隐式安装）、`biome check --error-on-warnings`、`timeout-minutes: 10`、action 按 commit SHA 固定；新增每日 `pnpm audit --prod` 工作流；新增 `.githooks/pre-commit`（`git config core.hooksPath .githooks` 启用）
+- 文档：`docs/modules/config.md` 删掉默认值列，默认值唯一来源改为 `schema.ts` 常量 + 根 README「完整示例」（此前三处同源、无人对账）
+
 ## 0.8.2 — 2026-10-21
 
 - 无运行时变更（与 0.8.1 相同）：新增 `.gitattributes`（`* text=auto eol=lf`）把仓库与工作区的行尾固定成 LF，CI 恢复 Windows runner——此前为躲 CRLF 与 biome `lineEnding lf` 的冲突只跑 Linux
