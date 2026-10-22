@@ -293,7 +293,7 @@ describe("http：网络错误文案", () => {
 
 describe("http：跨源重定向的认证头", () => {
 	/**
-	 * 桩代理：http 目标走 undici 的 absolute-form 转发（不建 CONNECT 隧道，见 `proxy-agent.js` 的 `shouldProxy`），
+	 * 桩代理：http 目标走 undici 的 absolute-form 转发（不建 CONNECT 隧道，见 `proxy-agent.js` 的 `shouldProxyTunnel`），
 	 * 因此按 Host 头分派即可 —— 首跳 302 到 second.test，其余 200 回 "ok"；两个主机名都无需可解析。
 	 */
 	async function startRoutingProxyStub(): Promise<{
