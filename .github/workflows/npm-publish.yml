@@ -22,9 +22,10 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/setup@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
         with:
           runtime: node@24 # 可信发布要求 Node >= 22.14
           cache: false # 发布构建不用缓存
@@ -45,9 +46,31 @@ jobs:
       - if: ${{ steps.check.outputs.publish == 'true' }}
         run: pnpm run lint
       - if: ${{ steps.check.outputs.publish == 'true' }}
+        run: pnpm run check:imports
+      - if: ${{ steps.check.outputs.publish == 'true' }}
         run: pnpm run typecheck
       - if: ${{ steps.check.outputs.publish == 'true' }}
         run: pnpm test
+      - if: ${{ steps.check.outputs.publish == 'true' }}
+        name: tarball 覆盖全部 files 条目
+        run: |
+          # 发布前对真实产物再查一遍：package.json 的 files 少写一个目录时，
+          # 装在用户侧才会崩，而 lint / test 都是绿的。
+          pnpm pack --dry-run --json > "$RUNNER_TEMP/pack.json"
+          node -e '
+            const fs = require("node:fs");
+            const pkg = require("./package.json");
+            const parsed = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/pack.json`, "utf8"));
+            const tarball = Array.isArray(parsed) ? parsed[0] : parsed;
+            // pnpm 给的是仓库相对路径，npm 给的是 package/ 前缀，统一剥掉再比
+            const paths = tarball.files.map((file) => file.path.replace(/^package\//, ""));
+            const missing = pkg.files.filter(
+              (entry) => !paths.some((path) => path === entry || path.startsWith(`${entry}/`)),
+            );
+            if (paths.length === 0) throw new Error("tarball 为空");
+            if (missing.length > 0) throw new Error(`tarball 缺: ${missing.join(", ")}`);
+            console.log(`tarball ${paths.length} 个文件，覆盖 ${pkg.files.length} 项 files`);
+          '
       - if: ${{ steps.check.outputs.publish == 'true' }}
         name: 备好支持可信发布的 npm（要求 >= 11.5.1）
         run: |

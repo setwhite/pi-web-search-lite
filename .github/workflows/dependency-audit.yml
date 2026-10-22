@@ -1,0 +1,22 @@
+# 供应链审计：每天扫一次生产依赖的已知漏洞（本项目运行时依赖只有 undici），失败即红。
+# 只读锁文件，不装依赖；结果是 registry 的 advisory 数据，与代码版本无关，所以不进 CI 门，单独按天跑。
+name: Dependency audit
+
+on:
+  schedule:
+    - cron: "37 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
+        with:
+          install: false # audit 只读 pnpm-lock.yaml
+      - run: pnpm audit --prod

@@ -1,8 +1,9 @@
-# CI：风格闸 + 类型检查 + 全部测试（不打真实网络，全部用桩 server / 注入的 exec）。
+# CI：风格闸 + 依赖图闸 + 类型检查 + 全部测试（不打真实网络，全部用桩 server / 注入的 exec）。
 # 矩阵：Linux 覆盖 Node 22 / 24（宿主要求 >= 22.19.0，见 package.json engines），Windows 覆盖 Node 22。
 # 行尾由 .gitattributes 固定为 LF（* text=auto eol=lf）；Windows runner 默认 core.autocrlf=true，
 # 不固定的话 biome 的 lineEnding lf 会把每个文件判成要格式化。
-# pnpm/setup 自带 pnpm + Node（版本取自 package.json 的 packageManager / 本文件的 runtime），并在有 package.json 时自动执行 pnpm install。
+# action 按 commit SHA 固定（tag 可被移动），第一行的注释即对应版本。pnpm/setup 的 install 关掉，
+# 安装显式走 --frozen-lockfile：锁文件与 package.json 不一致时立刻红，而不是被 action 的隐式安装掩盖。
 name: CI
 
 on:
@@ -21,6 +22,7 @@ jobs:
   test:
     name: ${{ matrix.os }} / node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -32,11 +34,14 @@ jobs:
           - os: windows-latest
             node: 22
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/setup@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
         with:
           runtime: node@${{ matrix.node }}
           cache: true
+          install: false
+      - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
+      - run: pnpm run check:imports
       - run: pnpm run typecheck
       - run: pnpm test
