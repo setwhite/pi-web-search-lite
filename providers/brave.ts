@@ -1,5 +1,3 @@
-/** Brave：GET /web/search，`X-Subscription-Token` 认证，query 参数 `q` / `count`。 */
-
 import {
 	type ProviderRuntime,
 	type SearchProvider,

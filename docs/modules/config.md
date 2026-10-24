@@ -1,63 +1,15 @@
 # config/
 
-配置文件加载、校验与 clamp。只依赖 `node:` 标准库，不碰网络与宿主 API。
+配置文件的加载、校验与 clamp。只依赖 `node:` 标准库，不碰网络与宿主 API。
 
-## 文件位置
+字段、默认值、clamp 区间、错误文本与 key 合并都在 `config/schema.ts`、`config/validate.ts` 与 `config/index.ts`；本文不复述，形状由 `test/config.test.ts` 钉住。
 
-`<agent dir>/pi-web-search-lite/config.json`，其中 `<agent dir>` = `PI_CODING_AGENT_DIR` > `~/.pi/agent`。
-文件不存在时按全默认值处理。
+## 取舍
 
-## API
+- 数值越界只 clamp，其余非法即抛错：理由见 [ADR-0005](../adr/0005-strict-config-validation.md)。
+- 默认值的可读版本只在根 `README.md` 的「完整示例」；本文不列默认值，避免第三份副本。
 
-```ts
-loadConfig(options?: { configPath?: string; env?: NodeJS.ProcessEnv }): ResolvedConfig
-defaultConfigPath(env?: NodeJS.ProcessEnv): string
-```
+## 指针
 
-- `configPath` 缺省由 `env` 推导；`env` 缺省 `process.env`（测试可注入）。
-- JSON 损坏、顶层非对象、未知键、字段非法、读取失败（ENOENT 除外）→ 抛 `Error`，消息含配置文件路径；字段非法时逐条列出 `<field path>: <reason>`。
-- 数值字段越界不报错，clamp 到 `schema.ts` 的 `RANGES` 区间；`context.maxInlineChars` / `maxInlineLines` 只 clamp 下限（`1000` / `50`），同样不报错（区间见下表）。
-- API key：`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `PARALLEL_API_KEY` / `KEENABLE_API_KEY` / `DEEPSEEK_API_KEY` / `JINA_API_KEY` 优先于文件 `apiKeys.<id>`；空字符串环境变量视为未设置。`jina` 是提取器专用键，**可缺**（官方允许匿名 20 RPM，配了走更高配额）。
-- `proxy` 仅接受 `http(s)://`；其余枚举与命名规则见下表。
-
-## clamp 区间与枚举
-
-来源：`schema.ts` 的 `RANGES`（校验逻辑见 `validate.ts`）。默认值**不在本文复述**：唯一来源是 `schema.ts` 的常量，可读版本见根 `README.md` 的「完整示例」（`README.en.md` 同构）。
-
-| 字段 | clamp / 枚举 |
-| --- | --- |
-| `provider` | `tavily` / `brave` / `exa` / `firecrawl` / `perplexity` / `parallel` / `keenable` / `deepseek` |
-| `apiKeys` | 环境变量优先于文件 |
-| `proxy` | 仅 `http(s)://`，空串 = 强制直连 |
-| `timeoutMs` | `1000–120000` |
-| `userAgent` | 非空 |
-| `tools.<id>.enabled` | 两个工具不能同时为 `false` |
-| `tools.<id>.name` | 字母开头，字母数字下划线连字符；不得重名或占宿主保留名 |
-| `activation` | `eager` / `deferred` |
-| `guidance.<id>` | 字段限 `description` / `promptSnippet` / `promptGuidelines` |
-| `context.maxInlineChars` | 下限 `1000`（写小即抬到 1000）；不写 = 用宿主 `DEFAULT_MAX_BYTES`，上限由 `tools/` 夹到宿主值（按字节截断） |
-| `context.maxInlineLines` | 下限 `50`（写小即抬到 50）；不写 = 用宿主 `DEFAULT_MAX_LINES`，上限同上 |
-| `context.spillToFile` | — |
-| `search.defaultMaxResults` | `1–maxResultsLimit` |
-| `search.maxResultsLimit` | `1–20` |
-| `fetch.extractors` | 枚举 `tavily` / `exa` / `html` / `firecrawl` / `jina` / `parallel` / `keenable` / `deepseek`，重复项静默去重 |
-| `fetch.minChars` | `0–100000` |
-| `fetch.allowRaw` | — |
-| `fetch.maxCharsPerPage` | `1000–1000000` |
-| `handlers.github.enabled` | — |
-| `handlers.github.command` | 非空 |
-| `handlers.github.timeoutMs` | `1000–120000` |
-| `handlers.github.maxChars` | `1000–1000000` |
-| `handlers.reddit.enabled` | — |
-| `handlers.reddit.baseUrl` | `http(s)` 绝对 URL，可带子路径 |
-
-三道上限（`fetch.maxCharsPerPage` / `handlers.github.maxChars` / `context.*`）的适用对象见根 `README.md`「三道 max 闸」。
-
-## 文件
-
-| 文件 | 内容 |
-| --- | --- |
-| `schema.ts` | 公开常量、类型（`ResolvedConfig` 等）、默认值、clamp 区间；`VERSION` 运行时读自 package.json |
-| `validate.ts` | 逐字段校验、clamp、env key 合并；错误文本在此生成 |
-| `readers.ts` | 基础读取器：`undefined` 回退，类型不符记错并回退 |
-| `index.ts` | `loadConfig` / `defaultConfigPath`；重导出 `schema.ts` 全部符号 |
+- 三道上限（`fetch.maxCharsPerPage` / `handlers.github.maxChars` / `context.*`）的适用对象：根 `README.md`「三道 max 闸」。
+- agent dir 与配置文件路径：术语见 `docs/GLOSSARY.md`「agent dir」，实现见 `defaultConfigPath`。

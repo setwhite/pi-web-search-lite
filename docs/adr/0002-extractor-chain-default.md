@@ -4,4 +4,4 @@
 
 理由：默认两位都不需要 key、不额外计费，装完即能抓；链式顺延让单个提取器故障不至于让抓取整体失败。provider 提取器要显式加进链，不默认启用，避免未配置的源被静默使用。
 
-契约见 [../modules/extractors.md](../modules/extractors.md)。
+契约见 `extractors/index.ts` 与 `test/extractors/index.test.ts`。

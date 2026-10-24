@@ -1,5 +1,3 @@
-/** Firecrawl：POST /v2/search，Bearer 认证，body `{ query, limit, sources: ["web"] }`。 */
-
 import {
 	type ProviderRuntime,
 	type SearchProvider,

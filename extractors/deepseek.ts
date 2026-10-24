@@ -1,5 +1,3 @@
-/** DeepSeek 抓取：POST /v1/tools/fetch，Bearer 认证，body `{ url }`；返回整页 markdown。 */
-
 import { API_KEY_ENV_KEYS } from "../config/index.ts";
 import type { ExtractedContent, Extractor, ExtractorContext } from "./types.ts";
 

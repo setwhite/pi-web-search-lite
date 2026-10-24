@@ -1,5 +1,3 @@
-/** Tavily：POST /search，Bearer 认证，body `{ query, max_results }`。 */
-
 import {
 	type ProviderRuntime,
 	type SearchProvider,

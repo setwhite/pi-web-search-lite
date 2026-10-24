@@ -4,4 +4,4 @@
 
 理由：gh 直接取数就能产出清洗后的正文（仓库页两条命令：元数据 + README），省掉 clone 生命周期与磁盘缓存；gist / wiki / discussions / actions 这些零碎形态不做专用处理，顺延给提取器链即可。
 
-不做的：GitHub clone、磁盘缓存、整仓 tree 展开。契约见 [../modules/handlers.md](../modules/handlers.md)。
+不做的：GitHub clone、磁盘缓存、整仓 tree 展开。契约见 `handlers/` 与 `test/handlers/`。

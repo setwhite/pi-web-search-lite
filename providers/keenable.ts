@@ -1,5 +1,3 @@
-/** Keenable：POST /v1/search，`X-API-Key` 认证，body `{ query, max_results }`。 */
-
 import {
 	type ProviderRuntime,
 	type SearchProvider,

@@ -4,4 +4,4 @@
 
 理由：宿主用 throw 区分失败，吞掉错误会让模型把失败当成果；提示词只留报错学不到的信息，工具改名后 guidelines 也能自动跟着变。
 
-契约见 [../modules/tools.md](../modules/tools.md)。
+契约见 `tools/` 与 `test/tools/`。

@@ -4,4 +4,4 @@
 
 理由：目标场景的 Clash / V2Ray 都提供 http 代理端口，一个键覆盖扩展自身的全部流量，可免去 curl 传输层与外部二进制依赖；环境变量代理在测试与子进程里容易出意外，所以扩展自身不读它，只在 gh 子进程上做显式注入。
 
-契约见 [../modules/http.md](../modules/http.md)。
+契约见 `http/index.ts` 与 `test/http.test.ts`。

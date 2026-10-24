@@ -1,5 +1,3 @@
-/** Firecrawl 提取：POST /v2/scrape，Bearer 认证，body `{ url, formats: ["markdown"] }`。 */
-
 import { API_KEY_ENV_KEYS } from "../config/index.ts";
 import type { ExtractedContent, Extractor, ExtractorContext } from "./types.ts";
 

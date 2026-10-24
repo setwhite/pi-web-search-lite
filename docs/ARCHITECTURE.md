@@ -1,6 +1,6 @@
 # pi-web-search-lite — ARCHITECTURE
 
-模块职责与对外契约边界。模块内部的签名、字段、异常由 `docs/modules/<模块>.md` 负责，本文不复述。
+模块职责与对外契约边界。模块内部的签名、字段、异常以代码与测试为准，本文不复述。
 
 ## 1. 模块
 
@@ -44,9 +44,9 @@ tools/{search,fetch}.ts ─→ tools/result.ts（宿主截断工具） / tools/r
 ## 3. 目录与测试约定
 
 - 模块以目录为单位：单文件模块用 `<name>/index.ts`，多文件模块在目录内平铺（如 `providers/tavily.ts`）。
-- 模块文档统一放 `docs/modules/`，与模块同名（`config/` → `docs/modules/config.md`）；改接口或语义时同 PR 更新。术语见 `docs/GLOSSARY.md`。
-- 测试统一放仓库根 `test/`，按被测模块建子目录（如 `test/providers/tavily.test.ts`）；跨模块回归放 `test/regression/`，共享夹具用 `fixtures.ts` / `stub.ts`。测试不进 npm 发布产物。测试标题与夹具可用中文（不进 pi），断言运行时文案时必须与源码英文一致。
-- 需要 key 与外网的真链路冒烟放 `test/e2e/`，只由 `pnpm test:e2e` 拉起（`vitest.config.ts` 把它排除在 `pnpm test` 之外），永不进 CI：夹具钉形状，e2e 只回答「上游还认不认这条请求」。
+- 模块文档统一放 `docs/modules/`，与模块同名（`config/` → `docs/modules/config.md`）；写什么见 §4，改动时同 PR 更新（[ADR-0011](adr/0011-contracts-in-code.md)）。术语见 `docs/GLOSSARY.md`。
+- 测试统一放仓库根 `test/`：单个测试文件放根（如 `test/http.test.ts`），同一模块多个文件时建子目录（如 `test/providers/tavily.test.ts`）；跨模块回归放 `test/regression/`，共享夹具用 `fixtures.ts` / `stub.ts`。测试不进 npm 发布产物。测试标题与夹具可用中文（不进 pi），断言运行时文案时必须与源码英文一致。
+- 需要 key 与外网的真链路冒烟放 `test/e2e/`，只由 `pnpm test:e2e` 拉起（`vitest.config.ts` 把它排除在 `pnpm test` 之外），永不进 CI（[ADR-0012](adr/0012-e2e-manual-only.md)）。
 - 根 README 的封面图放 `assets/`，同样不进 npm 发布产物，所以 README 里用 GitHub raw 绝对地址引用。
 - 仓库级守卫是 `scripts/` 下的零依赖 node 脚本（现有：`check-imports.mjs`）；发布物由 `test/package.test.ts` 与发布流水线的 tarball 断言守。
 - 提交前闸是 `.githooks/pre-commit`（跑上述四条，`git config core.hooksPath .githooks` 启用一次）；它与 CI 跑同一批命令，不另立规则。
@@ -59,10 +59,10 @@ tools/{search,fetch}.ts ─→ tools/result.ts（宿主截断工具） / tools/r
 |---|---|---|
 | 根 `README.md` / `README.en.md`（中英镜像） | 安装、配置、功能、设计目标、环境要求、参考项目、文档索引、开发 | 选型理由、模块签名 |
 | `CHANGELOG.md` | 各发布版本的用户可见变更 | 契约与理由 |
-| `docs/TODO.md` | 任务台账：规则、状态、验收证据 | 契约与理由 |
+| `docs/todos/` | 任务台账与阶段表：规则、状态、验收证据 | 契约与理由 |
 | `docs/adr/`（一条一文件） | 背景、决定了什么、为什么、不做什么 | 字段表、契约细节 |
 | `docs/ARCHITECTURE.md` | 模块划分、依赖方向、目录 / 测试 / 文档约定 | 模块内部签名与字段 |
 | `docs/GLOSSARY.md` | 本扩展特有术语的唯一命名来源 | 实现细节 |
-| `docs/modules/<模块>.md` | 该模块的 API、契约与取舍 | 其它模块的内容 |
+| `docs/modules/<模块>.md` | 该模块的取舍、坑与指针 | 其它模块的内容；代码或测试已表达的 API、契约、默认值 |
 
 内容归属冲突时以本表裁决；跨文档只允许指针，不允许复述内容。

@@ -1,5 +1,3 @@
-/** Tavily 提取：POST /extract，Bearer 认证，body `{ urls: [url] }`。 */
-
 import { API_KEY_ENV_KEYS } from "../config/index.ts";
 import type { ExtractedContent, Extractor, ExtractorContext } from "./types.ts";
 

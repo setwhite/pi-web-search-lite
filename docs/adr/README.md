@@ -14,3 +14,5 @@
 | [0008](0008-throw-errors-english-prompts.md) | 错误一律 throw；模型可见文案英文单行 |
 | [0009](0009-reddit-host-rewrite.md) | reddit 页面只换域名到 redlib 实例 |
 | [0010](0010-scope-two-tools.md) | 范围：只做 web_search 与 web_fetch 两个工具 |
+| [0011](0011-contracts-in-code.md) | 契约以代码与测试为准，模块文档只写取舍与坑 |
+| [0012](0012-e2e-manual-only.md) | e2e 只在发版前手动跑，不进 CI |

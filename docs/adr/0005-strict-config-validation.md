@@ -4,4 +4,4 @@
 
 理由：配置面宽，静默丢掉写错的字段比启动失败更难排查；数值越界可以安全收敛到区间，不值得为它打断启动。
 
-契约见 [../modules/config.md](../modules/config.md)。
+契约见 `config/` 与 `test/config.test.ts`。

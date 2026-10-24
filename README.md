@@ -4,14 +4,13 @@
 
 ![pi 会话：web_search 用 exa 搜到 5 条结果，web_fetch 紧接着抓到第一页正文](https://raw.githubusercontent.com/setwhite/pi-web-search-lite/main/assets/cover.png)
 
-给 pi 加两个工具：`web_search` 搜网页、`web_fetch` 抓网页正文；扩展自身发出的请求都走同一个代理配置点。
+本扩展为 pi 增加两个工具：`web_search` 搜索网页，`web_fetch` 抓取网页正文。扩展发出的所有请求只经一个代理配置点。
 
 ## 设计目标
 
-- 只做 `web_search` + `web_fetch` 两个工具，扩展自身的出站请求经同一个代理配置点。
-- 装完配一个搜索 key 就能用；抓取默认链（`html` / `jina`）不需要 key。
-- 每条失败路径都给出可操作信息：缺哪个 key、缺哪个字段、HTTP 状态或超时来源。
-- 结果超限自动截断；`context.spillToFile` 默认开启，完整内容落临时文件，路径写进结果供 `read` 续读。
+- 安装后配置一个搜索 key 即可使用。默认抓取链（`html` / `jina`）不需要 key。
+- 每条失败路径都给出可操作信息：缺少哪个 key、缺少哪个字段、HTTP 状态码或超时来源。
+- 结果超限时自动截断。`context.spillToFile` 默认开启：完整内容写入临时文件，路径写入结果，供 `read` 续读。
 
 取舍与「不做什么」的完整清单见 [docs/adr/](docs/adr/)。
 
@@ -22,13 +21,13 @@ pi install npm:pi-web-search-lite                        # 从 npm 安装
 pi install git:github.com/setwhite/pi-web-search-lite    # 从 git 仓库安装
 ```
 
-装完配一个搜索 key 就能用，不需要构建。
+配置一个搜索 key 后即可使用。不需要构建。
 
 ## 配置
 
-配置只有一个 JSON 文件：`<PI_CODING_AGENT_DIR 或 ~/.pi/agent>/pi-web-search-lite/config.json`，不存在时全用默认值。类型、枚举名或未知键写错会启动失败并指出字段；数值越界不报错，静默 clamp 到区间（见 [docs/modules/config.md](docs/modules/config.md)）。示例里的 `//` 注释只为讲解，实际文件必须是严格 JSON，拷走前先删掉。
+配置只有一个 JSON 文件：`<PI_CODING_AGENT_DIR 或 ~/.pi/agent>/pi-web-search-lite/config.json`。文件不存在时，全部使用默认值。类型、枚举值或未知键写错时，启动失败并指出字段。数值越界不报错：扩展将其 clamp 到允许区间（见 `config/schema.ts` 的 `RANGES` 与 `config/validate.ts`）。示例中的 `//` 注释只用于讲解。实际文件必须是严格 JSON，复制前请删除注释。
 
-**最小可用配置**——挑一个搜索源、填上它的 key 就能用（默认源是 tavily）：
+**最小配置**：选择一个搜索源，填入它的 key。默认源是 tavily。
 
 ```json
 {
@@ -37,9 +36,9 @@ pi install git:github.com/setwhite/pi-web-search-lite    # 从 git 仓库安装
 }
 ```
 
-key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `PARALLEL_API_KEY` / `KEENABLE_API_KEY` / `DEEPSEEK_API_KEY` / `JINA_API_KEY`，优先于文件）；`WEB_SEARCH_PROVIDER` 可临时覆盖 `provider`。
+key 也可以放在环境变量中（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `PARALLEL_API_KEY` / `KEENABLE_API_KEY` / `DEEPSEEK_API_KEY` / `JINA_API_KEY`，环境变量优先于文件）。`WEB_SEARCH_PROVIDER` 可临时覆盖 `provider`。
 
-**完整示例**——列全所有配置项，每个键都有注释；除 key、userAgent、`proxy` 和 guidance 是示例值外，其余就是默认值：
+**完整示例**：列出全部配置项，每个键都有注释。除 key、`userAgent`、`proxy` 与 guidance 是示例值外，其余取值就是默认值。
 
 ```jsonc
 {
@@ -122,11 +121,11 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 }
 ```
 
-每个键都可省略，上面示例里除 key、userAgent、`proxy`、guidance 之外的取值就是默认值。取值范围（clamp 区间）与字段语义见 [docs/modules/config.md](docs/modules/config.md)；要覆盖提示词就往 `guidance.web_search` / `guidance.web_fetch` 里填字段。
+每个键都可省略。取值范围（clamp 区间）与字段语义见 `config/schema.ts` 与 `config/validate.ts`。要覆盖提示词，请填写 `guidance.web_search` / `guidance.web_fetch` 下的字段。
 
-### 三道 max 闸，别混
+### 三道 max 闸的区别
 
-抓取结果从出网到进模型有三道独立上限，按来源经过其中 1–2 道：
+抓取结果从出网到进模型有三道独立上限。按来源不同，结果经过其中 1–2 道。
 
 | 键 | 作用对象 | 超限后果 |
 |---|---|---|
@@ -134,49 +133,48 @@ key 也可以放环境变量（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY
 | `handlers.github.maxChars` | gh 输出渲染成 markdown 之后 | 同上；只作用于 GitHub handler |
 | `context.maxInlineChars` / `maxInlineLines` | 组装好、要发给模型的信封（两个工具都过） | 切片；`spillToFile` 为真时完整文本落临时文件，路径写进结果 |
 
-`context.*` 两个上限用 `Math.min` 夹到宿主上限，写大了不生效；GitHub 页面只过第 2、3 道，普通网页只过第 1、3 道，`raw` 只过第 3 道。支持的 GitHub / Reddit URL 形态见 [docs/modules/handlers.md](docs/modules/handlers.md)。
+`context.*` 两个上限经 `Math.min` 夹到宿主上限，写更大的值不生效。GitHub 页面只过第 2、3 道，普通网页只过第 1、3 道，`raw` 只过第 3 道。支持的 GitHub / Reddit URL 形态见 `handlers/github/index.ts` 的 `parseGitHubUrl` 与 `test/handlers/github-url.test.ts`。
 
 ## 功能
 
-- 搜网页：tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek 任选一个，不会偷偷换源；缺 key 会直接告诉你配哪里。
-- 抓网页：按 `fetch.extractors` 顺序逐个尝试提取器，第一个能用的胜出（默认 `html` → `jina`，两位都不需要 key；`tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` 可以插到中间）。GitHub 页面优先用 `gh`，reddit 默认把域名换成 redlib 实例（两者见 [docs/modules/handlers.md](docs/modules/handlers.md)）；`fetch.allowRaw` 打开后才有 `raw` 参数，raw 跳过整条链。
-- 安全与省心：内网 / 回环地址直接拒绝，重定向逐跳复查——只判 URL 里的字面量，不解析 DNS（域名解析到内网仍放行）；结果太长自动截断，`context.spillToFile` 为真时全文落到临时文件（路径写进结果）。
-- 上下文可控：工具可改名、可关闭、可改成按需发现，减少常驻提示词。
-- 提示词精简：内置提示词是英文单行；续读提示、key 位置、参数范围这些信息都由报错和结果给出，不占提示词；工具改名后提示词自动跟着变。
+- 搜网页：从 tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek 中选择一个。扩展不会自动切换搜索源。缺少 key 时，错误信息说明配置位置。
+- 抓网页：按 `fetch.extractors` 的顺序逐个尝试提取器，第一个可用者生效。默认顺序是 `html` → `jina`，两者都不需要 key。`tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` 可以插入中间。GitHub 页面优先使用 `gh`。reddit 默认把域名换成 redlib 实例（两者见 [docs/modules/handlers.md](docs/modules/handlers.md)）。`fetch.allowRaw` 打开后才有 `raw` 参数，`raw` 跳过整条链。
+- 安全：扩展拒绝内网与回环地址，并逐跳复查重定向。判定只读 URL 中的字面量，不解析 DNS；域名解析到内网时仍放行。结果过长时自动截断。`context.spillToFile` 为真时，全文写入临时文件，路径写入结果。
+- 上下文可控：工具可以改名、可以关闭、可以改为按需发现，以减少常驻提示词。
+- 提示词精简：内置提示词是英文单行。续读提示、key 位置与参数范围由报错和结果给出，不占提示词。工具改名后，提示词自动更新。
 
 ## 环境要求
 
-- pi 宿主；Node.js >= 22.19.0（`package.json` 的 `engines`，宿主可能要求更高）。
-- `gh` CLI **可选**：只有抓 GitHub 页面会用到，没装不影响其它功能。
+- pi 宿主。Node.js 22.19.0 或更高版本（见 `package.json` 的 `engines`；宿主可能要求更高版本）。
+- `gh` CLI **可选**：只有抓取 GitHub 页面时使用。
 
 ## 参考项目
 
 - [nicobailon/pi-web-access](https://github.com/nicobailon/pi-web-access) —— 提取器链与专用页面 handler 的思路来源。
 - [juicesharp/rpiv-mono · rpiv-web-tools](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-web-tools) —— 薄 provider 层、提示词配置面与 TUI 渲染的参考。
 
-两个项目都完整开源，本项目的取舍基于它们的代码。
+两个项目都完整开源。本项目的取舍基于它们的代码。
 
 ## 文档索引
 
 - 设计取舍与「不做什么」：[docs/adr/](docs/adr/)（索引：[docs/adr/README.md](docs/adr/README.md)）
 - 模块划分与依赖方向：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - 术语表：[docs/GLOSSARY.md](docs/GLOSSARY.md)
-- 模块 API 与契约：[docs/modules/](docs/modules/)（[config](docs/modules/config.md)、[http](docs/modules/http.md)、[ssrf](docs/modules/ssrf.md)、[providers](docs/modules/providers.md)、[handlers](docs/modules/handlers.md)、[extractors](docs/modules/extractors.md)、[tools](docs/modules/tools.md)）
 - 发布记录：[CHANGELOG.md](CHANGELOG.md)
 
 ## 开发
 
 ```bash
 pnpm install
-pnpm lint          # biome：lint + 格式检查（warning 也算错；加 --write 即自动修正）
+pnpm lint          # biome：lint + 格式检查（warning 也算错；加 --write 自动修正）
 pnpm check:imports # 依赖方向闸：docs/ARCHITECTURE.md §2 的可执行版本
 pnpm typecheck
-pnpm test          # 单元测试，不打真实网络
-pnpm test:e2e      # 可选：真链路冒烟，需要 key 与外网，发版前手跑，不进 CI
+pnpm test          # 单元测试，不访问真实网络
+pnpm test:e2e      # 可选：真链路冒烟，需要 key 与外网；发版前手动运行，不进 CI
 ```
 
-CI 在 Linux（Node 22 / 24）与 Windows（Node 22）上跑 lint / check:imports / typecheck / test；行尾由 `.gitattributes` 固定为 LF，两边的 biome 结果一致。pnpm 版本由 `packageManager` 字段锁定，格式与 lint 规则见 `biome.json`（`lineWidth` 100）。
+CI 在 Linux（Node 22 / 24）与 Windows（Node 22）上运行 lint / check:imports / typecheck / test。`.gitattributes` 把行尾固定为 LF，两个平台上的 biome 结果一致。pnpm 版本由 `packageManager` 固定。格式与 lint 规则见 `biome.json`（`lineWidth` 100）。
 
-提交前闸（可选，仓库内生效）：`git config core.hooksPath .githooks`，之后每次提交跑上面 lint / `check:imports` / typecheck / test 四条，约 10 秒。
+提交前闸（可选，仓库内生效）：运行 `git config core.hooksPath .githooks`。此后每次提交运行 lint / `check:imports` / typecheck / test 四条命令，约 10 秒。
 
-发版：改 `package.json` 的 `version` 与 `CHANGELOG.md`，推送 `main` 即由 `.github/workflows/npm-publish.yml` 发布（registry 上已有该版本则整条跳过）。
+发版：修改 `package.json` 的 `version`，在 `CHANGELOG.md` 增加条目，然后推送 `main`。`.github/workflows/npm-publish.yml` 负责发布；registry 上已有该版本时，整条运行跳过。

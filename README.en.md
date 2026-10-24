@@ -4,14 +4,13 @@
 
 ![A pi session: web_search returns 5 results via exa, then web_fetch extracts the first page](https://raw.githubusercontent.com/setwhite/pi-web-search-lite/main/assets/cover.png)
 
-Adds two tools to pi: `web_search` for the web, `web_fetch` for page text; every request the extension sends goes through a single proxy setting.
+The extension adds two tools to pi. `web_search` searches the web. `web_fetch` extracts the text of a page. All requests from the extension use one proxy setting.
 
 ## Design goals
 
-- Two tools only — `web_search` + `web_fetch` — with every request the extension sends going through one proxy setting.
-- Add a search key and you are ready; the default fetch chain (`html` / `jina`) needs no key.
-- Every failure path names what to fix: which key, which field, the HTTP status or the timeout source.
-- Oversized results are truncated; with `context.spillToFile` on by default, the full text goes to a temp file whose path is returned for `read`.
+- Set one search key after installation. The default extractor chain (`html` / `jina`) needs no key.
+- Each failure gives the information that you need: the missing key, the missing field, the HTTP status code or the timeout source.
+- The extension truncates a result that is too large. `context.spillToFile` is on by default: the full text goes to a temp file, and the result contains the path for `read`.
 
 The full list of trade-offs and non-goals: [docs/adr/](docs/adr/).
 
@@ -22,13 +21,13 @@ pi install npm:pi-web-search-lite                        # from npm
 pi install git:github.com/setwhite/pi-web-search-lite    # from a git repo
 ```
 
-Add a search key and you are ready — no build step.
+Set one search key after installation. No build step is necessary.
 
 ## Configuration
 
-One JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.json`. If it does not exist, everything falls back to defaults. A wrong type, enum value or unknown key fails startup and names the field; out-of-range numbers are silently clamped (see [docs/modules/config.md](docs/modules/config.md)). The example below uses `//` comments; the real file must be strict JSON, so strip them before copying.
+The configuration is one JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.json`. If the file does not exist, all values use their defaults. If a type, enum value or unknown key is not correct, startup fails and the error names the field. An out-of-range number does not fail: the extension clamps it to the allowed range (see `RANGES` in `config/schema.ts` and `config/validate.ts`). The `//` comments in the examples are for explanation only. The real file must be strict JSON. Remove the comments before you copy the file.
 
-**Minimal config** — pick a search backend, fill in its key, done (the default is tavily):
+**Minimal configuration**: select one search backend and set its key. The default backend is tavily.
 
 ```json
 {
@@ -37,9 +36,9 @@ One JSON file: `<PI_CODING_AGENT_DIR or ~/.pi/agent>/pi-web-search-lite/config.j
 }
 ```
 
-Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `PARALLEL_API_KEY` / `KEENABLE_API_KEY` / `DEEPSEEK_API_KEY` / `JINA_API_KEY`, which win over the file); the `WEB_SEARCH_PROVIDER` env var overrides `provider` for one run.
+You can also set keys in environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY` / `PERPLEXITY_API_KEY` / `PARALLEL_API_KEY` / `KEENABLE_API_KEY` / `DEEPSEEK_API_KEY` / `JINA_API_KEY`). The environment variables win over the file. `WEB_SEARCH_PROVIDER` overrides `provider` temporarily.
 
-**Full example** — every option with a comment; apart from the key values, userAgent, `proxy` and the guidance overrides, the rest are the defaults:
+**Full example**: all options with comments. The key values, `userAgent`, `proxy` and the guidance fields are examples. All other values are the defaults.
 
 ```jsonc
 {
@@ -122,11 +121,11 @@ Keys can also come from environment variables (`TAVILY_API_KEY` / `BRAVE_API_KEY
 }
 ```
 
-Every key is optional; in the example above every value except the keys, `userAgent`, `proxy` and guidance is the default. Ranges (clamp) and field semantics: [docs/modules/config.md](docs/modules/config.md); to override prompts, fill fields under `guidance.web_search` / `guidance.web_fetch`.
+All keys are optional. For the ranges (clamp) and field semantics, see `config/schema.ts` and `config/validate.ts`. To override the prompts, set fields under `guidance.web_search` / `guidance.web_fetch`.
 
 ### The three max gates
 
-Three independent caps sit between a fetch and the model; each result passes one or two of them:
+Three independent caps apply between a fetch and the model. Each result passes one or two of them.
 
 | Key | Applies to | On overflow |
 |---|---|---|
@@ -134,37 +133,36 @@ Three independent caps sit between a fetch and the model; each result passes one
 | `handlers.github.maxChars` | gh output after it is rendered to markdown | same; GitHub handler only |
 | `context.maxInlineChars` / `maxInlineLines` | the envelope handed to the model (both tools) | sliced; with `spillToFile` the full text goes to a temp file and the path is included in the result |
 
-Both `context.*` caps are clamped with `Math.min` against the host caps, so larger values have no effect. GitHub pages pass gates 2 and 3, ordinary pages pass 1 and 3, and `raw` passes only gate 3. Supported GitHub / Reddit URL shapes: [docs/modules/handlers.md](docs/modules/handlers.md).
+The extension applies `Math.min` to the two `context.*` caps and the host caps, so a larger value has no effect. GitHub pages pass gates 2 and 3. Ordinary pages pass gates 1 and 3. `raw` passes gate 3 only. For the supported GitHub / Reddit URL shapes, see `parseGitHubUrl` in `handlers/github/index.ts` and `test/handlers/github-url.test.ts`.
 
 ## Features
 
-- Search: pick one of tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek — no silent switching; a missing key tells you exactly where to set it.
-- Fetch: extractors are tried in `fetch.extractors` order until one works (default `html` → `jina`, neither needs a key; insert `tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` in the middle). GitHub pages go through `gh`, reddit URLs are rewritten to a redlib instance by default (both in [docs/modules/handlers.md](docs/modules/handlers.md)); `fetch.allowRaw` unlocks the `raw` argument, which skips the chain.
-- Safe by default: private and loopback addresses are rejected and every redirect hop is re-checked — literal values only, no DNS resolution (a domain pointing at a private IP still gets through); oversized results are truncated with the full text spilled to a temp file when `context.spillToFile` is on (the path is included in the result).
-- Controllable context: tools can be renamed, disabled or switched to on-demand discovery.
-- Lean prompts: built-in prompts are single-line English; how to continue after truncation, where to put the key or what the argument ranges are live in errors and results instead of the prompt, and renamed tools are reflected in the prompts automatically.
+- Search: select one of tavily / brave / exa / firecrawl / perplexity / parallel / keenable / deepseek. The extension does not switch to another backend. If a key is missing, the error gives the location to set it.
+- Fetch: the extension tries the extractors in `fetch.extractors` order and uses the first extractor that works. The default order is `html` → `jina`; neither extractor needs a key. You can insert `tavily` / `exa` / `firecrawl` / `parallel` / `keenable` / `deepseek` in the middle. GitHub pages use `gh` first. By default, reddit URLs use a redlib instance with a different host (both in [docs/modules/handlers.md](docs/modules/handlers.md)). `fetch.allowRaw` enables the `raw` argument. `raw` skips the chain.
+- Security: the extension rejects private and loopback addresses and checks each redirect hop. The check reads literal values only and does not resolve DNS. A domain that resolves to a private IP is still allowed. The extension truncates a result that is too large. If `context.spillToFile` is true, the full text goes to a temp file, and the result contains the path.
+- Context control: you can rename or disable a tool, or switch it to on-demand discovery. This action reduces the prompt that is always in context.
+- Small prompts: the built-in prompts are single-line English. Errors and results contain the continuation hint, the key location and the argument ranges, so the prompt stays small. If you rename a tool, the prompts change automatically.
 
 ## Requirements
 
-- pi host; Node.js >= 22.19.0 (`engines` in `package.json`; the host may require newer).
-- `gh` CLI **optional**: only GitHub page fetching uses it.
+- A pi host. Node.js 22.19.0 or later is necessary (see `engines` in `package.json`; the host can require a newer version).
+- The `gh` CLI is optional. Only GitHub page fetching uses it.
 
 ## Credits
 
 - [nicobailon/pi-web-access](https://github.com/nicobailon/pi-web-access) — where the extractor chain and dedicated page handlers came from.
 - [juicesharp/rpiv-mono · rpiv-web-tools](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-web-tools) — reference for the thin provider layer, the prompt config surface and TUI rendering.
 
-Both are fully open-sourced; this project's trade-offs come from reading their code.
+Both projects are fully open source. The trade-offs in this project come from their code.
 
 ## Documentation
 
 - Trade-offs and non-goals: [docs/adr/](docs/adr/) (index: [docs/adr/README.md](docs/adr/README.md))
 - Module layout and dependency direction: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Glossary: [docs/GLOSSARY.md](docs/GLOSSARY.md)
-- Per-module API and contracts: [docs/modules/](docs/modules/) ([config](docs/modules/config.md), [http](docs/modules/http.md), [ssrf](docs/modules/ssrf.md), [providers](docs/modules/providers.md), [handlers](docs/modules/handlers.md), [extractors](docs/modules/extractors.md), [tools](docs/modules/tools.md))
 - Release notes: [CHANGELOG.md](CHANGELOG.md)
 
-Docs are currently written in Chinese.
+The docs are currently in Chinese.
 
 ## Development
 
@@ -174,11 +172,11 @@ pnpm lint          # biome: lint + format check (a warning fails too; add --writ
 pnpm check:imports # dependency-direction gate: executable form of docs/ARCHITECTURE.md §2
 pnpm typecheck
 pnpm test          # unit tests, no real network
-pnpm test:e2e      # optional: live smoke, needs keys and network, run by hand before a release, never in CI
+pnpm test:e2e      # optional: live smoke test; needs keys and network; run manually before a release; not in CI
 ```
 
-CI runs lint / check:imports / typecheck / test on Linux (Node 22 / 24) and Windows (Node 22); `.gitattributes` pins line endings to LF so biome reports the same result on both. The pnpm version is pinned via `packageManager`, and lint/format rules live in `biome.json` (`lineWidth` 100).
+CI runs lint / check:imports / typecheck / test on Linux (Node 22 / 24) and Windows (Node 22). `.gitattributes` pins line endings to LF, so biome gives the same result on both systems. `packageManager` pins the pnpm version. The lint and format rules are in `biome.json` (`lineWidth` 100).
 
-Pre-commit gate (optional, per clone): `git config core.hooksPath .githooks` — every commit then runs the lint / `check:imports` / typecheck / test four, about 10 seconds.
+The pre-commit gate is optional and applies per clone. Run `git config core.hooksPath .githooks` once. After that, each commit runs lint / `check:imports` / typecheck / test. This step takes about 10 seconds.
 
-Releasing: bump `version` in `package.json`, add a `CHANGELOG.md` entry, and push to `main` — `.github/workflows/npm-publish.yml` publishes it (the whole run is skipped when the version is already on the registry).
+Release: change `version` in `package.json`, add a `CHANGELOG.md` entry, and push to `main`. `.github/workflows/npm-publish.yml` publishes the package. If the version is already on the registry, the workflow skips the whole run.

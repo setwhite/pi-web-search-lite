@@ -1,13 +1,13 @@
 # pi-web-search-lite — 任务台账
 
-按开发顺序排列；状态只随用户确认变更。规则：
+`docs/todos/` 的索引兼阶段表：单文件维护，任务不拆成 `T<NN>.md`。按开发顺序排列；状态只随用户确认变更。规则：
 
 1. 领取：取第一条 `- [ ]` 且「前置」全部完成的原子任务；任务目标或接口契约不明确时先提问，不猜测。
 2. 实现：一次只推进一步（先写失败测试 Red，再补最少实现 Green）；遇 Bug 先加 Log 或查堆栈验证假设；同一错误连续失败 3 次停机汇报。
 3. 交付：新模块固定为**实现 + 模块文档 + 单元测试**三件套；收工跑 `pnpm lint`、`pnpm check:imports`、`pnpm test` 与 `pnpm typecheck`（见 `docs/ARCHITECTURE.md` §3）。
 4. 证据：只记可复跑的指针（测试文件 / 命令输出 / commit），且必须是当前会话产生；实现会话不改状态，挂起等用户 Review。
 5. 审计：在没参与实现的会话里做，只读不改仓库文件，证据只认该会话的运行输出。
-6. 边界：契约与理由分别落在 `docs/modules/` 与 `docs/adr/`，本文件不复述。
+6. 边界：契约在代码与测试，理由在 `docs/adr/`，本文件不复述。
 
 状态：`- [ ]` = 未完成（用户确认的中间态在行尾标注 `进行中` / `待审` / `打回`），`- [x]` = 已确认完成。T1–T17 已随文档重构（提交 `dab115a`）移出本文件。
 
@@ -86,13 +86,13 @@
   - 验收：新增顶层模块目录却漏写 `files` 时 `pnpm test` 红；`providers/` 导入 `tools/`、`tools/` 导入 `undici`、`index.ts` 值导入宿主包，三者都让 `pnpm check:imports` 退出码 1；正常代码输出 `ok: 39 files`
   - 验收证据：本会话 `node scripts/check-imports.mjs` 输出 `ok: 39 files`；仓库副本注入上述两处违规后输出两条失败并退出码 1；`pnpm test` 含 `test/package.test.ts` 全绿
   - 前置：无
-  - 来源：审计——`files` 是枚举式清单（新模块静默漏发），`ARCHITECTURE.md` §2 的六条边与三处单一出口无执行器
+  - 来源：审计——`files` 是枚举式清单（新模块静默漏发），`ARCHITECTURE.md` §2 的六条边与四处单一出口无执行器
   - 进度：已发布（0.8.3）；`.githooks/pre-commit` 跑 lint / check:imports / typecheck / test 四条，约 10 秒
 
 - [x] T28 默认值收成单一来源（指针化）
   - 交付物：`docs/modules/config.md`（删默认值列，保留 clamp / 枚举）、`README.md` / `README.en.md`（默认值归属从 config.md 改成示例本身）
   - 验收：默认值只出现在 `config/schema.ts` 常量与根 README「完整示例」；跨文档只留指针，符合 `docs/ARCHITECTURE.md` §4
-  - 验收证据：`rg -n '默认值' docs/modules/config.md`——只剩「默认值不在本文复述」与来源说明
+  - 验收证据：`docs/modules/config.md` 不列默认值；默认值只在 `config/schema.ts` 与根 README「完整示例」
   - 前置：无
   - 进度：已发布（0.8.3）；同时消掉 README 与 config.md 的互相指向
 
@@ -112,5 +112,5 @@
 
 ## 已决（未成任务）
 
-- `HttpError.status` / `.body` 是否删（本会话提出，全仓零生产读者、只有 `test/http.test.ts:113,117` 读）：决定**保留**——口径写进 `http/index.ts` 注释与 `docs/modules/http.md`，将来要按状态码做事（如 429 退避）或把错误页正文给模型时直接用。注意 `body` 是整页、不截断。
+- `HttpError.status` / `.body` 是否删（本会话提出，全仓零生产读者、只有 `test/http.test.ts:129,133` 读）：决定**保留**——口径写进 `http/index.ts` 注释，将来要按状态码做事（如 429 退避）或把错误页正文给模型时直接用。注意 `body` 是整页、不截断。
 - 16 张 provider / extractor 表是否抽象（审查 #5）：决定**不动**——认证头名、请求体字段、响应路径、错误约定各不相同，等第 9 家再加入口（用户已确认）。

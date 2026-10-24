@@ -1,5 +1,5 @@
 /**
- * T8 回归：桩 server 走完整链路（tools → provider/extractor → http/ → socket → 桩）。
+ * 回归：桩 server 走完整链路（tools → provider/extractor → http/ → socket → 桩）。
  * 与 tools 单测的区别是不注入 fakeHttp，改用真实 createHttpClient。
  */
 

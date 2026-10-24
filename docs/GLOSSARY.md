@@ -1,6 +1,6 @@
 # pi-web-search-lite 术语表
 
-本扩展特有概念的唯一命名来源；通用词（timeout、HTTP 状态码）不收。这里只说是什么，怎么做看 `docs/modules/` 与代码。
+本扩展特有概念的唯一命名来源；通用词（timeout、HTTP 状态码）不收。这里只说是什么；怎么做看代码与测试，取舍与坑看 `docs/modules/`。
 
 ## 搜索与抓取
 
@@ -39,7 +39,7 @@ _Avoid_: 跳转、重定向（重定向是 HTTP 层行为）
 _Avoid_: 响应包、result（`AgentToolResult` 是宿主类型）
 
 **三道 max 闸**:
-正文从出网到进模型的三道独立上限，按来源只经过其中 1–2 道（`raw` 只过第 3 道）：`fetch.maxCharsPerPage` → `handlers.github.maxChars` → `context.maxInlineChars` / `maxInlineLines`。
+正文从出网到进模型的三道独立上限，按来源只经过其中 1–2 道（`raw` 只过第 3 道）。逐键作用对象见根 `README.md`「三道 max 闸」。
 _Avoid_: 截断链
 
 **spill**:
