@@ -74,9 +74,9 @@ You can also set keys in environment variables (`TAVILY_API_KEY` / `BRAVE_API_KE
   "activation": "eager",
 
   // Override the built-in prompts; omit to keep the built-in single-line English text. Fields per tool (web_search / web_fetch):
-  //   description        tool description, part of the tool-search corpus; English recommended
-  //   promptSnippet      the one-line entry in the tool list
-  //   promptGuidelines   rules appended to the system prompt guidelines, array of strings
+  //   description        tool description, part of the tool-search corpus; English recommended; "" = clear it
+  //   promptSnippet      the one-line entry in the tool list; "" = omit it from the list
+  //   promptGuidelines   rules appended to the system prompt guidelines, array of strings; [] = add none
   "guidance": {
     "web_search": {
       "description": "Search the web; returns titles, URLs and snippets.",

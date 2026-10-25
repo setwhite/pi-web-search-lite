@@ -67,6 +67,23 @@ export function readString(value: unknown, fallback: string, path: string, error
 	return optionalString(value, path, errors) ?? fallback;
 }
 
+/**
+ * 允许空串的字符串读取器：`""` 原样返回，让调用方能区分「未配置」（undefined）与「显式清空」。
+ * 只含空白字符的值仍视为非法，避免误配的空格盖掉内置值。
+ */
+export function optionalClearableString(
+	value: unknown,
+	path: string,
+	errors: Errors,
+): string | undefined {
+	if (value === undefined) return undefined;
+	if (typeof value !== "string" || (value !== "" && value.trim() === "")) {
+		errors.push(`${path}: expected a string ("" clears it), got ${JSON.stringify(value)}`);
+		return undefined;
+	}
+	return value;
+}
+
 export function readStringArray(value: unknown, path: string, errors: Errors): string[] {
 	if (!Array.isArray(value)) {
 		errors.push(`${path}: expected an array of strings`);

@@ -6,6 +6,7 @@
 import {
 	asObject,
 	checkUnknownKeys,
+	optionalClearableString,
 	optionalString,
 	readBoolean,
 	readEnum,
@@ -199,8 +200,8 @@ function readGuidanceFields(value: unknown, path: string, errors: Errors): Guida
 	const raw = asObject(value, path, errors) ?? {};
 	checkUnknownKeys(raw, ["description", "promptSnippet", "promptGuidelines"], path, errors);
 	const fields: GuidanceFields = {};
-	const description = optionalString(raw.description, `${path}.description`, errors);
-	const snippet = optionalString(raw.promptSnippet, `${path}.promptSnippet`, errors);
+	const description = optionalClearableString(raw.description, `${path}.description`, errors);
+	const snippet = optionalClearableString(raw.promptSnippet, `${path}.promptSnippet`, errors);
 	if (description !== undefined) fields.description = description;
 	if (snippet !== undefined) fields.promptSnippet = snippet;
 	if (raw.promptGuidelines !== undefined) {

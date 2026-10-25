@@ -297,6 +297,33 @@ describe("loadConfig", () => {
 		expect(message).toContain("apiKeys.serpapi");
 	});
 
+	it("guidance 的 description / promptSnippet 接受空串（显式清空），拒绝纯空白与 null", () => {
+		const cleared = loadConfig({
+			configPath: writeConfig(
+				JSON.stringify({ guidance: { web_search: { description: "", promptSnippet: "" } } }),
+			),
+			env: {},
+		});
+		const blank = captureError(() =>
+			loadConfig({
+				configPath: writeConfig(JSON.stringify({ guidance: { web_fetch: { description: "  " } } })),
+				env: {},
+			}),
+		);
+		const nullSnippet = captureError(() =>
+			loadConfig({
+				configPath: writeConfig(
+					JSON.stringify({ guidance: { web_search: { promptSnippet: null } } }),
+				),
+				env: {},
+			}),
+		);
+
+		expect(cleared.guidance.web_search).toEqual({ description: "", promptSnippet: "" });
+		expect(blank).toContain("guidance.web_fetch.description");
+		expect(nullSnippet).toContain("guidance.web_search.promptSnippet");
+	});
+
 	it("socks5 代理在配置校验阶段报错", () => {
 		const path = writeConfig(JSON.stringify({ proxy: "socks5://127.0.0.1:1080" }));
 		const message = captureError(() => loadConfig({ configPath: path, env: {} }));

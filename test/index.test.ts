@@ -189,6 +189,21 @@ describe("index：guidance 覆盖", () => {
 		]);
 	});
 
+	it("空串把 description / promptSnippet 替换为空值，guidelines 仍用默认", () => {
+		useConfig({ guidance: { web_search: { description: "", promptSnippet: "" } } });
+		const { api, registered } = fakeApi();
+
+		piWebSearchLite(api);
+
+		const search = registered.find((tool) => tool.name === "web_search");
+		expect(search?.description).toBe("");
+		expect(search?.promptSnippet).toBe("");
+		expect(search?.promptGuidelines).toEqual([
+			"web_search: use for info beyond training data (recent events, fact-checking, live docs).",
+			'web_search: cite sources as "Sources:" with [Title](URL) links.',
+		]);
+	});
+
 	it("默认 guidelines 用配置的工具名组装（含跨工具引用）", () => {
 		useConfig({ tools: { web_search: { name: "ws" }, web_fetch: { name: "wf" } } });
 		const { api, registered } = fakeApi();

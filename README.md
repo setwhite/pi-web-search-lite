@@ -74,9 +74,9 @@ key 也可以放在环境变量中（`TAVILY_API_KEY` / `BRAVE_API_KEY` / `EXA_A
   "activation": "eager",
 
   // 覆盖内置提示词；不配就用内置的英文单行。每个工具（web_search / web_fetch）可覆盖三个字段：
-  //   description        工具描述，会进入工具检索的语料，建议英文
-  //   promptSnippet      工具列表里的一行短语
-  //   promptGuidelines   系统提示 Guidelines 区的规则，字符串数组
+  //   description        工具描述，会进入工具检索的语料，建议英文；"" = 清空
+  //   promptSnippet      工具列表里的一行短语；"" = 不在工具列表里显示
+  //   promptGuidelines   系统提示 Guidelines 区的规则，字符串数组；[] = 不追加
   "guidance": {
     "web_search": {
       "description": "Search the web; returns titles, URLs and snippets.",
