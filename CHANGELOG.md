@@ -2,6 +2,10 @@
 
 已发布版本的用户可见变更；更细的过程见 git log。0.x 期间破坏性变更走 minor 号，条目里标注 **BREAKING**。
 
+## 0.9.0 — 2026-10-25
+
+- guidance 的 `description` 与 `promptSnippet` 接受空串：`""` 把内置提示词替换为空值（此前报 `expected a non-empty string` 并拒绝加载）；纯空白与 `null` 仍然报错
+
 ## 0.8.4 — 2026-10-25
 
 - 无运行时变更（与 0.8.3 相同）：模块文档收口为取舍 / 坑 / 指针，契约以代码与测试为准（ADR-0011）；任务台账迁到 `docs/todos/`
