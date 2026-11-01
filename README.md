@@ -1,3 +1,5 @@
+> **本仓已归档。** 源码已并入 [setwhite/pi-extensions](https://github.com/setwhite/pi-extensions)。安装改用 `pi install npm:pi-web-search-lite`。本仓不再更新。
+
 **简体中文** | [English](README.en.md)
 
 # pi-web-search-lite

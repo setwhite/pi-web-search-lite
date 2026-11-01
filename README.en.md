@@ -1,3 +1,5 @@
+> **This repository is archived.** The source moved to [setwhite/pi-extensions](https://github.com/setwhite/pi-extensions). Install with `pi install npm:pi-web-search-lite`. This repository no longer updates.
+
 [简体中文](README.md) | **English**
 
 # pi-web-search-lite
