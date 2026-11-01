@@ -16,3 +16,4 @@
 | [0010](0010-scope-two-tools.md) | 范围：只做 web_search 与 web_fetch 两个工具 |
 | [0011](0011-contracts-in-code.md) | 契约以代码与测试为准，模块文档只写取舍与坑 |
 | [0012](0012-e2e-manual-only.md) | e2e 只在发版前手动跑，不进 CI |
+| [0013](0013-proxy-fallback-direct.md) | 代理失败改直连一次，连续 3 次失败进 60 秒冷却 |

@@ -58,9 +58,9 @@ You can also set keys in environment variables (`TAVILY_API_KEY` / `BRAVE_API_KE
     "jina": "jina-your-key"
   },
 
-  // Proxy: the single egress point for the extension's own requests; "" = direct. The gh subprocess also inherits the host's HTTP(S)_PROXY; setting this writes the same variables
+  // Proxy: the single egress point for the extension's own requests; "" = direct. With a proxy set, a transport failure falls back to one direct attempt; after 3 failures in a row the extension uses direct connections for 60 seconds and notes it in the result header. The gh subprocess also inherits the host's HTTP(S)_PROXY; setting this writes the same variables
   "proxy": "",
-  // Request timeout in milliseconds
+  // Per-attempt timeout in milliseconds; the direct fallback gets its own budget
   "timeoutMs": 30000,
   // Outbound User-Agent: defaults to "<package>/<version>" when omitted
   "userAgent": "my-agent/1.0",

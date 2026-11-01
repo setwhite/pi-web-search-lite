@@ -20,4 +20,6 @@
 ## 平台差异与坑
 
 - `gh` 缺失 / 未登录时透传子进程错误，文案含平台细节（如 `spawn gh ENOENT`）；排查以实际平台输出为准。
-- 可用性探测按 `command` 进程内缓存一次；配置了 `proxy` 时注入 `HTTPS_PROXY` / `HTTP_PROXY`，未配置时 gh 继承宿主环境（宿主里的代理变量仍可能生效）。改 `command` 或 `timeoutMs` 后要 `/reload`。
+- 可用性探测按 `command` + `proxy` 进程内缓存一次；配置了 `proxy` 时先注入 `HTTPS_PROXY` / `HTTP_PROXY`，探测失败就去掉代理复核一次（复核预算 `min(timeoutMs, 5s)`），业务命令用走通的那条路（[ADR-0013](../adr/0013-proxy-fallback-direct.md)）。未配置代理时 gh 继承宿主环境（宿主里的代理变量仍可能生效）。改 `command`、`proxy` 或 `timeoutMs` 后要 `/reload`。
+- 代理在中间时 gh 的任何结论都不可信：实测代理不通时它能报出 `The token in keyring is invalid.`（网络故障被说成凭据失效），所以带代理的探测结果一律不缓存、也不当定论，只有直连复核的结论才算。
+- 网络故障不是「未登录」：只认明确的未登录证据，其余记 `gh cannot reach GitHub` 且不进缓存——否则一次网络故障会让本会话所有 GitHub 链接都不走 gh。

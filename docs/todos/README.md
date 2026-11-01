@@ -110,6 +110,17 @@
   - 前置：无
   - 进度：已发布（0.8.3）
 
+- [ ] T31 代理故障不再拖死全部请求
+  - 交付物：`http/route.ts`（失败计数、冷却、降级提示）、`http/index.ts`（每次尝试独立超时、两跳回退）、`handlers/github/gh.ts`（探测回退、失败分类、缓存键）、`handlers/github/index.ts`、`tools/fetch.ts` / `tools/search.ts`（结果头一行提示）、`docs/adr/0013-proxy-fallback-direct.md`、README 两版与 `docs/modules/{http,handlers}.md`、`docs/GLOSSARY.md`、`CHANGELOG.md`
+  - 验收：
+    - 有 `proxy` 时先走代理；`network` / `timeout` 换直连重试一次，结果来自直连；`http_status` 与调用方中断不回退
+    - 每次尝试各有一份 `timeoutMs`（回退不共享已用尽的预算）
+    - 连续 3 次代理失败后只直连，60 秒冷却到期放行一次探测，成功清零
+    - 降级时 `web_fetch` / `web_search` 结果头各多一行英文提示，代理正常时没有这一行
+    - gh：带代理探测失败改用直连复核，业务命令走同一条路；带代理的结论不缓存（实测代理不通时 gh 会报 `The token in keyring is invalid.`）；网络故障原因不是「未登录」；直连复核出的「未登录」仍是定论、会缓存
+  - 验收证据：`test/http.test.ts` 的「http：代理回退」、`test/handlers/github.test.ts` 的「github handler：代理与探测失败」与「gh 未可用」组、`test/regression/messages.test.ts` 的文案用例、`test/tools/{fetch,search}.test.ts` 的「降级可见」组；`pnpm test` 37 files / 326 tests
+  - 前置：无
+
 ## 已决（未成任务）
 
 - `HttpError.status` / `.body` 是否删（本会话提出，全仓零生产读者、只有 `test/http.test.ts:129,133` 读）：决定**保留**——口径写进 `http/index.ts` 注释，将来要按状态码做事（如 429 退避）或把错误页正文给模型时直接用。注意 `body` 是整页、不截断。

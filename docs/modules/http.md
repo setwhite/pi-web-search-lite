@@ -4,6 +4,18 @@
 
 API、错误类型与逐条契约在 `http/index.ts`，由 `test/http.test.ts` 与 `test/undici-surface.test.ts` 钉住；本文不复述。跨模块只有两条约定：入口 URL 的 SSRF 校验由调用方在抓取前完成，本模块只校验重定向的每一跳；代理只认 `config.proxy`，不读 `HTTP_PROXY` 等环境变量（[ADR-0004](../adr/0004-single-proxy-setting.md)）。
 
+## 代理回退与冷却
+
+有代理时先走代理，传输层失败改直连重试一次；连续 3 次失败后 60 秒内只直连，到期放行一次探测（[ADR-0013](../adr/0013-proxy-fallback-direct.md)）。取舍与坑：
+
+- 状态按进程共享，按 `proxy` 串重置：`createHttpClient` 每次工具调用都新建，计数放 client 里永远到不了阈值；`/reload` 换了 `proxy` 就重新数。
+- 只回退 `network` / `timeout`。`http_status` 不回退，所以代理自己回 `502` / `407` 时会被当成目标错误——已知盲点，不是漏写。
+- 每次尝试各有一份 `timeoutMs`，最坏延迟是两份之和（默认 60 秒）。
+- 拿到响应后不回退：读体失败重发会重复副作用。
+- 降级提示由 `proxyNotice` 产出，`tools/` 往结果头加一行；粒度是状态级，不是每次回退都报。
+
+回退用例注入传输层（`HttpClientOptions.fetchImpl`）与时钟（`now`），不依赖 DNS 与真代理；代理转发形态仍由「http：代理」组的真代理桩覆盖。
+
 ## 验证局限
 
 代理只在 Clash 混合端口上实测过，两种目标的转发形态不同：`http:` 目标走 absolute-form，不建隧道；`https:` 目标才建 CONNECT 隧道。这是 `ProxyAgent` 在 undici 8.12.3 的实测行为（`lib/dispatcher/proxy-agent.js` 的 `shouldProxyTunnel`：`proxyTunnel === true || 请求协议 !== 'http:'`），不是 API 承诺——8.7.0 就改过这段默认（见「依赖升级」）。仓库里的代理桩只覆盖前者（`test/http.test.ts` 的「http：代理」组，`test/undici-surface.test.ts` 的「不建 CONNECT 隧道」用例）。换代理软件或转发方式需重跑。
