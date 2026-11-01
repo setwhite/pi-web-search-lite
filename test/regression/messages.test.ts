@@ -9,7 +9,12 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { loadConfig } from "../../config/index.ts";
 import { extractWithChain } from "../../extractors/index.ts";
-import { checkGhAvailable, execGh, resetGhProbeCache } from "../../handlers/github/gh.ts";
+import {
+	checkGhAvailable,
+	execGh,
+	type GhAvailability,
+	resetGhProbeCache,
+} from "../../handlers/github/gh.ts";
 import { executeSearch } from "../../tools/search.ts";
 import { ghStub } from "../handlers/fixtures.ts";
 import { fakeHttp, makeConfig, rejectionOf } from "../tools/fixtures.ts";
@@ -22,6 +27,11 @@ function tempConfig(content: string): string {
 	const path = join(dir, "config.json");
 	writeFileSync(path, content, "utf-8");
 	return path;
+}
+
+function skipReason(availability: GhAvailability): string {
+	expect(availability.ok).toBe(false);
+	return availability.ok ? "" : availability.reason;
 }
 
 afterEach(() => {
@@ -70,12 +80,12 @@ describe("回归：错误文案", () => {
 		const availability = await checkGhAvailable("gh-missing-xyz", {
 			exec: execGh,
 			timeoutMs: 5_000,
-			env: process.env,
 		});
 
-		expect(availability.ok).toBe(false);
-		expect(availability.reason).toContain("gh command not found (gh-missing-xyz)");
-		expect(availability.reason).toContain("Install GitHub CLI or change handlers.github.command.");
+		expect(skipReason(availability)).toContain("gh command not found (gh-missing-xyz)");
+		expect(skipReason(availability)).toContain(
+			"Install GitHub CLI or change handlers.github.command.",
+		);
 	});
 
 	it("gh 未登录时提示先登录", async () => {
@@ -86,11 +96,30 @@ describe("回归：错误文案", () => {
 		const availability = await checkGhAvailable("gh-probe-fake", {
 			exec: stub.exec,
 			timeoutMs: 5_000,
-			env: {},
 		});
 
-		expect(availability.reason).toBe(
+		expect(skipReason(availability)).toBe(
 			"gh is not authenticated: HTTP 401: Bad credentials. Run gh auth login first.",
+		);
+	});
+
+	it("gh 探测遇到网络故障时不说成未登录", async () => {
+		const stub = ghStub({
+			auth: {
+				ok: false,
+				stdout: "",
+				stderr: "error connecting to api.github.com: check your internet connection",
+				error: "",
+			},
+		});
+
+		const availability = await checkGhAvailable("gh-probe-net", {
+			exec: stub.exec,
+			timeoutMs: 5_000,
+		});
+
+		expect(skipReason(availability)).toBe(
+			"gh cannot reach GitHub: error connecting to api.github.com: check your internet connection. Check the network or config.proxy.",
 		);
 	});
 

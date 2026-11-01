@@ -4,7 +4,7 @@
  */
 
 import type { HandlerSkip, HandlerSuccess, PageHandler } from "../types.ts";
-import { checkGhAvailable, execGh, GH_MAX_BUFFER, ghEnv, shortDetail } from "./gh.ts";
+import { checkGhAvailable, execGh, GH_MAX_BUFFER, shortDetail } from "./gh.ts";
 import { renderTarget } from "./render.ts";
 
 export type GitHubTarget =
@@ -144,14 +144,15 @@ export const githubHandler: PageHandler = {
 		}
 
 		const exec = ctx.execGh ?? execGh;
-		const env = ghEnv(ctx.proxy);
 		const availability = await checkGhAvailable(settings.command, {
 			exec,
 			timeoutMs: settings.timeoutMs,
-			env,
+			proxy: ctx.proxy,
 			signal: ctx.signal,
 		});
 		if (!availability.ok) return skip(availability.reason);
+		// 探测走通的那条路（带代理或不带）就是业务命令的路，两者不能各走各的
+		const env = availability.env;
 
 		const outputs: string[] = [];
 		for (const [index, step] of planSteps(target).entries()) {
