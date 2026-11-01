@@ -2,7 +2,7 @@
 
 import { type Static, Type } from "typebox";
 import type { ProviderId, ResolvedConfig } from "../config/index.ts";
-import { createHttpClient, type HttpClient } from "../http/index.ts";
+import { createHttpClient, type HttpClient, proxyNotice } from "../http/index.ts";
 import {
 	createSearchProvider,
 	resolveApiKey,
@@ -66,7 +66,11 @@ export async function executeSearch(
 
 	const results = await provider.search({ query: params.query, maxResults, signal });
 
-	const header = `web_search: ${results.length} results (provider: ${providerId}, max_results: ${maxResults})`;
+	const notice = proxyNotice(config.proxy);
+	const header = [
+		`web_search: ${results.length} results (provider: ${providerId}, max_results: ${maxResults})`,
+		...(notice === null ? [] : [`> ${notice}`]),
+	].join("\n");
 	const body =
 		results.length === 0
 			? "No results returned."

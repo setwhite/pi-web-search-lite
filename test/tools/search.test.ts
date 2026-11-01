@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderId } from "../../config/index.ts";
+import { resetProxyRoute } from "../../http/index.ts";
 import type { SearchOptions, SearchProvider, SearchResult } from "../../providers/index.ts";
 import { createSearchTool, executeSearch } from "../../tools/search.ts";
-import { firstText, makeConfig, rejectionOf } from "./fixtures.ts";
+import { exhaustProxy, firstText, makeConfig, rejectionOf } from "./fixtures.ts";
 
 const RESULTS: SearchResult[] = [
 	{ title: "示例结果", url: "https://example.com/a", snippet: "这是摘要" },
@@ -26,8 +27,27 @@ const config = makeConfig({
 	search: { defaultMaxResults: 5, maxResultsLimit: 10 },
 });
 
+beforeEach(() => resetProxyRoute());
+
 afterEach(() => {
 	vi.unstubAllEnvs();
+});
+
+describe("executeSearch：降级可见", () => {
+	it("代理降级时结果头带一行提示", async () => {
+		const proxy = await exhaustProxy();
+		const { provider } = fakeProvider("tavily", RESULTS);
+
+		const result = await executeSearch(
+			makeConfig({ proxy, apiKeys: { tavily: "tvly-key" } }),
+			{ query: "pi" },
+			undefined,
+			{ provider },
+		);
+
+		expect(firstText(result)).toContain("> 3 proxy attempts failed in a row");
+		expect(firstText(result)).toContain("direct connections only");
+	});
 });
 
 describe("executeSearch", () => {

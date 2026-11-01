@@ -4,7 +4,7 @@ import { type TSchema, Type } from "typebox";
 import type { ExtractorId, ResolvedConfig } from "../config/index.ts";
 import { type ExtractedPage, type Extractor, extractWithChain } from "../extractors/index.ts";
 import { type GhExecutor, runPageHandlers } from "../handlers/index.ts";
-import { createHttpClient, type HttpClient } from "../http/index.ts";
+import { createHttpClient, type HttpClient, proxyNotice } from "../http/index.ts";
 import { assertPublicUrl } from "../ssrf/index.ts";
 import { renderFetchCall, renderFetchResult } from "./render.ts";
 import {
@@ -69,7 +69,13 @@ export async function executeFetch(
 			);
 		}
 		const response = await http.fetchText(target.toString(), { signal });
-		const text = `Raw content (${response.contentType ?? "unknown type"}, ${response.text.length} chars)\nSource: ${response.url}\n\n${response.text}`;
+		const notice = proxyNotice(config.proxy);
+		const rawHeader = [
+			`Raw content (${response.contentType ?? "unknown type"}, ${response.text.length} chars)`,
+			`Source: ${response.url}`,
+			...(notice === null ? [] : [`> ${notice}`]),
+		].join("\n");
+		const text = `${rawHeader}\n\n${response.text}`;
 		const envelope = await finalizeContent(text, { ...config.context, fileName: "web-fetch.md" });
 		return buildToolResult(envelope.content, {
 			url: response.url,
@@ -135,12 +141,14 @@ export async function executeFetch(
 		};
 	}
 
+	const notice = proxyNotice(config.proxy);
+	const notes = [...(notice === null ? [] : [notice]), ...handlerSkips];
 	const header = [
 		`# ${page.title}`,
 		`Source: ${page.url}`,
 		...(rewrittenFrom ? [`Rewritten from: ${rewrittenFrom}`] : []),
 		`Extracted by: ${page.source === "github" ? "GitHub handler" : `extractor ${page.source}`}`,
-		...(handlerSkips.length > 0 ? ["", ...handlerSkips.map((line) => `> ${line}`)] : []),
+		...(notes.length > 0 ? ["", ...notes.map((line) => `> ${line}`)] : []),
 	].join("\n");
 
 	const envelope = await finalizeContent(`${header}\n\n${page.content}`, {

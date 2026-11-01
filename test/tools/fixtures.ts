@@ -15,7 +15,13 @@ import {
 	type ToolId,
 	type ToolSettings,
 } from "../../config/index.ts";
-import type { HttpClient, HttpJsonResult, HttpRequest, HttpTextResult } from "../../http/index.ts";
+import {
+	createHttpClient,
+	type HttpClient,
+	type HttpJsonResult,
+	type HttpRequest,
+	type HttpTextResult,
+} from "../../http/index.ts";
 
 export interface ConfigOverrides {
 	provider?: ProviderId;
@@ -52,6 +58,27 @@ export function makeConfig(overrides: ConfigOverrides = {}): ResolvedConfig {
 			reddit: { ...base.handlers.reddit, ...overrides.handlers?.reddit },
 		},
 	};
+}
+
+/**
+ * 把进程内的代理状态推到「只直连」：3 次经死代理的传输层失败。
+ * 传输层是注入的，不走网络；返回用的代理串，交给 makeConfig({ proxy }) 复现同一份状态。
+ */
+export async function exhaustProxy(proxy = "http://127.0.0.1:7890"): Promise<string> {
+	const client = createHttpClient({
+		proxy,
+		timeoutMs: 1_000,
+		userAgent: "pi-web-search-lite/test",
+		fetchImpl: async () => {
+			throw new TypeError("fetch failed", {
+				cause: new Error("connect ECONNREFUSED 127.0.0.1:7890"),
+			});
+		},
+	});
+	for (let index = 0; index < 3; index += 1) {
+		await client.fetchText("http://example.test/probe").catch(() => undefined);
+	}
+	return proxy;
 }
 
 export interface StubReply {

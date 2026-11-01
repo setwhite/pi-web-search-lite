@@ -1,6 +1,13 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { afterEach, describe, expect, it } from "vitest";
-import { createHttpClient, HttpError } from "../http/index.ts";
+import { Response as UndiciResponse } from "undici";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+	createHttpClient,
+	type HttpClientOptions,
+	HttpError,
+	proxyNotice,
+	resetProxyRoute,
+} from "../http/index.ts";
 import { SsrfError } from "../ssrf/index.ts";
 import { listenEphemeral } from "./stub.ts";
 
@@ -231,6 +238,148 @@ describe("http：代理", () => {
 		expect(result.text).toBe("direct");
 		expect(proxy.hits).toBe(0);
 		expect(target.hits).toBe(1);
+	});
+});
+
+describe("http：代理回退", () => {
+	const PROXY = "http://127.0.0.1:7890";
+	type FetchImpl = NonNullable<HttpClientOptions["fetchImpl"]>;
+
+	/** 注入传输层：按「这次是否带代理」给出结果，同时记录每次尝试走的是哪条路。 */
+	function stubTransport(handler: (viaProxy: boolean) => UndiciResponse): {
+		impl: FetchImpl;
+		via: boolean[];
+	} {
+		const via: boolean[] = [];
+		const impl: FetchImpl = async (_input, init) => {
+			const viaProxy = init?.dispatcher !== undefined;
+			via.push(viaProxy);
+			return handler(viaProxy);
+		};
+		return { impl, via };
+	}
+
+	function makeFallbackClient(
+		impl: FetchImpl,
+		options: { timeoutMs?: number; now?: () => number } = {},
+	) {
+		return createHttpClient({
+			proxy: PROXY,
+			timeoutMs: options.timeoutMs ?? 5_000,
+			userAgent: UA,
+			fetchImpl: impl,
+			...(options.now === undefined ? {} : { now: options.now }),
+		});
+	}
+
+	const networkFailure = (): TypeError =>
+		new TypeError("fetch failed", {
+			cause: new Error("connect ECONNREFUSED 127.0.0.1:7890"),
+		});
+
+	beforeEach(() => resetProxyRoute());
+
+	it("代理连不上时改直连再试一次，结果来自直连", async () => {
+		const { impl, via } = stubTransport((viaProxy) => {
+			if (viaProxy) throw networkFailure();
+			return new UndiciResponse("ok-direct");
+		});
+
+		const result = await makeFallbackClient(impl).fetchText("http://example.test/page");
+
+		expect(result.text).toBe("ok-direct");
+		expect(via).toEqual([true, false]);
+		expect(proxyNotice(PROXY)).toBe(
+			"1 proxy attempt failed in a row (last: network); using a direct connection.",
+		);
+	});
+
+	it("代理超时也改直连，每次尝试各有一份 timeout 预算", async () => {
+		const via: boolean[] = [];
+		const impl: FetchImpl = async (_input, init) => {
+			const viaProxy = init?.dispatcher !== undefined;
+			via.push(viaProxy);
+			if (!viaProxy) return new UndiciResponse("ok-direct");
+			return await new Promise<UndiciResponse>((_resolve, reject) => {
+				init?.signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+			});
+		};
+
+		const result = await makeFallbackClient(impl, { timeoutMs: 60 }).fetchText(
+			"http://example.test/page",
+		);
+
+		expect(result.text).toBe("ok-direct");
+		expect(via).toEqual([true, false]);
+	});
+
+	it("连续 3 次代理失败后只直连，提示写清病因与重试间隔", async () => {
+		const { impl, via } = stubTransport((viaProxy) => {
+			if (viaProxy) throw networkFailure();
+			return new UndiciResponse("ok-direct");
+		});
+		const client = makeFallbackClient(impl);
+
+		for (let index = 0; index < 3; index += 1) {
+			await client.fetchText("http://example.test/page");
+		}
+		expect(via).toEqual([true, false, true, false, true, false]);
+		expect(proxyNotice(PROXY)).toBe(
+			"3 proxy attempts failed in a row (last: network); direct connections only, proxy retried every 60s.",
+		);
+
+		await client.fetchText("http://example.test/page");
+		expect(via).toEqual([true, false, true, false, true, false, false]);
+	});
+
+	it("冷却到期后放行一次探测，成功即清零", async () => {
+		let now = 0;
+		const { impl } = stubTransport((viaProxy) => {
+			if (!viaProxy) return new UndiciResponse("ok-direct");
+			if (now < 60_000) throw networkFailure();
+			return new UndiciResponse("ok-proxy");
+		});
+		const client = makeFallbackClient(impl, { now: () => now });
+
+		for (let index = 0; index < 3; index += 1) {
+			await client.fetchText("http://example.test/page");
+		}
+		expect(proxyNotice(PROXY)).not.toBeNull();
+
+		now = 60_000;
+		const result = await client.fetchText("http://example.test/page");
+
+		expect(result.text).toBe("ok-proxy");
+		expect(proxyNotice(PROXY)).toBeNull();
+	});
+
+	it("代理返回 500 不回退：那不是传输层失败", async () => {
+		const { impl, via } = stubTransport(() => new UndiciResponse("boom", { status: 500 }));
+
+		const error = await makeFallbackClient(impl)
+			.fetchText("http://example.test/page")
+			.catch((caught: unknown) => caught);
+
+		expect(error).toBeInstanceOf(HttpError);
+		expect((error as HttpError).type).toBe("http_status");
+		expect(via).toEqual([true]);
+		expect(proxyNotice(PROXY)).toBeNull();
+	});
+
+	it("调用方中断不回退", async () => {
+		const controller = new AbortController();
+		controller.abort();
+		const { impl, via } = stubTransport(() => {
+			throw new Error("aborted");
+		});
+
+		const error = await makeFallbackClient(impl)
+			.fetchText("http://example.test/page", { signal: controller.signal })
+			.catch((caught: unknown) => caught);
+
+		expect(error).toBeInstanceOf(HttpError);
+		expect((error as HttpError).type).toBe("abort");
+		expect(via).toEqual([true]);
 	});
 });
 

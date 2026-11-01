@@ -5,16 +5,20 @@ import { EXTRACTOR_IDS, type ExtractorId } from "../../config/index.ts";
 import type { ExtractedContent, Extractor } from "../../extractors/index.ts";
 import { resetGhProbeCache } from "../../handlers/github/gh.ts";
 import type { GhExecutor } from "../../handlers/index.ts";
+import { resetProxyRoute } from "../../http/index.ts";
 import { createFetchTool, executeFetch } from "../../tools/fetch.ts";
 import { ghStub, ISSUE } from "../handlers/fixtures.ts";
-import { fakeHttp, firstText, makeConfig, rejectionOf } from "./fixtures.ts";
+import { exhaustProxy, fakeHttp, firstText, makeConfig, rejectionOf } from "./fixtures.ts";
 
 const spilled: string[] = [];
 afterEach(() => {
 	for (const path of spilled.splice(0)) rmSync(dirname(path), { recursive: true, force: true });
 });
 
-beforeEach(() => resetGhProbeCache());
+beforeEach(() => {
+	resetGhProbeCache();
+	resetProxyRoute();
+});
 
 /** 计数用的提取器表；内容必须长于默认 minChars(200)，否则链会继续下一个。 */
 function countingExtractors() {
@@ -33,6 +37,40 @@ function countingExtractors() {
 	>;
 	return { extractors, calls: () => calls };
 }
+
+describe("executeFetch：降级可见", () => {
+	it("代理降级时结果头带一行提示", async () => {
+		const proxy = await exhaustProxy();
+		const http = fakeHttp(() => ({
+			text: `<html><head><title>页面标题</title></head><body><p>${"正文段落内容".repeat(40)}</p></body></html>`,
+		}));
+
+		const result = await executeFetch(
+			makeConfig({ proxy }),
+			{ url: "https://example.com/page" },
+			undefined,
+			{ http },
+		);
+
+		expect(firstText(result)).toContain("> 3 proxy attempts failed in a row");
+		expect(firstText(result)).toContain("direct connections only");
+	});
+
+	it("代理正常时结果头没有这行", async () => {
+		const http = fakeHttp(() => ({
+			text: `<html><head><title>页面标题</title></head><body><p>${"正文段落内容".repeat(40)}</p></body></html>`,
+		}));
+
+		const result = await executeFetch(
+			makeConfig(),
+			{ url: "https://example.com/page" },
+			undefined,
+			{ http },
+		);
+
+		expect(firstText(result)).not.toContain("proxy attempt");
+	});
+});
 
 describe("executeFetch：handler 与提取器链", () => {
 	it("按提取器链抓取正文并标注来源", async () => {

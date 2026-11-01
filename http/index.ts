@@ -1,7 +1,8 @@
 /**
- * 出站 HTTP 唯一出口：代理、超时、UA、AbortSignal、错误归一化。
+ * 出站 HTTP 唯一出口：代理及其回退、超时、UA、AbortSignal、错误归一化。
  * 不认 provider 语义；入口 URL 的 SSRF 校验由调用方在抓取前完成，
  * 本模块只对重定向的每一跳目标调用 `assertPublicUrl`。
+ * 代理可用性状态与降级提示在 `route.ts`，本模块只负责按判定发起尝试。
  */
 
 import {
@@ -11,6 +12,15 @@ import {
 	fetch as undiciFetch,
 } from "undici";
 import { assertPublicUrl, isLoopbackHost, SsrfError } from "../ssrf/index.ts";
+import {
+	proxyNotice,
+	recordProxyFailure,
+	recordProxySuccess,
+	resetProxyRoute,
+	useProxy,
+} from "./route.ts";
+
+export { proxyNotice, resetProxyRoute };
 
 export type HttpErrorType =
 	| "timeout"
@@ -49,6 +59,10 @@ export interface HttpClientOptions {
 	proxy: string | undefined;
 	timeoutMs: number;
 	userAgent: string;
+	/** 测试注入；缺省读系统时钟（代理冷却计时用）。 */
+	now?: () => number;
+	/** 测试注入；缺省用 undici 的 `fetch`。 */
+	fetchImpl?: typeof undiciFetch;
 }
 
 export interface HttpRequest {
@@ -89,20 +103,32 @@ interface RequestState {
 }
 
 export function createHttpClient(options: HttpClientOptions): HttpClient {
+	const clock = options.now ?? Date.now;
+	const send = options.fetchImpl ?? undiciFetch;
 	let proxyAgent: ProxyAgent | undefined;
 
 	/** 本机目标永远绕过代理；其余目标在配置了 proxy 时经同一个 ProxyAgent。 */
-	function dispatcherFor(url: URL): Dispatcher | undefined {
+	function dispatcherFor(url: URL, viaProxy: boolean): Dispatcher | undefined {
+		if (!viaProxy) return undefined;
 		if (options.proxy === undefined || options.proxy === "") return undefined;
 		if (isLoopbackHost(url.hostname)) return undefined;
 		proxyAgent ??= new ProxyAgent({ uri: options.proxy });
 		return proxyAgent;
 	}
 
-	async function readResult(
+	/** 入口目标是否走代理：本机目标与冷却期内都直接连。 */
+	function entryUsesProxy(url: URL): boolean {
+		if (options.proxy === undefined || options.proxy === "") return false;
+		if (isLoopbackHost(url.hostname)) return false;
+		return useProxy(options.proxy, clock());
+	}
+
+	/** 一次传输尝试：独立的 timeout 信号与错误归一化状态，代理与否由 `viaProxy` 决定。 */
+	async function attempt(
 		url: string,
 		request: HttpRequest | undefined,
-	): Promise<{ status: number; url: string; contentType: string | undefined; text: string }> {
+		viaProxy: boolean,
+	): Promise<{ response: UndiciResponse; finalUrl: string; state: RequestState }> {
 		const state: RequestState = {
 			method: request?.method ?? "GET",
 			userSignal: request?.signal,
@@ -112,7 +138,36 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 			state.userSignal === undefined
 				? state.timeout
 				: AbortSignal.any([state.userSignal, state.timeout]);
-		const { response, finalUrl } = await perform(url, request, state, signal);
+		const { response, finalUrl } = await perform(url, request, state, signal, viaProxy);
+		return { response, finalUrl, state };
+	}
+
+	/**
+	 * 有代理先走代理；传输层失败（network / timeout）换直连再试一次，并记一次代理失败。
+	 * 回退只发生在还没拿到响应时：拿到响应之后的读体失败重发会重复副作用，所以不回退。
+	 */
+	async function exchange(
+		url: string,
+		request: HttpRequest | undefined,
+	): Promise<{ response: UndiciResponse; finalUrl: string; state: RequestState }> {
+		if (entryUsesProxy(new URL(url))) {
+			try {
+				const done = await attempt(url, request, true);
+				recordProxySuccess(options.proxy);
+				return done;
+			} catch (error) {
+				if (!isTransportFailure(error)) throw error;
+				recordProxyFailure(options.proxy, error.type, clock());
+			}
+		}
+		return attempt(url, request, false);
+	}
+
+	async function readResult(
+		url: string,
+		request: HttpRequest | undefined,
+	): Promise<{ status: number; url: string; contentType: string | undefined; text: string }> {
+		const { response, finalUrl, state } = await exchange(url, request);
 
 		let text: string;
 		try {
@@ -165,6 +220,7 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 		request: HttpRequest | undefined,
 		state: RequestState,
 		signal: AbortSignal,
+		viaProxy: boolean,
 	): Promise<{ response: UndiciResponse; finalUrl: string }> {
 		let current = new URL(url);
 		let method = state.method;
@@ -177,13 +233,13 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 		for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
 			let response: UndiciResponse;
 			try {
-				response = await undiciFetch(current, {
+				response = await send(current, {
 					method,
 					headers,
 					body,
 					signal,
 					redirect: "manual",
-					dispatcher: dispatcherFor(current),
+					dispatcher: dispatcherFor(current, viaProxy),
 				});
 			} catch (cause) {
 				throw toHttpError(cause, current.href, state);
@@ -230,6 +286,11 @@ function redirectTarget(current: URL, location: string): URL {
 	}
 	assertPublicUrl(next.href);
 	return next;
+}
+
+/** 只有传输层失败才换直连；调用方中断、SSRF 命中与 HTTP 状态码都不是代理的错。 */
+function isTransportFailure(error: unknown): error is HttpError {
+	return error instanceof HttpError && (error.type === "network" || error.type === "timeout");
 }
 
 /** 归一化 fetch / 读体阶段的异常：区分调用方中断、超时与网络错误。 */
